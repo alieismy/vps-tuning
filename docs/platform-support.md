@@ -43,6 +43,8 @@ schema 4 的 `profile` 增加 `os_id`/`os_version` 描述字段；Debian 保留 
 
 rc.2 固定提交：`764c016b2009ad21aae68ceee8d052f5469e7a72`；[平台生命周期 CI 38111714946](https://github.com/alieismy/vps-tuning/actions/runs/38111714946)。结果：七组全部成功。七组归档复核：七份下载归档均核对大小与 GitHub SHA-256、rc.2 VERIFIED 状态、两次客体 boot ID 变化、17 项 sysctl 及 qdisc 恢复。这些隔离客体证据不代表五台存量 VPS 迁移或业务验收。
 
+五台 Debian 13 存量 VPS 的迁移和基本业务验收已取得独立于上述 CI 的逐台证据，见[五台验收记录](validation.md#rc2-fleet-acceptance)。其范围为 1C1G／1C2G、100／200／500 Mbps，不扩大本页其他平台、硬件或性能证据。
+
 | 平台 | x86_64 | ARM64 |
 |---|---|---|
 | Debian 12 | 764c016 完整生命周期通过 | 764c016 完整生命周期通过 |

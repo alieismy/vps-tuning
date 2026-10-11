@@ -170,6 +170,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 ## 验证状态与已知限制
 
+- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性。
 - 七组隔离客体生命周期覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 adaptive，以及 Debian 13 x86_64 legacy；包括真实客体重启、幂等、重配置与恢复。ARM64 使用 ARM runner 上的 QEMU/TCG，不能替代特定云厂商硬件验收。
 - 公共 IPv4 自动测量、临时 HTB 正常与信号中断恢复有有限 VPS 证据。完整低速扫描曾获得 15 个样本、11 个有效，整轮仍为 `INSUFFICIENT_EVIDENCE`，尚未证明可靠 policer 拐点或代理收益。
 - 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。

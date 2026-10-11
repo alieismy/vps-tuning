@@ -170,6 +170,7 @@ Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call 
 
 ## Validation status and limitations
 
+- As of 2026-10-11, five Debian 13 VPS hosts have completed rc.2 migration and entrypoint installation, with `COMPLETE / VERIFIED` state and zero warnings from strict x-ui verification. The user confirmed panel access, real proxy traffic and reconnection for each host. Four use replacement recovery baselines and one uses historical evidence from the same deployment; see the [five-host acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance). This does not establish quantitative performance gains or long-term stability.
 - Seven isolated guest lifecycle jobs cover Debian 12/13 and Ubuntu 24.04 x86_64/ARM64 adaptive profiles, plus Debian 13 x86_64 legacy. They include real guest reboots, idempotency, reconfiguration and restoration. ARM64 uses QEMU/TCG on ARM runners; it is not vendor-specific hardware acceptance.
 - Public IPv4 measurement and temporary HTB normal/signal-interrupted restoration have bounded VPS evidence. One complete low-rate sweep had 15 samples, 11 eligible, and still returned `INSUFFICIENT_EVIDENCE`. Reliable policer detection and proxy benefits remain unproven.
 - The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.
