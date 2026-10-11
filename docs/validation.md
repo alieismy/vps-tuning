@@ -1,5 +1,20 @@
 # 验证说明
 
+<a id="rc2-mainline-release-validation"></a>
+
+## 0.2.0-rc.2 主线整合及公开发布（2026-10-11）
+
+- 主线补交：[PR #36](https://github.com/alieismy/vps-tuning/pull/36) 合入 `fac9a3c`，两项 [Push CI 38111505607](https://github.com/alieismy/vps-tuning/actions/runs/38111505607) / [PR CI 38111509531](https://github.com/alieismy/vps-tuning/actions/runs/38111509531) 成功。CodeRabbit 对 `4b6709a` 实质评审无 actionable，独立评审无阻断；#34 记录保留。
+- rc.2 整合：[PR #37](https://github.com/alieismy/vps-tuning/pull/37)，整合 head `d85c1b4f8828dc1650df3428110511527244e537`，与平台测试 head `764c016b2009ad21aae68ceee8d052f5469e7a72` 文件树一致；[Push CI 38111906793](https://github.com/alieismy/vps-tuning/actions/runs/38111906793) 与 [PR CI 38111910453](https://github.com/alieismy/vps-tuning/actions/runs/38111910453) 结果：两项均成功；常规 132 项测试中 root 集成在非 root 阶段跳过，随后 20 项 root 恢复专项全部通过，安装/迁移、隔离原生 HTB 及 ShellCheck 通过。独立评审已对 `764c016` 完整差异检查，无阻断发现；CodeRabbit rate-limited 不计为实质评审。
+- 七组平台生命周期绑定 `764c016b2009ad21aae68ceee8d052f5469e7a72`：[平台 CI 38111714946](https://github.com/alieismy/vps-tuning/actions/runs/38111714946)，结果：七组全部成功；归档复核：七份下载归档均核对大小与 GitHub SHA-256、rc.2 VERIFIED 状态、两次客体 boot ID 变化、17 项 sysctl 及 qdisc 恢复。隔离 VM 证据不代表五台存量生产迁移。
+- 平台结果复用：`764c016`、整合 head `d85c1b4` 与发布提交 `6f48443` 的 Git tree 完全相同。主线自动触发的重复矩阵 [38113231525](https://github.com/alieismy/vps-tuning/actions/runs/38113231525) 已主动取消，未计为通过；平台门禁采用上条已完成并核验的七组结果，避免同一文件树重复运行。
+- 合并与 tag：主线合并提交 `6f48443e194531fe3692e3bbe0271713a5e40a65`，[合并后 CI 38113231529](https://github.com/alieismy/vps-tuning/actions/runs/38113231529) 结果：success；固定 `v0.2.0-rc.2` tag 解引用该提交，[tag CI 38113244765](https://github.com/alieismy/vps-tuning/actions/runs/38113244765) 结果：success。
+- 公开发布：[v0.2.0-rc.2 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.2)。公开回验结果：26 项公开下载文件逐字节匹配固定 tag 与 GitHub digest，24 项 manifest 及安装器内置摘要链通过；旧仓库 installer/manifest 地址均经两次 HTTPS 跳转返回 200 且字节一致；源码恢复工具摘要一致；原 14 个 Release、199 项资产及旧 tag 指向未变。24 项清单运行资产、installer 与清单共 26 项；源码恢复工具另行绑定，不计入安装资产。
+
+VPS-02 既有 `COMPLETE / VERIFIED` 和 `PASS_USER_CONFIRMED` 证据见下方 2026-10-09 日期化记录。其他四台仍未迁移；本轮未连接或修改真实 VPS。原始 `PENDING_USER_TEST` 及发布前待办保留为当时状态，由本节后继证据补齐。
+
+本节及当前入口由[文档收尾 PR #38](https://github.com/alieismy/vps-tuning/pull/38)交付；文档自身的最终 CI、评审与合并状态在该 PR 追踪，与上述固定运行资产验证分别记录。
+
 ## 0.2.0-rc.2 逐台 TCP 基线恢复候选（2026-10-04）
 
 范围见[恢复工具](tcp-baseline-recovery.md)。新增 20 项恢复测试：Windows 上 18 项通过，Linux 权限/flock 与 Linux root 迁移 CLI 集成两项跳过。完整静态套件返回 0，九份 profile 和控制器通过，132 项 Python 中 129 项通过、3 项平台条件跳过；本轮修改的迁移脚本通过 ShellCheck 0.11.0，新增 jq 归档契约与状态来源校验使用实际生成归档执行通过。后续 Linux CI 将运行全部恢复测试，包括两个模式的真实文件事务接迁移 CLI；profile 和 boot ID 仍为 fixture，不能称为真实系统迁移。
@@ -248,7 +263,7 @@ shellcheck -x \
   experiments/htb-aggregate/tests/static-check.sh
 ```
 
-发布后必须从公开 Release 下载 installer、总控、六份 profile、预算与迁移工具、TcpQuality、两个 `dvt` companion、五个 HTB 脚本和清单共 19 个资产，在与仓库不同的临时目录复核 installer/manifest 固定摘要并对 17 个 manifest 条目执行 `sha256sum -c SHA256SUMS`。公开重下载未完成时，不得把远程资产验证标为通过；发布结果以实际 Release 和后续核验记录为准。
+当前主程序发布后必须从公开 Release 下载清单内 24 项运行资产、installer 和清单共 26 个资产，在与仓库不同的独立临时目录复核 installer/manifest 固定摘要并对全部 24 个 manifest 条目执行 `sha256sum -c SHA256SUMS`。五个实验脚本按清单相对路径放入 `experiments/htb-aggregate/`；GitHub 上传资产使用 basename 平铺。公开重下载未完成时，不得把远程资产验证标为通过；发布结果以实际 Release 和后续核验记录为准。历史 rc.18/rc.19 的 19 资产、17 清单项数量保留于各自日期化记录。
 
 ## 首发目标机矩阵
 

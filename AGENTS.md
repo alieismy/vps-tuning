@@ -8,7 +8,7 @@
 
 ## 当前项目阶段：发布后文档收尾
 
-主程序三阶段实现及离线解释工具已完成各自的 Pre-release 交付。本阶段同步发布入口、当前状态和证据指针，不重新开启已完成的 rc.18 实现任务。涉及安装或主程序升级时，阅读[主程序发布说明](docs/releases/v0.2.0-rc.1.md)与[平台支持及旧状态限制](docs/platform-support.md)；涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)。具体提交、CI、公开资产回验与剩余运行缺口以[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)为准，不在本文件复制验证日志。
+主程序三阶段实现及离线解释工具已完成各自的 Pre-release 交付。本阶段同步发布入口、当前状态和证据指针，不重新开启已完成的 rc.18 实现任务。涉及安装或主程序升级时，阅读[主程序发布说明](docs/releases/v0.2.0-rc.2.md)与[平台支持及旧状态限制](docs/platform-support.md)；涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)。具体提交、CI、公开资产回验与剩余运行缺口以[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)为准，不在本文件复制验证日志。
 
 文档收尾保持 17 项受管 sysctl、资源感知 BDP 缓冲、默认 `BBR + fq`、非持久 HTB、managed-state schema 4、benchmark schema 3、预算 ledger 和迁移 checkpoint 边界，不改变 HTB rate/burst/cburst 或启用持久整形。修改 mq 寻址或回滚逻辑前，阅读[rc.18 技术记录](docs/releases/v0.1.0-rc.18.md)及相关源码/fixture，保留全 fq 无写入、混合拓扑写前拒绝、队列集合核对和限定 parent 规范化契约；该记录中的候选状态属于历史时间点。
 

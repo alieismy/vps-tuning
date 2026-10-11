@@ -1,14 +1,16 @@
 # VPS Tuning
 
-简体中文 · [English](README.en-US.md) · [v0.2.0-rc.1 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.1)
+简体中文 · [English](README.en-US.md) · [v0.2.0-rc.2 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.2)
 
-工作树包含 **v0.2.0-rc.2 未发布修复候选**，修复旧 schema 4 的只读升级预检。下方在线安装仍指向已发布 rc.1；rc.1 对旧 schema 4 的目标预检存在版本误拒绝。候选边界和本地验证见[候选说明](docs/releases/v0.2.0-rc.2.md)。预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。
+**v0.2.0-rc.2 预发行版**修复旧 schema 4 的只读升级预检，范围和证据见[发布说明](docs/releases/v0.2.0-rc.2.md)。预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。
 
 为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
 
 当前为 **Pre-release**。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
 
 仓库原名 `debian-vps-tuning`，2026-10-10 改为现名，旧链接会自动跳转到本仓库。`dvt` 命令、发布资产文件名、安装路径和受管状态路径均保持不变。
+
+本版运行资产保留已验证的旧仓库常量，安装器和总控通过 GitHub 重定向访问新仓库；不要在同一账户下重新创建旧名仓库，以免使这些重定向失效。
 
 [功能与边界](#功能与边界) · [支持范围](#支持范围与前置条件) · [快速开始](#快速开始) · [常用操作](#常用操作) · [升级与回滚](#升级与回滚) · [文档](#文档导航) · [帮助](#帮助贡献与安全报告)
 
@@ -50,7 +52,7 @@
 
 ### 安装
 
-在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.1` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
+在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.2` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
 
 ```bash
 (
@@ -61,9 +63,9 @@
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.1/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/install.sh
   printf '%s  %s\n' \
-    'a039922793710a90b281a10ba5076761f6a8efd43c96c916328e0fe7c5f70d06' \
+    '8cc038ff6a2386879769f8f08b5d143cf76311b348a29ccb4584a1acd3ad3f00' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -101,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` 是允许的结果；退出码 0 只表示报告采集完成。测试不经过 VLESS/REALITY 客户端，不能据此承诺业务提速。临时整形另见 [htb-sweep 指南](docs/temporary-htb.md)，执行前必须理解整个接口限速及恢复条件。
 
-需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，主程序版本仍为 `v0.2.0-rc.1`。
+需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，主程序版本仍为 `v0.2.0-rc.2`。
 
 ### 路径 B：应用持久配置
 
@@ -173,7 +175,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 - 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。
 - 1–10000 Mbps 是参数范围；更广泛公网平台、IPv6、高速、特定大资源硬件及业务性能仍有未验收项。
 
-固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.1.md)。
+固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.2.md)。
 
 ## 文档导航
 

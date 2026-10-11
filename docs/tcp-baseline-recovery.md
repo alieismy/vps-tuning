@@ -1,6 +1,6 @@
-# 旧 TCP 快照恢复与新基线迁移候选
+# 旧 TCP 快照恢复与新基线迁移
 
-状态：`0.2.0-rc.2` 未发布候选。本文和源码工具不构成生产变更授权。适用范围限 Debian 13、`debian13-1c1g` / `debian13-1c2g`、100/200/500 Mbps、来源 rc.11/rc.12/rc.16/rc.17，且两项 TCP 原值均因已确认的旧缺陷保存为字符串 `4096`。
+状态：`0.2.0-rc.2` 预发行版配套源码工具。本文和源码工具不构成生产变更授权。适用范围限 Debian 13、`debian13-1c1g` / `debian13-1c2g`、100/200/500 Mbps、来源 rc.11/rc.12/rc.16/rc.17，且两项 TCP 原值均因已确认的旧缺陷保存为字符串 `4096`。
 
 ## 恢复语义
 
@@ -20,7 +20,7 @@
 
 ## 工具及写入边界
 
-[tools/recover_tcp_baseline.py](../tools/recover_tcp_baseline.py) 是源码树中的一次性恢复工具，使用 Python 3 标准库；不是已发布 `dvt` 子命令，也不由安装器部署。运行前应固定整个候选提交并核对工具摘要，来源 profile 则使用已发布版本的固定 SHA-256。不得混用来源和目标 Release 的清单。
+[tools/recover_tcp_baseline.py](../tools/recover_tcp_baseline.py) 是源码树中的一次性恢复工具，使用 Python 3 标准库；不是已发布 `dvt` 子命令，也不由安装器部署。运行前使用[固定 `v0.2.0-rc.2` 源码](https://github.com/alieismy/vps-tuning/tree/v0.2.0-rc.2)，并核对[该 tag 下的工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.2/tools/recover_tcp_baseline.py) SHA-256：`0389fe2ddadbe031bb5054c2b0542a187b0e087ade2c72928864c1169e591a4e`。该工具不在 26 项安装发布资产中；来源 profile 则使用对应旧版的固定 SHA-256。不得混用来源和目标 Release 的清单。
 
 | 操作 | 行为 |
 |---|---|
@@ -80,7 +80,7 @@ python3 /root/dvt-recovery/recover_tcp_baseline.py inspect --host-id VPS-01
 
 1. 在已授权的生产维护准备中，以 `prepare --plan /绝对路径/plan.json --archive /绝对路径/新归档目录` 创建归档。归档必须位于旧 `/var/lib/proxy-vps-tuning` 之外；保留 prepare 输出的计划 SHA-256。
 2. 核对归档、恢复点与生产变更授权后，以 `activate --archive ... --expect-plan-sha256 ...` 激活工作状态。只激活状态不能证明已升级。
-3. 用同一候选版本的固定目标总控重新执行 update 和 migrate prepare。迁移器仍要求完整三元组和来源 verify；对于带恢复记录的 state，还核对主机、候选 state、来源资产和整个恢复归档，将副本及 receipt 摘要写入迁移 checkpoint。
+3. 用同一 rc.2 版本的固定目标总控重新执行 update 和 migrate prepare。迁移器仍要求完整三元组和来源 verify；对于带恢复记录的 state，还核对主机、候选 state、来源资产和整个恢复归档，将副本及 receipt 摘要写入迁移 checkpoint。
 4. 后续按迁移 checkpoint 执行旧版 rollback、第一次重启、目标 preflight/apply、第二次重启、目标 verify。迁移器在第一次重启后记录实际 TCP 基线，目标 state 必须保存相同的完整值；不是以过渡值或参考机值覆盖重启后的真实记录。
 5. 要求 checkpoint 为 COMPLETE，并独立完成 SSH、3x-ui 和实际代理业务验收。保留原归档及 checkpoint，不把 CI fixture 或函数级预检当作这一步的证据。
 
