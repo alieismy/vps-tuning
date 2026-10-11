@@ -9,9 +9,9 @@
 ## 本轮记录：2026-10-11（复查与修复记录 PR 交付）
 
 - **授权与基线。** 用户授权将本次修复及复查记录提交、推送到新分支、创建 PR 并核对 CI 与评审，明确不合并。前轮“不提交、不推送”边界由本次授权替代。远程 master 为 `2d4dd07`，PR #34 仍 OPEN，head 为 `956a077b0c6ff7f6a3772b7702dd1c8305517a97`。
-- **集成方式。** 新分支 `codex/rename-security-review-20261011` 基于 PR #34 head，PR 目标为其分支 `claude/memo-pr33-merge-20261010`。#34 的 16 行备忘增量逐字保留且只出现一次；本次提交只包含 `SECURITY.md` 的三处修订及本轮复查、整改、交付记录。待 #34 经授权合并后，再将本 PR 目标改回 master 并重新核对差异与检查，不直接把本 PR 合入 #34 分支。
-- **验证与评审。** 提交前核对文档相对链接、UTF-8/LF、变更范围、暂存内容及 `git diff --check`；保留前两轮已绑定来源的验证证据。新提交的 Linux CI 和自动评审由 PR 触发，须读取检查结果及评审正文，不能把 skipped/rate-limited 的绿色状态当作实质评审。具体结果在交付核对后补记。
-- **延期事项与未完成门禁。** 无新增延期事项。当前待创建 PR 并完成对应 CI/评审核对；本 PR 与 #34 的合并均不在本轮执行范围。私密漏洞报告已启用，运行源码及公开资产不变。
+- **集成方式。** 新分支 `codex/rename-security-review-20261011` 基于 PR #34 head，已创建 [PR #35](https://github.com/alieismy/vps-tuning/pull/35)，目标为其分支 `claude/memo-pr33-merge-20261010`。#34 的 16 行备忘增量逐字保留且只出现一次；本次提交只包含 `SECURITY.md` 的三处修订及本轮复查、整改、交付记录。待 #34 经授权合并后，再将本 PR 目标改回 master 并重新核对差异与检查，不直接把本 PR 合入 #34 分支。
+- **验证与评审。** 提交前文档链接、UTF-8/LF、变更范围、暂存检查及 `git diff --check` 通过，公开分支的两份文件与本地逐字节一致。首个提交 `aadf3bc` 的 [push CI 38107764069](https://github.com/alieismy/vps-tuning/actions/runs/38107764069) 与 [PR CI 38107782259](https://github.com/alieismy/vps-tuning/actions/runs/38107782259) 均通过完整 Linux 门禁。CodeRabbit 起初因非默认目标分支跳过，单次显式触发后实质评审了两份文件，提出一项 Minor：备忘仍写“待创建 PR”；本次补记已修正。独立只读评审同一提交未发现其他实质性缺陷，确认 #34 及既有记录完整保留。CodeRabbit 该轮额度已用尽，不把后续绿色 skipped/rate-limited 状态当作复审；补记提交的 CI 与最终差异复核由 [PR #35 检查及交付说明](https://github.com/alieismy/vps-tuning/pull/35/checks) 记录，不借用 `aadf3bc` 的 CI 证明后继提交。
+- **延期事项与未完成门禁。** 无新增延期事项。PR #35 已创建并保留 OPEN；本 PR 与 #34 的合并均不在本轮执行范围。合并前须以最终 head 的 CI、评审问题处理结果及目标分支重新核验为准。私密漏洞报告已启用，运行源码及公开资产不变。
 - **成熟度。** 保持既有 Pre-release 状态；本轮不连接 VPS、不运行公网测速、不创建 tag 或 Release。
 
 ## 本轮记录：2026-10-11（改名复查三项问题整改）
