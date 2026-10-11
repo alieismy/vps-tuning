@@ -31,6 +31,8 @@ schema 4 的 `profile` 增加 `os_id`/`os_version` 描述字段；Debian 保留 
 
 ## 旧状态与迁移
 
+2026-10-04 补充：以下固定 rc.1 路线对旧 schema 4 存在目标预检版本误拒绝，详见[迁移指南的已知问题](migration.md)。修复位于未发布的 [rc.2 候选](releases/v0.2.0-rc.2.md)，其本地 fixture 不继承下方 rc.1 的真实平台生命周期结论。
+
 安装新版本只替换执行入口，不迁移旧 managed state。现有主机应保留原版本脚本和状态，用目标版本的 `update --target v0.2.0-rc.1` 做只读检查，再由目标版本的 `migrate prepare` 检查来源和恢复条件。只有 checkpoint 成为 `PREPARED` 后才可按其输出进入回滚、两次重启和目标 apply/verify；具体命令见[当前迁移指南](migration.md#迁移到-v020-rc1)，不要套用历史 rc.16→rc.19 的命令来迁移新版本。
 
 本轮发现更早版本可能只保存 `tcp_rmem/tcp_wmem` 的第一项。缺少另外两项时，新迁移器拒绝创建 checkpoint，新回滚路径保留状态并拒绝写入。即使项目文件已经消失，仍不能据此证明内核原值已恢复，因此完整性检查也不为“仅清理残留状态”跳过。这是有意保留的恢复边界。

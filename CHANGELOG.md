@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0-rc.2] - 未发布
+
+- 修复 `UPDATE_PREFLIGHT=1` 时旧 schema 4 因版本不一致被目标 profile 拒绝的问题；限定已有 `0.1.0-rc.1` 至 `rc.19` 来源，保留 profile、provider、所有权和状态阶段校验。
+- 限定 `UPDATE_PREFLIGHT` 只能用于 profile 的 `preflight` 动作，阻止借兼容模式进入写操作；普通模式报告来源与当前版本，保持版本边界。
+- `update` 成功提示先通过 `migrate prepare` 的 `PREPARED` 门禁；缺失 TCP 原始三元组仍拒绝迁移，不猜值、不改写旧状态。
+- 同步九份生成 profile、候选入口和摘要链，增加真实预检入口与控制器调用回归。验证范围见 `docs/releases/v0.2.0-rc.2.md`；公开 rc.1 资产保持不变。
+
 ## [measurement-explanation-v0.1.0] - 2026-09-30
 
 - 独立发布离线测量解释工具 `0.1.0`：校验既有报告后显示绝对重传次数、字节暴露量、原阈值所需整数次数和候选限制，保留原分类与原始证据。

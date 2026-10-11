@@ -1,5 +1,49 @@
 # 验证说明
 
+## 0.2.0-rc.2 逐台 TCP 基线恢复候选（2026-10-04）
+
+范围见[恢复工具](tcp-baseline-recovery.md)。新增 20 项恢复测试：Windows 上 18 项通过，Linux 权限/flock 与 Linux root 迁移 CLI 集成两项跳过。完整静态套件返回 0，九份 profile 和控制器通过，132 项 Python 中 129 项通过、3 项平台条件跳过；本轮修改的迁移脚本通过 ShellCheck 0.11.0，新增 jq 归档契约与状态来源校验使用实际生成归档执行通过。后续 Linux CI 将运行全部恢复测试，包括两个模式的真实文件事务接迁移 CLI；profile 和 boot ID 仍为 fixture，不能称为真实系统迁移。
+
+三台已有可信主机密钥的真实 VPS 通过新工具的 `inspect`，由 SSH stdin 执行，只读获取状态/部署绑定、运行参数、文件摘要，不在远端保存工具或写状态。新增可连接主机另通过固定 rc.12 来源 `verify_settings()` 与候选 `run_preflight()`，状态、文件、17 项 sysctl、qdisc、swap 和 boot ID 前后一致，其两个部署时间戳与历史候选匹配。另两台分别待主机密钥信任、远端关闭连接；生产基线激活、整机恢复、两个重启和业务验收均未执行。逐台编号、地址和计划保留在私有忽略目录。
+
+实现提交 `3616444921d0bf688ee79e11f5816f0e41ef1485` 的[主 CI 37178357578](https://github.com/alieismy/debian-vps-tuning/actions/runs/37178357578)已成功，日志确认 132 项常规测试中只有 root 集成因普通用户运行跳过，随后 root 专项 20 项全部通过、无跳过；九份 profile、安装/迁移、原生 tc/信号恢复、HTB 静态和 ShellCheck 0.11.0 成功。新增恢复模式的端到端测试执行真实文件读写及迁移 CLI，两个 boot gate、源归档保留、PREPARING 拒绝 rollback、目标原值再次截断拒绝均通过；系统 profile 操作与重启仍是隔离 fixture。
+
+[平台运行 37178357544](https://github.com/alieismy/debian-vps-tuning/actions/runs/37178357544) 的四组 x86_64 成功，四份 artifact 均完成 GitHub digest、目标 VERIFIED、两次真实客体重启及 17 项原 sysctl/qdisc 恢复核验；三组 ARM64 仍在运行。VM 门禁验证常规生命周期，不包含用户五台生产基线恢复；未发布候选与生产验收边界保持。
+
+后续核验（2026-10-05）：该平台运行已整体 `success`，head SHA 仍为 `3616444921d0bf688ee79e11f5816f0e41ef1485`。七份归档均已下载并核对 GitHub digest、目标版本及 VERIFIED 状态、两次客体 boot ID 变化、17 项 sysctl 原值恢复和 qdisc 恢复；三组 ARM64 不再待完成。主 CI 也复核为同一实现提交的 `success`。
+
+本轮实际连接四台 VPS，均通过恢复工具 inspect、固定来源 `verify_settings()` 和候选 `run_preflight()`；状态、受管文件、17 项 sysctl、qdisc、swap 和 boot ID 前后一致。此前待信任的主机现已使用登记的密钥严格校验通过；另一台的连接已恢复，但自动化公钥登录返回 `Permission denied (password)`，未取得状态，不计为通过。具体映射和四份已补齐实机绑定的计划仅存私有目录。未执行基线 activate、旧版 rollback、目标 apply、重启或业务验收；系统/业务恢复点和控制台可用性仍待确认，历史模式的部署连续性确认仍保留为未完成项。
+
+2026-10-09 分工变更：此前待自动化认证的一台改由用户使用密码登录、手工执行测试与升级。已交付固定来源/候选/恢复工具的私有预检包，资产摘要、候选提交字节、归档回读和运行脚本 Bash 语法检查通过；脚本直接执行来源 CLI verify 和候选 CLI preflight，正常锁元数据写入属于其已说明的副作用。尚未收到用户实测输出，成功主机数量保持四台；密码登录本身不作为新的产品阻塞。
+
+同日后续收到 VPS-02 实测材料：指定私有目录与工作区下载副本的九份结果文件逐字节一致，五份预检包文件与原交付一致；来源 verify 和候选 preflight 均零警告通过，x-ui active，前后 inspect 完全相同。五台现均有预检证据，其中其他四台保留 2026-10-05 检查时间，不冒充本日重新验证。用户确认 VPS-02 系统快照已离机保存、控制台/救援入口可用；Agent 未实施备份还原测试。
+
+已为 VPS-02 准备固定提交的私有离线迁移包，核心资产保持原字节，四个手工阶段保留归档完整性、状态绑定和两个重启门禁。38 个归档文件、24 项目标运行资产、摘要链、五份 Bash 编排语法及控制器版本输出核对通过；独立只读复核没有阻断发现。新增编排尚未实机运行，恢复激活、迁移、安装入口、严格代理服务验证及真实客户端业务均仍待用户执行，不能把材料交付计为生产迁移通过。
+
+同日后续迁移实测：VPS-02 已由用户手工执行四阶段流程并回传运行目录。38 个包文件与原交付逐字节一致，24 项目标资产、checkpoint 三项资产及两份恢复归档各 12 项 receipt 摘要核对通过。原始 state 得以保留，激活仅更改两项 TCP 原值及来源字段；replacement 与 `historical_originals_recovered=false` 保持。checkpoint 为 `COMPLETE`，终态为 `0.2.0-rc.2` / schema 4 / `VERIFIED` / `debian13-1c1g` / 100 Mbps，profile SHA-256 为 `d567e5824d25a3c742b5071912a673232985e15f9cc6b97186a7c0579fc7c254`。目标环境为 Debian 13、x86_64、1 vCPU、967 MiB、内核 `6.12.111+deb13-cloud-amd64`。
+
+第一次重启前后 checkpoint boot ID 不同；第二次重启门禁通过由固定脚本的清洁环境调用、无跳阶段的 history 和第 04 阶段完成日志支持，最终 boot ID 未单独归档。第一次重启后采集的 `tcp_rmem=4096 131072 6291456`、`tcp_wmem=4096 16384 4194304` 与目标保存原值完整匹配；这是新卸载恢复基线，目标调优上限仍为 16 MiB。安装入口版本匹配 rc.2，严格 `REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS=x-ui.service /usr/local/bin/dvt verify` 零警告通过：x-ui active，配置、主进程及直接子进程 NOFILE soft/hard 均为 65536。该证据支持本次系统迁移与严格服务验证完成；真实客户端业务仍为 `PENDING_USER_TEST`，不证明性能收益、整机还原演练或其他四台迁移完成。Agent 本轮只核验下载材料，未连接或修改 VPS。
+
+同日业务验收补记：用户随后明确确认“VPS-02 面板正常、代理业务正常、重新连接正常”。本机业务状态据此记为 `PASS_USER_CONFIRMED`，与前述已核验的系统迁移、严格服务验证共同闭合本次迁移验收。该项为用户实际测试回报，Agent 未重新连接 VPS 或独立复测客户端。原始运行摘要中的 `PENDING_USER_TEST` 保持原样，另存后续验收记录；不据此宣称量化性能收益、长期稳定性、整机还原演练或其他四台迁移完成。
+
+## 0.2.0-rc.2 旧 schema 4 升级预检修复（2026-10-04，本地候选）
+
+本轮修复与限制见[候选说明](releases/v0.2.0-rc.2.md)。新增 `tests/test_update_preflight.py`，修复前在实际 profile 预检与控制器 `run_update` 调用路径观察到旧 schema 4 拒绝；修复后七个测试方法通过，覆盖五组历史状态、普通模式版本边界、非 preflight 动作拒绝、schema/profile/provider/所有权与阶段门禁、来源 verify 失败停止，以及缺失 TCP 原值时不创建 checkpoint。合成状态逐字节不变；Windows fixture 隔离宿主探测、锁和 root 元数据，不证明目标机生命周期。
+
+最终 `bash tests/static-check.sh` 返回 0，输出 `static checks passed for 9 scripts`；其中 112 项 Python 中 111 项通过，1 项因 Windows 缺少 flock 跳过，控制器检查通过，模板生成无漂移。ShellCheck 0.11.0 按 CI 文件清单检查 29 个脚本及九份提取的 helper，共 38 项全部通过。24 项运行资产摘要、installer 内置 manifest 摘要和候选说明中的安装摘要一致；README 在线命令保留已发布 rc.1 的固定地址和摘要。离线 probe 校准器增加同格式 rc.2 标识兼容，原有结果及证据不变回归通过。
+
+`bash experiments/htb-aggregate/tests/static-check.sh` 返回 0，输出 `HTB aggregate experiment static checks passed`；其中故意注入的失败与恢复断言按预期处理。最终 `git diff --check` 通过。
+
+候选尚未发布；本轮获准进入独立分支 Linux CI，实际结果绑定后续固定提交与运行记录。VM 重启和用户 VPS 生命周期尚未执行；既往 rc.1 CI 不能替代这些门禁。历史单值 TCP 快照仍阻断迁移，本地预检修复不构成原值恢复或生产升级成功。
+
+获授权的两台 VPS 只读验证：固定已发布 rc.1 的原 `state_file_path_is_valid()` 拒绝当前 rc.16/rc.17 状态，候选同函数接受；执行真实 jq、stat 与真实状态文件，不模拟 root 元数据。受管文件全部匹配 state 摘要，配置文件的 17 项 sysctl 与当前内核一致，x-ui active。检查前后 state、受管文件、sysctl 和 boot ID 不变，两项历史 TCP 原值仍均缺项。测试经 SSH stdin 在内存中运行，不安装候选、不执行 DVT 动作或写锁；该结果不等同完整 `update`/`preflight` 或恢复验收。
+
+后继只读测试以 `O_RDONLY` 打开既有锁文件并取得非阻塞共享锁，直接运行固定来源的 `verify_settings()` 与候选 `run_preflight()`；两台均返回 0，源码校验摘要分别匹配来源固定资产。未模拟 OS、资源、所有权、provider、qdisc 或 swap；仅不调用 CLI 的写锁/下载入口。前后核对 state、五项受管文件、原 qdisc/provider 备份、fstab、sysctl.conf、锁文件摘要，以及 17 项内核 sysctl、qdisc、swap、boot ID，全部一致。两台执行入口均仍为 rc.1，受管状态分别为 rc.16/rc.17。
+
+实现提交 `540bbb456242d59ffe0fa24a2393592c0648293d` 的 [Linux 主 CI 37172239683](https://github.com/alieismy/debian-vps-tuning/actions/runs/37172239683) 全部通过：下载日志确认 112 项 Python 无跳过、九份生成 profile、root 安装、rc.16/17/18/19→rc.2 迁移 fixture、预算/进程、隔离原生 tc/iperf3 与 ShellCheck 0.11.0 成功。[平台矩阵 37172239733](https://github.com/alieismy/debian-vps-tuning/actions/runs/37172239733) 的四组 x86_64 已通过并下载归档核对 GitHub digest、rc.2 VERIFIED 状态、两次客体 boot ID 变化、17 项 sysctl 和 qdisc 恢复；三组 ARM64 仍在运行，不计为通过。这些是隔离 CI 客体证据，不是存量 VPS 的恢复或迁移。
+
+后续完成核验：平台运行 `37172239733` 已整体成功，七组 artifact 均核对 GitHub digest、rc.2 VERIFIED、两次真实客体重启、17 项 sysctl 原值和 qdisc 恢复；三组 ARM64 不再处于待完成状态。仅文档提交 `89e7c7524dd114e192eab13c4ace02e069cef145` 的 [主 CI 37172611946](https://github.com/alieismy/debian-vps-tuning/actions/runs/37172611946) 也通过；相对实现提交仅三份文档变化。候选尚未发布，以上不补齐用户旧状态中的历史 TCP 原值。
+
 ## 测量证据解释工具（2026-09-30，独立 Pre-release）
 
 当前发布为 [`measurement-explanation-v0.1.0`](releases/measurement-explanation-v0.1.0.md)，固定源码 `1c5e922c2fce916d5217bf6c238d6cd50a8c51b0`。[合并后 CI 36694985355](https://github.com/alieismy/debian-vps-tuning/actions/runs/36694985355) 与 [tag CI 36696765305](https://github.com/alieismy/debian-vps-tuning/actions/runs/36696765305) 均通过，日志确认 105 项 Python 无跳过及完整 Linux 门禁。发布的三个资产已从公开地址下载，与批准制品逐字节一致；解包目录通过 16 项工具测试与四轮 71 样本回读，1244 个源证据文件保持。主程序 Release 的 26 项资产及更新选择保持；这些结果不替代公网业务收益或存量迁移验收。以下保留对应开发提交的验证记录。

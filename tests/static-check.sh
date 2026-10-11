@@ -146,7 +146,7 @@ expected_keys=17
 for script in "${scripts[@]}"; do
   actual="$(awk '/^PROFILE_SYSCTL_KEYS=\(/,/^\)/ {if ($1 ~ /^(net\.|vm\.)/) count++} END {print count+0}' "$script")"
   [ "$actual" -eq "$expected_keys" ] || { printf 'unexpected managed-key count: %s (%s)\n' "$script" "$actual" >&2; exit 1; }
-  grep -Fq "SCRIPT_VERSION='0.2.0-rc.1'" "$script"
+  grep -Fq "SCRIPT_VERSION='0.2.0-rc.2'" "$script"
   grep -Eq '^STATE_SCHEMA_VERSION=4$' "$script"
   grep -Eq '^LEGACY_STATE_SCHEMA_VERSION=3$' "$script"
   grep -Fq 'PROFILE_CPU_MIN=' "$script"
@@ -333,8 +333,8 @@ for script in "${scripts[@]}"; do
   }
 done
 
-grep -Fq "CONTROLLER_VERSION='0.2.0-rc.1'" "$controller"
-grep -Fq "RELEASE_TAG='v0.2.0-rc.1'" "$controller"
+grep -Fq "CONTROLLER_VERSION='0.2.0-rc.2'" "$controller"
+grep -Fq "RELEASE_TAG='v0.2.0-rc.2'" "$controller"
 grep -Fq "DEFAULT_PORT_SPEED_MBPS=200" "$controller"
 grep -Fq 'verify_profile_contract' "$controller"
 grep -Fq 'debian12-1c512m-vps-tuning.sh' "$controller"
@@ -362,7 +362,7 @@ if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://
   exit 1
 fi
 
-grep -Fq "RELEASE_TAG='v0.2.0-rc.1'" "$installer"
+grep -Fq "RELEASE_TAG='v0.2.0-rc.2'" "$installer"
 grep -Eq "EXPECTED_MANIFEST_SHA256='[0-9a-f]{64}'" "$installer"
 if grep -Fq "EXPECTED_MANIFEST_SHA256='0000000000000000000000000000000000000000000000000000000000000000'" "$installer"; then
   printf 'installer manifest digest placeholder was not finalized\n' >&2
@@ -374,8 +374,8 @@ grep -Fq '安装过程没有执行 preflight/apply' "$installer"
 manifest_hash="$(sha256sum SHA256SUMS | awk '{print $1}')"
 grep -Fq "EXPECTED_MANIFEST_SHA256='${manifest_hash}'" "$installer"
 installer_hash="$(sha256sum "$installer" | awk '{print $1}')"
-grep -Fq "$installer_hash" README.md
-grep -Fq "$manifest_hash" docs/releases/v0.2.0-rc.1.md
+grep -Fq "$installer_hash" docs/releases/v0.2.0-rc.2.md
+grep -Fq "$manifest_hash" docs/releases/v0.2.0-rc.2.md
 if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://' "$installer"; then
   printf 'mutable or insecure installer download source detected\n' >&2
   exit 1
@@ -1400,7 +1400,7 @@ EXIT_USAGE=2
 EXIT_UNSUPPORTED=3
 EXIT_CONFLICT=4
 EXIT_VERIFY=5
-SCRIPT_VERSION='0.2.0-rc.1'
+SCRIPT_VERSION='0.2.0-rc.2'
 PROFILE_ID='debian13-1c1g'
 STATE_FILE="$test_root/no-state.json"
 ensure_required_tools() { :; }
@@ -1627,7 +1627,7 @@ cross_version_apply_test="$tmp_dir/cross-version-apply-test.sh"
   awk '/^apply_settings\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_CROSS_VERSION_APPLY_TEST'
 EXIT_CONFLICT=4
-SCRIPT_VERSION='0.2.0-rc.1'
+SCRIPT_VERSION='0.2.0-rc.2'
 PORT_SPEED_MBPS=200
 BUFFER_TARGET_RTT_MS=200
 BUF_MAX=16777216
@@ -1658,7 +1658,7 @@ parameter_mismatch_apply_test="$tmp_dir/parameter-mismatch-apply-test.sh"
   awk '/^apply_settings\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_PARAMETER_MISMATCH_APPLY_TEST'
 EXIT_CONFLICT=4
-SCRIPT_VERSION='0.2.0-rc.1'
+SCRIPT_VERSION='0.2.0-rc.2'
 PORT_SPEED_MBPS=100
 BUFFER_TARGET_RTT_MS=200
 BUF_MAX=16777216
@@ -2565,7 +2565,7 @@ STATE_DIR='/var/lib/proxy-vps-tuning'
 SYSCTL_SCAN_ROOT='/etc'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
-SCRIPT_VERSION='0.2.0-rc.1'
+SCRIPT_VERSION='0.2.0-rc.2'
 PROFILE_ID='debian12-1c1g'
 UPDATE_PREFLIGHT=0
 stat() { printf '%s\n' '0'; }
@@ -2584,7 +2584,7 @@ for fixture in empty whitespace null object multiple; do
   fi
 done
 
-printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.1","profile":{"id":"debian12-1c1g"},"state":"PREPARED","network":{},"original_sysctls":{},"qdisc":{"file":"/tmp/qdisc","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"swap":{},"provider_sysctl_transfer":{"required":false,"source_path":"/etc/sysctl.conf","backup_path":"/var/lib/proxy-vps-tuning/provider-sysctl.conf.original","original_sha256":null,"backup_sha256":null,"transferred_sha256":null,"original_uid":null,"original_gid":null,"original_mode":null,"keys":[],"state":"NOT_REQUIRED"},"managed_files":[],"timestamps":{}}' >"$STATE_FILE"
+printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.2","profile":{"id":"debian12-1c1g"},"state":"PREPARED","network":{},"original_sysctls":{},"qdisc":{"file":"/tmp/qdisc","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"swap":{},"provider_sysctl_transfer":{"required":false,"source_path":"/etc/sysctl.conf","backup_path":"/var/lib/proxy-vps-tuning/provider-sysctl.conf.original","original_sha256":null,"backup_sha256":null,"transferred_sha256":null,"original_uid":null,"original_gid":null,"original_mode":null,"keys":[],"state":"NOT_REQUIRED"},"managed_files":[],"timestamps":{}}' >"$STATE_FILE"
 state_file_is_valid
 
 cp -- "$STATE_FILE" "${STATE_FILE}.valid"

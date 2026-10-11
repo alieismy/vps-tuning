@@ -22,6 +22,7 @@ jobs:
         run: |
           sudo bash tests/installer-check.sh
           sudo bash tests/rc18-check.sh
+          sudo python3 -B -m unittest discover -s tests -p 'test_tcp_baseline_recovery.py'
 
       - name: Check temporary HTB with native tc and isolated traffic
         run: |

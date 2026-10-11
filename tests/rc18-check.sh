@@ -55,11 +55,11 @@ printf '%s\n' '#!/usr/bin/env bash'
 printf "SOURCE_VERSION='%s'\n" "$source_release"
 cat <<'EOF_TARGET'
 set -Eeuo pipefail
-SCRIPT_VERSION='0.2.0-rc.1'
+SCRIPT_VERSION='0.2.0-rc.2'
 PROFILE_ID='debian13-1c1g'
 case "$1" in
   preflight) [ ! -e "$DVT_STATE_FILE" ] || jq -e --arg version "$SOURCE_VERSION" '.script_version==$version' "$DVT_STATE_FILE" >/dev/null ;;
-  apply) printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.1","state":"APPLIED","profile":{"id":"debian13-1c1g"},"network":{"port_speed_mbps":200}}' >"$DVT_STATE_FILE" ;;
+  apply) printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.2","state":"APPLIED","profile":{"id":"debian13-1c1g"},"network":{"port_speed_mbps":200}}' >"$DVT_STATE_FILE" ;;
   verify) jq '.state="VERIFIED"' "$DVT_STATE_FILE" >"${DVT_STATE_FILE}.tmp"; mv -f "${DVT_STATE_FILE}.tmp" "$DVT_STATE_FILE" ;;
   *) exit 2 ;;
 esac
@@ -71,7 +71,7 @@ for rejected_source in 0.2.0-rc.1 0.1.0-rc.20; do
 if env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
   bash "${repo_root}/dvt-migrate.sh" prepare --checkpoint "${checkpoint}-rejected" \
   --source-profile "$source_profile" --target-profile "$target_profile" \
-  --source-version "$rejected_source" --target-version 0.2.0-rc.1 \
+  --source-version "$rejected_source" --target-version 0.2.0-rc.2 \
   --profile-id debian13-1c1g --port 200 --state-sha256 "$state_hash" >"${migration_root}/rejected.log" 2>&1; then
   printf 'migration accepted source version %s\n' "$rejected_source" >&2
   exit 1
@@ -86,7 +86,7 @@ bad_hash="$(sha256sum "$bad_state" | awk '{print $1}')"
 if env DVT_STATE_FILE="$bad_state" DVT_BOOT_ID_FILE="$boot_file" \
   bash "${repo_root}/dvt-migrate.sh" prepare --checkpoint "${checkpoint}-truncated" \
   --source-profile "$source_profile" --target-profile "$target_profile" \
-  --source-version "$source_release" --target-version 0.2.0-rc.1 \
+  --source-version "$source_release" --target-version 0.2.0-rc.2 \
   --profile-id debian13-1c1g --port 200 --state-sha256 "$bad_hash" >"${migration_root}/truncated.log" 2>&1; then
   printf 'migration accepted an incomplete original TCP buffer vector\n' >&2
   exit 1
@@ -97,11 +97,11 @@ grep -Fq '来源状态缺少完整 TCP buffer 三元组' "${migration_root}/trun
 env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
   bash "${repo_root}/dvt-migrate.sh" prepare --checkpoint "$checkpoint" \
   --source-profile "$source_profile" --target-profile "$target_profile" \
-  --source-version "$source_release" --target-version 0.2.0-rc.1 \
+  --source-version "$source_release" --target-version 0.2.0-rc.2 \
   --profile-id debian13-1c1g --port 200 --state-sha256 "$state_hash" >/dev/null
 [ "$(sha256sum "$state_file" | awk '{print $1}')" = "$state_hash" ]
 jq -e --arg source "$source_release" --arg state_hash "$state_hash" \
-  '.phase=="PREPARED" and .source_version==$source and .target_version=="0.2.0-rc.1" and
+  '.phase=="PREPARED" and .source_version==$source and .target_version=="0.2.0-rc.2" and
    .source_state_sha256==$state_hash' "$checkpoint/migration.json" >/dev/null
 env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
   bash "$checkpoint/dvt-migrate.sh" rollback --checkpoint "$checkpoint" >/dev/null
@@ -116,7 +116,7 @@ jq -e '.phase=="ROLLED_BACK_REBOOT_REQUIRED"' "$checkpoint/migration.json" >/dev
 printf '%s\n' boot-b >"$boot_file"
 env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
   bash "$checkpoint/dvt-migrate.sh" continue --checkpoint "$checkpoint" >/dev/null
-jq -e '.script_version=="0.2.0-rc.1" and .state=="APPLIED"' "$state_file" >/dev/null
+jq -e '.script_version=="0.2.0-rc.2" and .state=="APPLIED"' "$state_file" >/dev/null
 applied_hash="$(sha256sum "$state_file" | awk '{print $1}')"
 if env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
   bash "$checkpoint/dvt-migrate.sh" continue --checkpoint "$checkpoint" >/dev/null 2>&1; then
@@ -130,8 +130,8 @@ env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
   bash "$checkpoint/dvt-migrate.sh" continue --checkpoint "$checkpoint" >/dev/null
 jq -e '.phase=="COMPLETE" and ([.history[].phase] | index("ROLLBACK_RUNNING") != null) and
   ([.history[].phase] | index("TARGET_APPLIED_REBOOT_REQUIRED") != null)' "$checkpoint/migration.json" >/dev/null
-jq -e '.script_version=="0.2.0-rc.1" and .state=="VERIFIED"' "$state_file" >/dev/null
-printf 'migration fixture passed: %s -> 0.2.0-rc.1\n' "$source_release"
+jq -e '.script_version=="0.2.0-rc.2" and .state=="VERIFIED"' "$state_file" >/dev/null
+printf 'migration fixture passed: %s -> 0.2.0-rc.2\n' "$source_release"
 )
 
 check_migration 0.1.0-rc.16
