@@ -6,8 +6,8 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-CONTROLLER_VERSION='0.2.0-rc.1'
-RELEASE_TAG='v0.2.0-rc.1'
+CONTROLLER_VERSION='0.2.0-rc.2'
+RELEASE_TAG='v0.2.0-rc.2'
 REPOSITORY='alieismy/debian-vps-tuning'
 RELEASE_BASE_URL="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}"
 
@@ -79,7 +79,7 @@ Usage:
 Options:
   --port MBPS    provider port cap for guided/preflight/apply; default 200;
                  required explicitly by CLI reconfigure
-  --target TAG    update target, for example v0.2.0-rc.1; default is the
+  --target TAG    update target, for example v0.2.0-rc.2; default is the
                   highest non-draft Release in the installed major.minor line;
                   stable installations ignore prereleases automatically
   -h, --help     show this help
@@ -781,7 +781,7 @@ run_update() {
   printf '  目标总控 URL：%s\n' "$target_url"
   printf '  目标总控 SHA-256：%s\n' "$UPDATE_CONTROLLER_SHA256"
   printf '  端口带宽：%s Mbps\n' "$STATE_PORT_SPEED_MBPS"
-  printf '请按 README 的人工迁移顺序执行：rollback/purge → reboot → 目标 preflight/apply → reboot → verify。\n'
+  printf '请先按迁移指南运行目标总控 migrate prepare；只有 checkpoint 为 PREPARED 才可进入 rollback → reboot → 目标 preflight/apply → reboot → verify。TCP 原值不完整时停止，不执行旧版 rollback。\n'
 }
 
 run_migrate() {

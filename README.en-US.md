@@ -2,6 +2,8 @@
 
 [简体中文](README.md) · English · [v0.2.0-rc.1 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.1)
 
+This worktree contains an **unreleased v0.2.0-rc.2 fix candidate** for read-only upgrade preflight with older schema 4 state. Online installation below still selects the published rc.1, whose target preflight incorrectly rejects those states on version mismatch. See the [candidate notes](docs/releases/v0.2.0-rc.2.md) for scope and local validation. Successful preflight does not establish complete original TCP snapshots; migration must still pass `migrate prepare`.
+
 Host network diagnostics, budgeted automatic measurement with public iperf3 endpoints, and verifiable, reversible BBR + fq configuration for Linux VPS hosts. Measurement needs neither prior tuning nor a self-hosted endpoint. Temporary HTB rate sweeps explore the relationship between sending rate and retransmissions.
 
 This is a **Pre-release**. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities. Functional and recovery evidence does not establish reliable policer identification or improved proxy performance.

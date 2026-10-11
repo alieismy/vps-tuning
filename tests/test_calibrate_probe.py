@@ -134,7 +134,7 @@ class CalibrationTest(unittest.TestCase):
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()})
 
     def test_supported_source_versions_preserve_report_and_evidence(self):
-        for version in ("0.1.0-rc.17", "0.1.0-rc.18", "0.1.0-rc.19", "0.2.0-rc.1"):
+        for version in ("0.1.0-rc.17", "0.1.0-rc.18", "0.1.0-rc.19", "0.2.0-rc.1", "0.2.0-rc.2"):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 fixture(root, profile="debian13-1c1g", port=200, direction="upload",

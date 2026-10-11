@@ -374,7 +374,7 @@ validate_file() {{ :; }}
 {prepare}
 checkpoint='/dvt-test-nonexistent-{m.uuid.uuid4().hex}'
 source_profile=unused target_profile=unused
-source_version='{version}' target_version='0.2.0-rc.1'
+source_version='{version}' target_version='0.2.0-rc.2'
 profile_id=debian13-1c1g port_mbps=200
 state_sha256='{'a' * 64}' STATE_FILE='/dvt-test-nonexistent-state-{m.uuid.uuid4().hex}'
 prepare

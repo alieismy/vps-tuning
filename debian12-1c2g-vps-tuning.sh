@@ -7,7 +7,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-SCRIPT_VERSION='0.2.0-rc.1'
+SCRIPT_VERSION='0.2.0-rc.2'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
 NAMESPACE='proxy-vps'
@@ -347,7 +347,9 @@ state_file_path_is_valid() {
       (.managed_files | type == "array") and
       (.timestamps | type == "object") and
       (if .schema_version == $schema then
-        .script_version == $version and
+        (.script_version == $version or
+          ($update_preflight == 1 and
+            (.script_version | test("^0\\.1\\.0-rc\\.([1-9]|1[0-9])$")))) and
         (.provider_sysctl_transfer | type == "object") and
         (.provider_sysctl_transfer.required | type == "boolean") and
         (.provider_sysctl_transfer.source_path == $provider_file) and
@@ -391,8 +393,21 @@ state_file_path_is_valid() {
 state_file_is_valid() { state_file_path_is_valid "$STATE_FILE"; }
 
 validate_state_file() {
+  local saved_version=''
   state_exists || return 0
-  state_file_is_valid || die "$EXIT_CONFLICT" "状态文件为空、损坏、包含多份 JSON 或 schema/profile 不匹配：${STATE_FILE}。不要继续 apply；只有确认它来自 rc.2 首次系统写入前的失败，才可使用 ALLOW_EMPTY_STATE_RECOVERY=1 执行 recover。"
+  state_file_is_valid && return 0
+  if [ "$UPDATE_PREFLIGHT" = '0' ] && [ ! -L "$STATE_FILE" ] &&
+    [ "$(stat -c '%u' "$STATE_FILE" 2>/dev/null || true)" = '0' ]; then
+    saved_version="$(jq -er -s --arg profile "$PROFILE_ID" --argjson schema "$STATE_SCHEMA_VERSION" '
+      select(length == 1) | .[0] |
+      select(.schema_version == $schema and .profile.id == $profile) |
+      .script_version | select(type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+-rc\\.[0-9]+$"))
+    ' "$STATE_FILE" 2>/dev/null || true)"
+    if [ -n "$saved_version" ] && [ "$saved_version" != "$SCRIPT_VERSION" ]; then
+      die "$EXIT_CONFLICT" "状态属于版本 ${saved_version}，当前脚本为 ${SCRIPT_VERSION}；请使用固定目标总控执行 update 只读升级检查，保留旧状态并使用对应来源版本处理恢复。"
+    fi
+  fi
+  die "$EXIT_CONFLICT" "状态文件为空、损坏、包含多份 JSON 或 schema/profile/版本不匹配：${STATE_FILE}。不要继续 apply；只有确认它来自 rc.2 首次系统写入前的失败，才可使用 ALLOW_EMPTY_STATE_RECOVERY=1 执行 recover。"
 }
 
 state_get() { jq -er "$1" "$STATE_FILE"; }
@@ -3724,6 +3739,9 @@ EOF_USAGE
 
 main() {
   local action="${1:-}"
+  # 旧状态兼容只服务只读预检；不能借环境变量进入其他动作。
+  [ "$UPDATE_PREFLIGHT" = '0' ] || [ "$action" = 'preflight' ] ||
+    die "$EXIT_USAGE" 'UPDATE_PREFLIGHT 只能用于 preflight，不能用于其他动作。'
   case "$action" in
     preflight)
       need_root; acquire_lock; run_preflight

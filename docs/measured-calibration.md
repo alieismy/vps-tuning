@@ -2,7 +2,7 @@
 
 状态：随 rc.19 Pre-release 提供的仓库源码工具；这是工具行为说明，不是性能验收或生产应用批准。
 
-当前工作树的校准器为 **0.1.2 候选**，在原 rc.17/rc.18/rc.19 白名单上增加 `0.2.0-rc.1` 的同格式受管 probe。仅有离线兼容检查，未新增该版本真实采集证据。新独立 `measure` 使用不同 schema，不能输入本校准器；其报告入口见[独立测量说明](automatic-measurement.md)。以下 rc.19/0.1.1 实测记录保留原有证据范围。
+当前工作树的校准器为 **0.1.2 候选**，在原 rc.17/rc.18/rc.19 白名单上增加 `0.2.0-rc.1` 和未发布 `0.2.0-rc.2` 的同格式受管 probe。仅有离线兼容检查，未新增这两个版本的真实采集证据。新独立 `measure` 使用不同 schema，不能输入本校准器；其报告入口见[独立测量说明](automatic-measurement.md)。以下 rc.19/0.1.1 实测记录保留原有证据范围。
 
 ## 使用范围
 
@@ -23,7 +23,7 @@ Linux/macOS 分析工作站可使用 `python3` 和对应本地路径。输出为
 - 输入必须是已解包的完整 probe 目录；不接受单个 iperf3 JSON、压缩包或手填 RTT。
 - 校验顶层和各样本的 `COMPLETED`、`SHA256SUMS`、result 摘要与嵌入元数据；必要原始文件必须出现在相应清单。拒绝 INCOMPLETE、重复 JSON 字段、非规范清单路径和文件符号链接；每文件上限 32 MiB，总读取上限 256 MiB。
 - 生产端的顶层清单会按文件名排除各层 `SHA256SUMS`、`SHA256SUMS.tmp`、`COMPLETED` 和 `INCOMPLETE`。校准器单独读取子样本控制文件，并通过顶层已验的 `benchmark-result.json.evidence_manifest_sha256` 绑定子清单；完成标记中的结果摘要也必须匹配。子控制文件的读取计入总上限，不因未列入顶层清单而免除完整性校验。
-- 分析器 0.1.2 仅接受 probe schema 1、benchmark result schema 1、phase summary schema 3、单流 TCP，以及同一 VERIFIED profile、白名单版本（rc.17/rc.18/rc.19 或 0.2.0-rc.1）、脚本摘要、网络配置和启动周期。新增版本支持依据其相同的采集/汇总代码及资源定义；不放宽其他一致性门禁。一份 rc.17/iperf3 3.18 的真实完整上传 probe 已通过格式兼容核验，见[项目备忘](project-memo.md)；其他版本、方向和环境不能据此视为实测通过。现有 schema 无变化。摘要证明输入内部完整性，不构成来源签名或真实运行的独立证明；应保留可信采集来源。
+- 分析器 0.1.2 仅接受 probe schema 1、benchmark result schema 1、phase summary schema 3、单流 TCP，以及同一 VERIFIED profile、白名单版本（rc.17/rc.18/rc.19 或 0.2.0-rc.1/rc.2）、脚本摘要、网络配置和启动周期。新增版本支持依据其相同的采集/汇总代码及资源定义；不放宽其他一致性门禁。一份 rc.17/iperf3 3.18 的真实完整上传 probe 已通过格式兼容核验，见[项目备忘](project-memo.md)；其他版本、方向和环境不能据此视为实测通过。现有 schema 无变化。摘要证明输入内部完整性，不构成来源签名或真实运行的独立证明；应保留可信采集来源。
 - 顶层清单中的 `sample-NN` 集合必须与 `samples` 引用集合完全一致；重复轮次方向完整，`aggregates` 必须包含 upload/download 两个方向。已测方向的 `samples/valid_windows` 必须是整数，并与引用行数、已核对的 row/summary 有效窗口标记计数一致；未测方向必须为 null。不能通过删掉最后一轮引用或修改汇总计数跳过清单内的异常样本。
 - 本工具要求 metadata 的 `benchmark.seconds/omit_seconds` 与 raw 的 `start.test_start.duration/omit` 均存在、为整数并逐项相等，范围分别为 5–120 秒、0–10 秒；重复样本的请求时长、预热、请求协议族和方向必须一致。缺失或矛盾属于输入契约错误（退出 2），不补默认值。该契约依据现有生产端参数与仓库 iperf3 fixture；真实旧版 iperf3 输出兼容性仍需用完整证据验证。实际 `end` 窗口时长继续使用原有 `max(0.25 秒, 请求时长的 5%)` 容差，不要求与请求值精确相等。
 - 从原始 `end.sum_sent`/`sum_received` 重新核算字节、时长、吞吐，并对照 summary/row。观察到无效窗口、缺失 RTT、路径漂移或重复不足时，该方向不生成候选。校验各重复样本的方向完整性，IPv4-mapped IPv6 按实际 IPv4 解释。

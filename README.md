@@ -2,6 +2,8 @@
 
 简体中文 · [English](README.en-US.md) · [v0.2.0-rc.1 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.1)
 
+工作树包含 **v0.2.0-rc.2 未发布修复候选**，修复旧 schema 4 的只读升级预检。下方在线安装仍指向已发布 rc.1；rc.1 对旧 schema 4 的目标预检存在版本误拒绝。候选边界和本地验证见[候选说明](docs/releases/v0.2.0-rc.2.md)。预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。
+
 为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
 
 当前为 **Pre-release**。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
