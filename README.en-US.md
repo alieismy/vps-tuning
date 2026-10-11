@@ -1,14 +1,16 @@
 # VPS Tuning
 
-[简体中文](README.md) · English · [v0.2.0-rc.1 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.1)
+[简体中文](README.md) · English · [v0.2.0-rc.2 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.2)
 
-This worktree contains an **unreleased v0.2.0-rc.2 fix candidate** for read-only upgrade preflight with older schema 4 state. Online installation below still selects the published rc.1, whose target preflight incorrectly rejects those states on version mismatch. See the [candidate notes](docs/releases/v0.2.0-rc.2.md) for scope and local validation. Successful preflight does not establish complete original TCP snapshots; migration must still pass `migrate prepare`.
+**v0.2.0-rc.2 prerelease** fixes read-only upgrade preflight with older schema 4 state. See the [release notes](docs/releases/v0.2.0-rc.2.md) for scope and evidence. Successful preflight does not establish complete original TCP snapshots; migration must still pass `migrate prepare`.
 
 Host network diagnostics, budgeted automatic measurement with public iperf3 endpoints, and verifiable, reversible BBR + fq configuration for Linux VPS hosts. Measurement needs neither prior tuning nor a self-hosted endpoint. Temporary HTB rate sweeps explore the relationship between sending rate and retransmissions.
 
 This is a **Pre-release**. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities. Functional and recovery evidence does not establish reliable policer identification or improved proxy performance.
 
 The repository was renamed from `debian-vps-tuning` on 2026-10-10. Old links redirect here automatically. The `dvt` command, release asset file names, installation paths and managed-state paths are unchanged.
+
+These verified runtime assets retain the old repository constant. The installer and controller reach the renamed repository through GitHub redirects; do not recreate the old repository name in the same account, as that would disable those redirects.
 
 [Capabilities](#capabilities-and-effects) · [Requirements](#support-and-prerequisites) · [Quick start](#quick-start) · [Operations](#common-operations) · [Migration](#upgrades-and-rollback) · [Documentation](#documentation) · [Help](#help-contributing-and-security)
 
@@ -50,7 +52,7 @@ Original Debian resource tiers keep their policies; other supported combinations
 
 ### Installation
 
-Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.1` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
+Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.2` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
 
 ```bash
 (
@@ -61,9 +63,9 @@ Run in a root shell (`id -u` must return `0`). This downloads the complete fixed
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.1/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/install.sh
   printf '%s  %s\n' \
-    'a039922793710a90b281a10ba5076761f6a8efd43c96c916328e0fe7c5f70d06' \
+    '8cc038ff6a2386879769f8f08b5d143cf76311b348a29ccb4584a1acd3ad3f00' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -101,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` is an allowed result; exit code 0 only means report collection completed. Tests do not traverse a VLESS/REALITY client and do not establish proxy performance benefits. For temporary shaping, read the [htb-sweep guide (Chinese)](docs/temporary-htb.md), including its whole-interface impact and restoration conditions.
 
-For absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.0.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer; the main program remains `v0.2.0-rc.1`.
+For absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.0.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer; the main program remains `v0.2.0-rc.2`.
 
 ### Path B: persistent configuration
 
@@ -173,7 +175,7 @@ Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call 
 - The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.
 - 1–10000 Mbps is an input range. Broader public-path platform coverage, IPv6, high rates, specific large-resource hardware and business performance still have unvalidated areas.
 
-Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.1.md), currently in Chinese.
+Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.2.md), currently in Chinese.
 
 ## Documentation
 
