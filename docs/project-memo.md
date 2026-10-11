@@ -11,7 +11,7 @@
 - **授权范围与完成。** 已完成获准的运行整合与发布：以 [PR #36](https://github.com/alieismy/vps-tuning/pull/36) 补齐 #35 到主线，以 [PR #37](https://github.com/alieismy/vps-tuning/pull/37) 整合 rc.2 和 VPS-02 后继验收记录，完成必要 CI、实质评审、合并、[rc.2 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.2) 及 26 项公开资产回验。准确提交、运行结果、评审边界和归档复核统一见[验证说明](validation.md#rc2-mainline-release-validation)。
 - **保留与修复。** #34 备忘记录完整保留；#35 已合侧分支而未进 master 的缺口由 #36 补齐。私密漏洞报告读回为 `enabled: true`；安全政策和中英文 README 当前入口同步 rc.2。历史预发布、失败、PENDING 和原始业务日志不改写为当时通过。
 - **运行及恢复边界。** 27 项候选文件（24 项运行资产、installer、清单及源码恢复工具）保持 `d55c9c8` 原字节；旧 `REPOSITORY='alieismy/debian-vps-tuning'` 常量继续依赖 GitHub 改名重定向，更新常量和运行横幅仍延期至下一运行版本。本次不重启、不重复迁移 VPS-02；其他四台仍未迁移，不支持 `0.2.0-rc.1 → 0.2.0-rc.2`。源码恢复工具不进入 26 项安装资产，保持 historical/replacement 区分及逐台授权。
-- **未完成、延期与成熟度。** 无新增延期事项；既有其他四台迁移、量化性能、长期稳定性、整机还原演练和下一运行版本仓库常量事项保留。运行整合、预发布与公开资产完整性达到验证说明记录的实际层级，不扩大为其他生产主机验收。后继文档 PR 的自身 CI/评审仍在对应 PR checks 追踪，完成前不宣称该 PR 门禁通过。
+- **未完成、延期与成熟度。** 无新增延期事项；既有其他四台迁移、量化性能、长期稳定性、整机还原演练和下一运行版本仓库常量事项保留。运行整合、预发布与公开资产完整性达到验证说明记录的实际层级，不扩大为其他生产主机验收。发布入口和本轮记录由[文档收尾 PR #38](https://github.com/alieismy/vps-tuning/pull/38)交付，其最终 CI、评审与合并结果在该 PR 追踪，不借用运行发布的 CI 代替文档门禁。
 
 ## 本轮记录：2026-10-11（rc.2 主线整合候选）
 

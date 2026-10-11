@@ -13,7 +13,7 @@
 
 VPS-02 既有 `COMPLETE / VERIFIED` 和 `PASS_USER_CONFIRMED` 证据见下方 2026-10-09 日期化记录。其他四台仍未迁移；本轮未连接或修改真实 VPS。原始 `PENDING_USER_TEST` 及发布前待办保留为当时状态，由本节后继证据补齐。
 
-本节后继发布文档 PR 的 CI 与评审以该 PR checks 为准，不预报完成，也不替代上述固定运行资产的验证。
+本节及当前入口由[文档收尾 PR #38](https://github.com/alieismy/vps-tuning/pull/38)交付；文档自身的最终 CI、评审与合并状态在该 PR 追踪，与上述固定运行资产验证分别记录。
 
 ## 0.2.0-rc.2 逐台 TCP 基线恢复候选（2026-10-04）
 
