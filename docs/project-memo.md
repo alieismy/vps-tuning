@@ -6,6 +6,22 @@
 
 本文件是 `AGENTS.md` 指定的唯一项目阶段备忘入口，用于记录每轮对话工作的闭环状态，以及当前阶段不主动展开的后续候选事项。它不构成需求批准、生产变更授权、发布授权或下一阶段启动决定；控制规则以 [项目级 AGENTS.md](../AGENTS.md) 为准，具体验证事实以 [验证矩阵](validation.md) 和对应发布说明为准。
 
+## 本轮记录：2026-10-10（PR #33 合并核对与已合并分支删除评估）
+
+- **用户授权。** 先授权合并 PR #33；之后授权按之前的做法提交本记录并开一个小 PR，并由 Claude 评估已合并的远程分支能否删除。
+- **合并事实。**
+  - [PR #33](https://github.com/alieismy/vps-tuning/pull/33) 由 Claude 经用户授权，使用仓库所有者的 `gh` 凭据，于 2026-10-10T10:03:08Z 以 squash 方式合并为 `2d4dd07`。合并绑定最新提交 `dc9d9b8`（`--match-head-commit`）。
+  - 合并前 `dc9d9b8` 的两项 `validate` 检查均已通过；master 上的 `shell-static-checks` push 运行成功。
+  - CodeRabbit 在 `dc9d9b8` 上显示“Review rate limited”。检查状态虽为通过，但它没有复审 C1 的修正；该修正只经过对照内核 Kconfig 的人工核对。
+- **门禁变化。** 下一条记录中的“文档 PR 的 CI 与合并”已关闭。
+- **已合并分支的删除评估。** 结论：本 PR 创建后删除远程分支 `claude/external-repos-research-20261010`。
+  - 分支基点与 squash 合并提交的父提交都是 `68dbb0a`；分支最新提交 `dc9d9b8` 的树与 `2d4dd07` 相同，合并后分支没有新提交。squash 后逐提交的 patch-id 不再一一对应，因此以树相同为准。
+  - 没有打开的 PR 以该分支为 head 或 base；它不是默认分支，也没有受保护。
+  - 本地同名分支保留 `78ce637` 和 `dc9d9b8`。恢复方式：`git push origin dc9d9b8:refs/heads/claude/external-repos-research-20261010`，或在 PR #33 页面恢复分支。
+- **未完成门禁。** 本 PR 的 CI 与合并。
+- **延期事项变化。** 无新增。
+- 成熟度不变。本轮没有连接 VPS，没有产生公网测速流量，也没有修改运行代码或已发布资产。
+
 ## 本轮记录：2026-10-10（四个外部调优仓库研究）
 
 - **请求。** 用户要求联网研究 `CG-spring/vps-network-tuning`、`CG-spring/vps-optimization-guide`、`sanmussh/vps-netpilot`，重点是 `Kylin010/tcpfit`，评估有无值得吸收的能力和价值点。本轮使用 `rd-research`，交付[研究报告](external-repos-research-2026-10-10.md)。基线为 HEAD `68dbb0a`，运行代码相对 `1c5e922` 没有变化。
