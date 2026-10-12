@@ -1,8 +1,8 @@
 # VPS Tuning
 
-[简体中文](README.md) · English · [v0.2.0-rc.2 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.2)
+[简体中文](README.md) · English · [v0.2.0-rc.3 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
-**v0.2.0-rc.2 prerelease** fixes read-only upgrade preflight with older schema 4 state. See the [release notes](docs/releases/v0.2.0-rc.2.md) for scope and evidence. Successful preflight does not establish complete original TCP snapshots; migration must still pass `migrate prepare`.
+**v0.2.0-rc.3 prerelease** redesigns the interactive `dvt` menu shown when no action is given, and its migrator also accepts `0.2.0-rc.2` sources. Tuning behaviour is unchanged. See the [release notes (Chinese)](docs/releases/v0.2.0-rc.3.md) for scope and evidence. Managed hosts must complete a cross-version migration before running managed actions under the new version; successful preflight does not establish complete original TCP snapshots, and migration must still pass `migrate prepare`.
 
 Host network diagnostics, budgeted automatic measurement with public iperf3 endpoints, and verifiable, reversible BBR + fq configuration for Linux VPS hosts. Measurement needs neither prior tuning nor a self-hosted endpoint. Temporary HTB rate sweeps explore the relationship between sending rate and retransmissions.
 
@@ -52,7 +52,7 @@ Original Debian resource tiers keep their policies; other supported combinations
 
 ### Installation
 
-Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.2` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
+Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.3` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
 
 ```bash
 (
@@ -63,9 +63,9 @@ Run in a root shell (`id -u` must return `0`). This downloads the complete fixed
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/install.sh
   printf '%s  %s\n' \
-    '8cc038ff6a2386879769f8f08b5d143cf76311b348a29ccb4584a1acd3ad3f00' \
+    '82daec1ed1c36a845c18720cac714e617d86e0f1b439a3f3d7fb5c536273cbe1' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -103,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` is an allowed result; exit code 0 only means report collection completed. Tests do not traverse a VLESS/REALITY client and do not establish proxy performance benefits. For temporary shaping, read the [htb-sweep guide (Chinese)](docs/temporary-htb.md), including its whole-interface impact and restoration conditions.
 
-For absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.0.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer; the main program remains `v0.2.0-rc.2`.
+For absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.0.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer; the main program remains `v0.2.0-rc.3`.
 
 ### Path B: persistent configuration
 
@@ -170,13 +170,13 @@ Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call 
 
 ## Validation status and limitations
 
-- As of 2026-10-11, five Debian 13 VPS hosts have completed rc.2 migration and entrypoint installation, with `COMPLETE / VERIFIED` state and zero warnings from strict x-ui verification. The user confirmed panel access, real proxy traffic and reconnection for each host. Four use replacement recovery baselines and one uses historical evidence from the same deployment; see the [five-host acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance). This does not establish quantitative performance gains or long-term stability.
+- As of 2026-10-11, five Debian 13 VPS hosts have completed rc.2 migration and entrypoint installation, with `COMPLETE / VERIFIED` state and zero warnings from strict x-ui verification. The user confirmed panel access, real proxy traffic and reconnection for each host. Four use replacement recovery baselines and one uses historical evidence from the same deployment; see the [five-host acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance). This does not establish quantitative performance gains or long-term stability, and rc.3 has not been migrated to or verified on these hosts.
 - Seven isolated guest lifecycle jobs cover Debian 12/13 and Ubuntu 24.04 x86_64/ARM64 adaptive profiles, plus Debian 13 x86_64 legacy. They include real guest reboots, idempotency, reconfiguration and restoration. ARM64 uses QEMU/TCG on ARM runners; it is not vendor-specific hardware acceptance.
 - Public IPv4 measurement and temporary HTB normal/signal-interrupted restoration have bounded VPS evidence. One complete low-rate sweep had 15 samples, 11 eligible, and still returned `INSUFFICIENT_EVIDENCE`. Reliable policer detection and proxy benefits remain unproven.
 - The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.
 - 1–10000 Mbps is an input range. Broader public-path platform coverage, IPv6, high rates, specific large-resource hardware and business performance still have unvalidated areas.
 
-Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.2.md), currently in Chinese.
+Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.3.md), currently in Chinese.
 
 ## Documentation
 

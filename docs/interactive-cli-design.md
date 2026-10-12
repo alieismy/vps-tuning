@@ -1,6 +1,6 @@
 # dvt 交互式运行界面：详细设计
 
-日期：2026-10-12（Asia/Singapore）。状态：**已批准实现**。用户于 2026-10-12 批准 D1–D3，D5 按评估结论不保留（§13）；实现并入 [v0.2.0-rc.3 草稿](releases/v0.2.0-rc.3.md)，由 [PR #39](https://github.com/alieismy/vps-tuning/pull/39) 提交，尚未发布。本文规定总控 `debian-vps-tuning.sh`（安装后为 `dvt`）交互表现层的界面和行为契约。
+日期：2026-10-12（Asia/Singapore）。状态：**已批准实现**。用户于 2026-10-12 批准 D1–D3，D5 按评估结论不保留（§13）；实现由 [PR #39](https://github.com/alieismy/vps-tuning/pull/39) 合入，并随 [v0.2.0-rc.3 Pre-release](releases/v0.2.0-rc.3.md) 发布（2026-10-13）。本文规定总控 `debian-vps-tuning.sh`（安装后为 `dvt`）交互表现层的界面和行为契约。
 
 输入与授权：
 
@@ -396,15 +396,15 @@ preflight 已通过。是否执行 apply？[y/N]:
 
 静态测试只能证明字符串宽度契约成立，不能证明实际终端的渲染效果。在拿到渲染层级的证据之前，不得声称“各终端对齐”。
 
-实现状态（2026-10-12，本地工作区，未提交）：
+实现状态（2026-10-13，随 `v0.2.0-rc.3` 发布）：
 
 | 层级 | 状态 |
 |---|---|
-| 静态 | 已实现于 `tests/controller-check.sh`，并在 `tests/static-check.sh` 中增加 SGR-only 检查与 rc.2 状态接受/拒绝用例；在 Windows Git Bash 上通过。Linux CI 未运行 |
+| 静态 | 已实现于 `tests/controller-check.sh`，并在 `tests/static-check.sh` 中增加 SGR-only 检查与 rc.2 状态接受/拒绝用例；Windows Git Bash 与 Linux CI 均通过（[验证说明](validation.md#rc3-release-validation)） |
 | 兼容 | 非 TTY summary/plan golden 已纳入静态用例并通过 |
-| 规范 | 本地没有 ShellCheck，未运行；依赖 CI |
+| 规范 | ShellCheck 0.11.0 在 CI 中首轮报告三项发现，修复后通过 |
 | 渲染 | 未执行 |
-| 运行 | 未授权，未执行；`tests/installer-check.sh`、`tests/rc18-check.sh` 需要 Linux root，本地未运行 |
+| 运行 | `tests/installer-check.sh`、`tests/rc18-check.sh` 在 Linux CI 以 root 通过；七组隔离客体生命周期通过（只走 CLI，不覆盖菜单路径）。真实 VPS 上的菜单路径未授权、未执行 |
 
 ## 12. 被否决的备选
 

@@ -1,6 +1,6 @@
 # 安装、持久配置与日常操作
 
-适用版本：`v0.2.0-rc.2`。本页承接 [README](../README.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
+适用版本：`v0.2.0-rc.3`。本页承接 [README](../README.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
 
 ## 执行前准备
 
@@ -17,7 +17,7 @@ apt install ca-certificates curl jq iproute2 procps kmod util-linux
 
 ## 安装与文件布局
 
-首次安装使用 [首页的固定版本与摘要](../README.md#安装)。安装器先核对内置固定的 `SHA256SUMS` 摘要，再核对全部运行资产，安装到 `/usr/local/lib/debian-vps-tuning/0.2.0-rc.2`，原子更新 `current`，创建 `/usr/local/bin/dvt`。已有同版本目录只有在全部文件重新校验通过时才复用，内容不一致时拒绝覆盖。
+首次安装使用 [首页的固定版本与摘要](../README.md#安装)。安装器先核对内置固定的 `SHA256SUMS` 摘要，再核对全部运行资产，安装到 `/usr/local/lib/debian-vps-tuning/0.2.0-rc.3`，原子更新 `current`，创建 `/usr/local/bin/dvt`。已有同版本目录只有在全部文件重新校验通过时才复用，内容不一致时拒绝覆盖。
 
 `--no-launch` 只安装；省略该参数且有交互终端时，安装完成后打开 `dvt` 菜单。安装本身不执行 apply、测速或 managed state 迁移。下载不回退到 `main`、`master`、`latest`、HTTP 或第三方镜像。
 
@@ -339,11 +339,11 @@ env PORT_SPEED_MBPS=1000 \
 
 ## 手动获取与离线运行
 
-以下方法适用于离线、审计或安装入口不可用时的恢复。必须先验证 manifest 的可信固定摘要，不能只依赖与脚本同时下载但未固定的校验文件；当前值见 [发布说明](releases/v0.2.0-rc.2.md)。不同版本不得放在同一目录。
+以下方法适用于离线、审计或安装入口不可用时的恢复。必须先验证 manifest 的可信固定摘要，不能只依赖与脚本同时下载但未固定的校验文件；当前值见 [发布说明](releases/v0.2.0-rc.3.md)。不同版本不得放在同一目录。
 
 ### 下载与校验
 
-准备离线 bundle 时，将固定 `v0.2.0-rc.2` Release 的 26 项上传资产（24 项运行文件、`SHA256SUMS` 和 `install.sh`）下载到一个新建的独立目录，并在该目录内执行以下步骤。每步成功后才继续；不要混入其他版本文件。
+准备离线 bundle 时，将固定 `v0.2.0-rc.3` Release 的 26 项上传资产（24 项运行文件、`SHA256SUMS` 和 `install.sh`）下载到一个新建的独立目录，并在该目录内执行以下步骤。每步成功后才继续；不要混入其他版本文件。
 
 先核验清单和安装器本身的固定摘要，之后才能用清单校验运行文件：
 
@@ -351,10 +351,10 @@ env PORT_SPEED_MBPS=1000 \
 (
   set -Eeuo pipefail
   printf '%s  %s\n' \
-    '93cc144843cfd1ce0f0961922b04a1a8d60ab86e2bab841c26b857b9e0493558' \
+    '64b46db1434d81ea4905ee3d48a78eb5e71758fbc3f749aece3ab46530e16178' \
     SHA256SUMS | sha256sum -c -
   printf '%s  %s\n' \
-    '8cc038ff6a2386879769f8f08b5d143cf76311b348a29ccb4584a1acd3ad3f00' \
+    '82daec1ed1c36a845c18720cac714e617d86e0f1b439a3f3d7fb5c536273cbe1' \
     install.sh | sha256sum -c -
 )
 ```
@@ -421,13 +421,13 @@ bash ./debian-vps-tuning.sh diagnose
 bash ./debian-vps-tuning.sh benchmark
 bash ./debian-vps-tuning.sh update
 # 仅在仍有旧版本管理状态时，检查新目标版本
-bash ./debian-vps-tuning.sh update --target v0.2.0-rc.2
+bash ./debian-vps-tuning.sh update --target v0.2.0-rc.3
 bash ./debian-vps-tuning.sh rollback
 ```
 
 上面是可单独选择的命令参考，不是一段从头运行的脚本。独立测量的本地入口为 `bash ./debian-vps-tuning.sh measure --rate-cap 20 --plan-only`；其他参数与安装后的 `dvt` 相同。
 
-自 v0.2.0-rc.3（未发布草稿）起，无 action 的交互菜单为单屏分组页面：每项标注只读、写入、重启、联网或流量等副作用，框外显示主机、档位、受管记录和当前运行值；“受管记录”是上次写入的状态，不等于本次 verify 结论。菜单只执行一个动作就退出，结束后显示退出码和下一步。写入和 `rollback` 确认默认 N。非 root 用户只能选能力诊断。需要额外参数的 `measure`、`htb-sweep`、`report`、`probe`、`benchmark`、`migrate` 和 `recover` 列在“高级与测量”页的命令参考中，请在命令行运行。设置非空的 `NO_COLOR` 可关闭颜色；终端把框线字符显示为双宽导致错位时，可用 `DVT_ASCII=1 dvt` 改为 ASCII 框线。设计依据见[交互界面详细设计](interactive-cli-design.md)。
+自 v0.2.0-rc.3 起，无 action 的交互菜单为单屏分组页面：每项标注只读、写入、重启、联网或流量等副作用，框外显示主机、档位、受管记录和当前运行值；“受管记录”是上次写入的状态，不等于本次 verify 结论。菜单只执行一个动作就退出，结束后显示退出码和下一步。写入和 `rollback` 确认默认 N。非 root 用户只能选能力诊断。需要额外参数的 `measure`、`htb-sweep`、`report`、`probe`、`benchmark`、`migrate` 和 `recover` 列在“高级与测量”页的命令参考中，请在命令行运行。设置非空的 `NO_COLOR` 可关闭颜色；终端把框线字符显示为双宽导致错位时，可用 `DVT_ASCII=1 dvt` 改为 ASCII 框线。设计依据见[交互界面详细设计](interactive-cli-design.md)。
 
 在没有交互终端的自动化环境中，必须明确指定 action；总控不会进入菜单或自动执行 `apply`。CLI `reconfigure` 必须显式提供 `--port`，不会采用默认值或同名环境变量。`recover` 用于未完成的带宽重配置事务，也保留经 `ALLOW_EMPTY_STATE_RECOVERY=1` 明确确认的 rc.2 空状态隔离分支。
 
@@ -448,7 +448,7 @@ bash install.sh --source-dir "$PWD" --no-launch
 
 ### 入口不可用时的联网验证
 
-以下保留固定版本下载总控的备用验证方法。只适用于受管状态已经是 `0.2.0-rc.2`；旧状态必须使用对应旧版或迁移检查。日常验证优先使用已安装的 `dvt verify`。
+以下保留固定版本下载总控的备用验证方法。只适用于受管状态已经是 `0.2.0-rc.3`；旧状态必须使用对应旧版或迁移检查。受管状态仍为 `0.2.0-rc.2` 时，改用 rc.2 总控 `https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/debian-vps-tuning.sh`，SHA-256 为 `7d8769a8cd09e562b2f074034e7a1a6f71c71bb2fddc1302ebd28fb9794b95bd`，其余命令相同。日常验证优先使用已安装的 `dvt verify`。
 
 重启并重新登录 VPS 后执行。`verify` 只读检查当前状态，不会再次运行 `apply`，也不要求重新输入状态中已保存的端口带宽：
 
@@ -465,10 +465,10 @@ bash install.sh --source-dir "$PWD" --no-launch
     --connect-timeout 15 \
     --max-time 120 \
     -o "$dvt_tmp/debian-vps-tuning.sh" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/debian-vps-tuning.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/debian-vps-tuning.sh
 
   printf '%s  %s\n' \
-    '7d8769a8cd09e562b2f074034e7a1a6f71c71bb2fddc1302ebd28fb9794b95bd' \
+    '2c7b0eba904a8490df0da042e39f525d6bd3cf40bcd06f5c72fe2a1254c421a9' \
     "$dvt_tmp/debian-vps-tuning.sh" | sha256sum -c -
 
   bash "$dvt_tmp/debian-vps-tuning.sh" verify
@@ -496,10 +496,10 @@ printf 'verify_after_reboot_exit=%s\n' "$?"
     --connect-timeout 15 \
     --max-time 120 \
     -o "$dvt_tmp/debian-vps-tuning.sh" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/debian-vps-tuning.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/debian-vps-tuning.sh
 
   printf '%s  %s\n' \
-    '7d8769a8cd09e562b2f074034e7a1a6f71c71bb2fddc1302ebd28fb9794b95bd' \
+    '2c7b0eba904a8490df0da042e39f525d6bd3cf40bcd06f5c72fe2a1254c421a9' \
     "$dvt_tmp/debian-vps-tuning.sh" | sha256sum -c -
 
   env \
