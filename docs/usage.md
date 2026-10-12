@@ -427,6 +427,8 @@ bash ./debian-vps-tuning.sh rollback
 
 上面是可单独选择的命令参考，不是一段从头运行的脚本。独立测量的本地入口为 `bash ./debian-vps-tuning.sh measure --rate-cap 20 --plan-only`；其他参数与安装后的 `dvt` 相同。
 
+自 v0.2.0-rc.3（未发布草稿）起，无 action 的交互菜单为单屏分组页面：每项标注只读、写入、重启、联网或流量等副作用，框外显示主机、档位、受管记录和当前运行值；“受管记录”是上次写入的状态，不等于本次 verify 结论。菜单只执行一个动作就退出，结束后显示退出码和下一步。写入和 `rollback` 确认默认 N。非 root 用户只能选能力诊断。需要额外参数的 `measure`、`htb-sweep`、`report`、`probe`、`benchmark`、`migrate` 和 `recover` 列在“高级与测量”页的命令参考中，请在命令行运行。设置非空的 `NO_COLOR` 可关闭颜色；终端把框线字符显示为双宽导致错位时，可用 `DVT_ASCII=1 dvt` 改为 ASCII 框线。设计依据见[交互界面详细设计](interactive-cli-design.md)。
+
 在没有交互终端的自动化环境中，必须明确指定 action；总控不会进入菜单或自动执行 `apply`。CLI `reconfigure` 必须显式提供 `--port`，不会采用默认值或同名环境变量。`recover` 用于未完成的带宽重配置事务，也保留经 `ALLOW_EMPTY_STATE_RECOVERY=1` 明确确认的 rc.2 空状态隔离分支。
 
 不要使用以下入口：

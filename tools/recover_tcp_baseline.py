@@ -15,7 +15,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 
-VERSION = '0.2.0-rc.2'
+VERSION = '0.2.0-rc.3'
 STATE = '/var/lib/proxy-vps-tuning/state.json'
 LOCK = '/run/lock/proxy-vps-tuning.lock'
 TCP = ('net.ipv4.tcp_rmem', 'net.ipv4.tcp_wmem')

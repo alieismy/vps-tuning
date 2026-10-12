@@ -211,33 +211,202 @@ unset PORT_SPEED_MBPS
 STATE_PROFILE=''
 STATE_PORT_SPEED_MBPS=''
 
-ACTION=''
-ACTION_FROM_MENU=0
-choose_action_interactively <<<'' >/dev/null
-if [ "$ACTION" != guided ] || [ "$ACTION_FROM_MENU" -ne 1 ]; then
-  fail 'default menu action is not guided'
-fi
+# Menu tests preset the home-screen facts; fact collection is smoke-tested below.
+# shellcheck disable=SC2034  # Consumed by the sourced menu renderer.
+set_menu_facts() {
+  HOME_FACTS_READY=1 HOME_ROOT="$1" HOME_PLATFORM_OK="$2" HOME_STATE="$3"
+  HOME_OS='Test OS 13' HOME_ARCH=x86_64 HOME_CPUS=1 HOME_MEMORY_MIB=1024
+  HOME_PROFILE=debian13-1c1g HOME_RESOURCE_CLASS=1C1GB HOME_PLATFORM_REASON='test platform reason'
+  HOME_STATE_VERSION='' HOME_STATE_PORT='' HOME_STATE_UPDATED='' HOME_RUNTIME='test runtime'
+}
 
-ACTION=''
-ACTION_FROM_MENU=0
-choose_action_interactively <<<'10' >/dev/null
-if [ "$ACTION" != update ] || [ "$ACTION_FROM_MENU" -ne 1 ]; then
-  fail 'menu option 10 did not select update'
-fi
+# Runs the menu in a subshell so an unexpected exit cannot end this script.
+assert_menu() {
+  local input="$1" expected="$2" label="$3" result
+  result="$(
+    ACTION='' ACTION_FROM_MENU=0
+    choose_action_interactively <<<"$input" >/dev/null 2>&1
+    printf 'selected=%s:%s' "$ACTION" "$ACTION_FROM_MENU"
+  )" || true
+  [ "$result" = "selected=${expected}:1" ] || fail "${label}: got '${result}', expected ${expected}"
+}
 
-ACTION=''
-ACTION_FROM_MENU=0
-choose_action_interactively <<<'11' >/dev/null
-if [ "$ACTION" != reconfigure ] || [ "$ACTION_FROM_MENU" -ne 1 ]; then
-  fail 'menu option 11 did not select reconfigure'
-fi
+assert_menu_exit() {
+  local input="$1" expected_rc="$2" message="$3" label="$4" rc=0 output
+  if [ "$input" = '<eof>' ]; then
+    output="$(choose_action_interactively </dev/null 2>&1)" || rc=$?
+  else
+    output="$(choose_action_interactively <<<"$input" 2>&1)" || rc=$?
+  fi
+  [ "$rc" -eq "$expected_rc" ] || fail "${label}: exit ${rc}, expected ${expected_rc}"
+  grep -Fq -- "$message" <<<"$output" || fail "${label}: output lacks '${message}'"
+}
 
-ACTION=''
-ACTION_FROM_MENU=0
-choose_action_interactively <<<'12' >/dev/null
-if [ "$ACTION" != rollback ] || [ "$ACTION_FROM_MENU" -ne 1 ]; then
-  fail 'menu option 12 did not select rollback'
+set_menu_facts 1 1 UNMANAGED
+assert_menu '' guided 'default for an unmanaged host'
+set_menu_facts 1 1 APPLIED
+assert_menu '' verify 'default for an APPLIED record'
+set_menu_facts 1 1 VERIFIED
+assert_menu '' status 'default for a VERIFIED record'
+set_menu_facts 1 1 DEGRADED
+assert_menu '' status 'default for a DEGRADED record'
+set_menu_facts 0 1 NEEDS_ROOT
+assert_menu '' diagnose 'default for a non-root user'
+set_menu_facts 1 0 UNMANAGED
+assert_menu '' diagnose 'default for an unsupported platform'
+
+set_menu_facts 1 1 VERIFIED
+for mapping in 1:guided 2:preflight 3:apply 4:reconfigure 5:verify 6:status 7:diagnose 8:update 9:rollback; do
+  assert_menu "${mapping%%:*}" "${mapping#*:}" "menu key ${mapping%%:*}"
+done
+assert_menu $'a\n1' htb 'advanced key 1'
+assert_menu $'A\n1' htb 'upper-case advanced key'
+assert_menu $'a\n0\n6' status 'advanced page returns to the home page'
+assert_menu $'x\n5' verify 'one invalid answer before a valid one'
+assert_menu_exit $'x\ny\nz' 2 '无效操作选择。' 'three invalid answers'
+assert_menu_exit '<eof>' 0 '未执行任何操作。' 'end of input at the menu'
+assert_menu_exit '0' 0 '未执行任何操作。' 'menu exit key'
+if choose_action_interactively <<<$'zz-secret\n0' 2>&1 | grep -Fq 'zz-secret'; then
+  fail 'menu echoed invalid input'
 fi
+set_menu_facts 0 1 NEEDS_ROOT
+assert_menu $'3\n7' diagnose 'unavailable key re-prompts'
+assert_menu $'a\n1\n0\n7' diagnose 'unavailable advanced key re-prompts'
+assert_menu_exit $'3\n0' 0 '该项当前不可用' 'unavailable key explains the reason'
+
+# Frame rows: 66 columns, frame character set only, in Unicode and ASCII modes.
+set_menu_facts 1 1 VERIFIED
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+HOME_STATE_VERSION=0.2.0-rc.3 HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
+for ascii in '' 1; do
+  DVT_ASCII="$ascii" TERM=xterm ui_init
+  # shellcheck disable=SC2034  # Consumed by the sourced controller.
+  UI_LAYOUT=framed UI_EN=1 UI_COLOR_OUT=0
+  frames="$({ render_home; render_advanced; } | grep -E '^(┌|├|│|└|\+|\|)')"
+  [ "$(wc -l <<<"$frames")" -eq 20 ] || fail "expected 20 frame rows (DVT_ASCII='${ascii}')"
+  measured=''
+  while IFS= read -r row; do
+    width="$(ui_width "$row")" || fail "frame row has a character outside the frame set: ${row}"
+    [ "$width" -eq 66 ] || fail "frame row is ${width} columns: ${row}"
+    ui_measure measured "$row"
+    [ "$measured" -eq 66 ] || fail "fast width disagrees (${measured}): ${row}"
+  done <<<"$frames"
+done
+if grep -Fq '─' <<<"$frames"; then fail 'DVT_ASCII frames contain box-drawing characters'; fi
+[ "$(ui_width 'a中─')" -eq 4 ] || fail 'width of ASCII, CJK and box-drawing characters'
+if ui_width '1–10000' >/dev/null; then fail 'an ambiguous-width dash passed the frame character set'; fi
+TERM=dumb ui_init
+[ "$UI_ASCII" -eq 1 ] && [ "$UI_LAYOUT" = open ] && [ "$UI_COLOR_OUT" -eq 0 ] || fail 'TERM=dumb did not degrade'
+TERM=linux ui_init
+[ "$UI_ASCII" -eq 1 ] && [ "$UI_LAYOUT" = open ] || fail 'TERM=linux did not degrade'
+
+TERM=xterm ui_init
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+UI_LAYOUT=open UI_EN=0 UI_COLOR_OUT=0
+open_output="$(render_home)"
+grep -Fq '  1. 安全引导   预检+确认' <<<"$open_output" || fail 'open layout item format changed'
+if grep -Eq 'Preflight only|│' <<<"$open_output"; then fail 'narrow open layout kept the English column or frame'; fi
+
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+UI_LAYOUT=framed UI_EN=1 UI_COLOR_OUT=0
+plain_output="$(render_home)"
+[[ "$plain_output" != *$'\033'* ]] || fail 'uncolored home screen contains an escape byte'
+UI_COLOR_OUT=1
+colored_output="$(render_home)"
+[[ "$colored_output" == *$'\033['* ]] || fail 'colored home screen has no SGR sequence'
+# shellcheck disable=SC2001  # SGR parameters vary in length; plain parameter expansion cannot match them.
+[ "$(sed $'s/\033\\[[0-9;]*m//g' <<<"$colored_output")" = "$plain_output" ] ||
+  fail 'color changed home screen text or layout'
+UI_COLOR_OUT=0
+
+set_menu_facts 0 1 NEEDS_ROOT
+grep -E '^│  1\. 安全引导 .*不可用  │$' <<<"$(render_home)" >/dev/null || fail 'unavailable item is not tagged'
+grep -E '^│  7\. 能力诊断 .*只读  │$' <<<"$(render_home)" >/dev/null || fail 'diagnose is not available to non-root users'
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+HOME_FACTS_READY=0
+( home_facts_collect && render_home >/dev/null ) || fail 'home fact collection failed on this host'
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+HOME_FACTS_READY=1
+
+# Explicit actions without a terminal keep the legacy plain summary and plan.
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+UI_STYLED=0
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+DETECTED_PRETTY_NAME='Test OS 13' DETECTED_ARCH=x86_64 DETECTED_CPUS=1 DETECTED_MEMORY_MIB=1024
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+DETECTED_RESOURCE_CLASS=1C1GB DETECTED_LABEL='Debian 13 / 1 vCPU / 1 GiB'
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+STATE_PROFILE=debian13-1c1g STATE_VERSION=0.2.0-rc.3 STATE_PORT_SPEED_MBPS=200
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+ACTION=preflight PROFILE_FILE=debian13-1c1g-vps-tuning.sh PROFILE_SOURCE=local PROFILE_SHA256=abc
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+PORT_SPEED_MBPS_SELECTED=200
+expected_plain=$'\nDebian VPS Tuning '"${CONTROLLER_VERSION}"$'\n\n检测结果：\n  系统：Test OS 13\n  架构：x86_64\n  CPU：1 vCPU\n  内存：1024 MiB\n  资源档：1C1GB\n  实现档位：Debian 13 / 1 vCPU / 1 GiB\n  已安装档位：debian13-1c1g\n  状态脚本版本：0.2.0-rc.3\n  已安装端口带宽：200 Mbps\n\n执行计划：\n  action：preflight\n  调用脚本：debian13-1c1g-vps-tuning.sh\n  脚本来源：local\n  SHA-256：abc\n  端口带宽：200 Mbps\n\nend'
+[ "$({ print_environment_summary; print_execution_plan; printf 'end'; })" = "$expected_plain" ] ||
+  fail 'plain summary or plan output changed'
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+UI_STYLED=1
+styled_plan="$({ print_environment_summary; print_execution_plan; })"
+for value in 'Test OS 13' x86_64 '1 vCPU' '1024 MiB' 1C1GB 'Debian 13 / 1 vCPU / 1 GiB' debian13-1c1g \
+  0.2.0-rc.3 '200 Mbps' preflight debian13-1c1g-vps-tuning.sh local abc; do
+  grep -Fq -- "$value" <<<"$styled_plan" || fail "styled summary lacks ${value}"
+done
+
+# Menu confirmations default to no, also at end of input, and rollback asks first.
+confirm_case() {
+  local action="$1" answer="$2" output
+  output="$(
+    # shellcheck disable=SC2329  # Invoked indirectly by sourced dispatch_action.
+    run_profile() { printf 'RAN:%s\n' "$1"; }
+    ACTION="$action" ACTION_FROM_MENU=1 DISPATCH_NOTE=''
+    if [ "$answer" = '<eof>' ]; then dispatch_action </dev/null; else dispatch_action <<<"$answer"; fi
+    printf '\nnote=%s' "$DISPATCH_NOTE"
+  )" || fail "${action} confirmation exited non-zero"
+  printf '%s' "$output"
+}
+for action in apply rollback reconfigure; do
+  for answer in '' n '<eof>'; do
+    output="$(confirm_case "$action" "$answer")"
+    if grep -Fq 'RAN:' <<<"$output" || ! grep -Fq 'note=declined' <<<"$output"; then
+      fail "${action} ran without confirmation (answer '${answer}')"
+    fi
+  done
+  grep -Fq "RAN:${action}" <<<"$(confirm_case "$action" y)" || fail "${action} did not run after y"
+done
+cli_rollback_output="$(
+  # shellcheck disable=SC2329  # Invoked indirectly by sourced dispatch_action.
+  run_profile() { printf 'RAN:%s\n' "$1"; }
+  ACTION=rollback ACTION_FROM_MENU=0
+  dispatch_action </dev/null
+)"
+grep -Fq 'RAN:rollback' <<<"$cli_rollback_output" || fail 'CLI rollback gained a confirmation'
+
+# Result page: rendered from the EXIT trap with the action's exit status intact.
+result_case() {
+  local action="$1" code="$2" note="${3:-}" rc=0 output
+  output="$(bash -c '
+    source "$1"
+    UI_STYLED=1 UI_COLOR_OUT=0 ACTION="$2" DISPATCH_NOTE="$4" PORT_SPEED_MBPS_SELECTED=200
+    trap on_exit EXIT
+    RESULT_PENDING=1
+    exit "$3"
+  ' _ "$repo_root/debian-vps-tuning.sh" "$action" "$code" "$note")" || rc=$?
+  [ "$rc" -eq "$code" ] || fail "result page changed exit status ${code} to ${rc}"
+  printf '%s' "$output"
+}
+grep -Fq '失败（退出码 5：验证失败）' <<<"$(result_case verify 5)" || fail 'verify failure meaning'
+grep -Fq '失败（退出码 2）' <<<"$(result_case htb 2)" || fail 'companion failures must show the number only'
+grep -Fq '重启主机，重新登录后运行 dvt verify' <<<"$(result_case apply 0)" || fail 'apply next step'
+grep -Fq 'dvt apply --port 200' <<<"$(result_case preflight 0)" || fail 'preflight next step'
+grep -Fq '未执行（确认时已取消）' <<<"$(result_case rollback 0 declined)" || fail 'declined result'
+# shellcheck disable=SC2034  # Consumed by the sourced controller.
+UI_STYLED=0
+
+no_tty_rc=0
+no_tty_output="$(bash "$repo_root/debian-vps-tuning.sh" </dev/null 2>&1 >/dev/null)" || no_tty_rc=$?
+[ "$no_tty_rc" -eq 2 ] || fail "no-terminal menu exit ${no_tty_rc}, expected 2"
+[ "$(head -n1 <<<"$no_tty_output")" = '[x] 非交互环境必须明确指定 action。' ] || fail 'no-terminal first line changed'
+grep -Fq 'ssh -t <host> dvt' <<<"$no_tty_output" || fail 'no-terminal guidance lacks ssh -t'
 
 ACTION=''
 ACTION_ARGS=()
@@ -266,6 +435,20 @@ fi
 PORT_SPEED_MBPS_SELECTED=''
 choose_port_interactively <<<'' >/dev/null
 [ "$PORT_SPEED_MBPS_SELECTED" -eq 200 ] || fail 'default interactive port is not 200 Mbps'
+port_case() {
+  (
+    PORT_SPEED_MBPS_SELECTED=''
+    choose_port_interactively <<<"$1" >/dev/null 2>&1
+    printf 'port=%s' "$PORT_SPEED_MBPS_SELECTED"
+  ) || true
+}
+[ "$(port_case $'9\n3')" = 'port=500' ] || fail 'invalid port choice did not re-prompt'
+[ "$(port_case $'5\n0\n20000\n42')" = 'port=42' ] || fail 'invalid custom port did not re-prompt'
+port_rc=0
+port_output="$(choose_port_interactively <<<$'5\n0\nabc\n10001' 2>&1)" || port_rc=$?
+if [ "$port_rc" -ne 2 ] || ! grep -Fq '带宽必须是 1–10000 的整数。' <<<"$port_output"; then
+  fail 'three invalid custom ports did not stop with the original message'
+fi
 
 fixture="$test_root/profile.sh"
 manifest="$test_root/SHA256SUMS"
