@@ -284,6 +284,7 @@ for ascii in '' 1; do
   UI_LAYOUT=framed UI_EN=1 UI_COLOR_OUT=0
   frames="$({ render_home; render_advanced; } | grep -E '^(┌|├|│|└|\+|\|)')"
   [ "$(wc -l <<<"$frames")" -eq 20 ] || fail "expected 20 frame rows (DVT_ASCII='${ascii}')"
+  measured=''
   while IFS= read -r row; do
     width="$(ui_width "$row")" || fail "frame row has a character outside the frame set: ${row}"
     [ "$width" -eq 66 ] || fail "frame row is ${width} columns: ${row}"
@@ -313,6 +314,7 @@ plain_output="$(render_home)"
 UI_COLOR_OUT=1
 colored_output="$(render_home)"
 [[ "$colored_output" == *$'\033['* ]] || fail 'colored home screen has no SGR sequence'
+# shellcheck disable=SC2001  # SGR parameters vary in length; plain parameter expansion cannot match them.
 [ "$(sed $'s/\033\\[[0-9;]*m//g' <<<"$colored_output")" = "$plain_output" ] ||
   fail 'color changed home screen text or layout'
 UI_COLOR_OUT=0

@@ -403,7 +403,7 @@ ui_measure() {
     ui_measure_rest="${ui_measure_rest//"$ui_measure_glyph"/}"
   done
   ui_measure_ascii="${ui_measure_rest//[!\ -~]/}"
-  printf -v "$1" '%d' $((${#ui_measure_ascii} + (${#2} - ${#ui_measure_rest}) / 3 + (${#ui_measure_rest} - ${#ui_measure_ascii}) / 3 * 2))
+  printf -v "$1" '%d' $((${#ui_measure_ascii} + (${#2} - ${#ui_measure_rest}) / 3 + (${#ui_measure_rest} - ${#ui_measure_ascii}) * 2 / 3))
 }
 
 # ui_pad VAR TEXT COLS [right]
