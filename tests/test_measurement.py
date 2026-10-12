@@ -366,15 +366,17 @@ main measure --rate-cap 20 --plan-only
         source = (ROOT / "dvt-migrate.sh").read_text(encoding="utf-8")
         prepare = re.search(r"^prepare\(\) \{.*?^\}", source, re.M | re.S).group()
         for version, expected in (("0.1.0-rc.19", "当前 managed state"),
+                                  ("0.2.0-rc.2", "当前 managed state"),
                                   ("0.1.0-rc.20", "本版迁移器只接受"),
-                                  ("0.2.0-rc.1", "本版迁移器只接受")):
+                                  ("0.2.0-rc.1", "本版迁移器只接受"),
+                                  ("0.2.0-rc.3", "本版迁移器只接受")):
             script = f'''set -euo pipefail
 die() {{ printf '%s\\n' "$*"; exit 2; }}
 validate_file() {{ :; }}
 {prepare}
 checkpoint='/dvt-test-nonexistent-{m.uuid.uuid4().hex}'
 source_profile=unused target_profile=unused
-source_version='{version}' target_version='0.2.0-rc.2'
+source_version='{version}' target_version='0.2.0-rc.3'
 profile_id=debian13-1c1g port_mbps=200
 state_sha256='{'a' * 64}' STATE_FILE='/dvt-test-nonexistent-state-{m.uuid.uuid4().hex}'
 prepare

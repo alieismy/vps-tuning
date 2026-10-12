@@ -7,7 +7,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-SCRIPT_VERSION='0.2.0-rc.2'
+SCRIPT_VERSION='0.2.0-rc.3'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
 NAMESPACE='proxy-vps'
@@ -349,7 +349,7 @@ state_file_path_is_valid() {
       (if .schema_version == $schema then
         (.script_version == $version or
           ($update_preflight == 1 and
-            (.script_version | test("^0\\.1\\.0-rc\\.([1-9]|1[0-9])$")))) and
+            (.script_version | test("^(0\\.1\\.0-rc\\.([1-9]|1[0-9])|0\\.2\\.0-rc\\.2)$")))) and
         (.provider_sysctl_transfer | type == "object") and
         (.provider_sysctl_transfer.required | type == "boolean") and
         (.provider_sysctl_transfer.source_path == $provider_file) and

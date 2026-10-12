@@ -6,7 +6,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-TOOL_VERSION='0.2.0-rc.2'
+TOOL_VERSION='0.2.0-rc.3'
 STATE_FILE="${DVT_STATE_FILE:-/var/lib/proxy-vps-tuning/state.json}"
 
 action=''
@@ -74,7 +74,7 @@ validate_baseline_archive() {
   [[ "$archive" = /* ]] && [ -d "$archive" ] && [ ! -L "$archive" ] || die '基线恢复归档路径无效。'
   [ "$(stat -c '%u' "$archive")" = 0 ] && [ "$(stat -c '%a' "$archive")" = 700 ] || die '基线恢复归档必须为 root/0700。'
   validate_file baseline-receipt "${archive}/receipt.json"
-  jq -e '.schema_version==1 and .tool_version=="0.2.0-rc.2" and
+  jq -e '.schema_version==1 and .tool_version=="0.2.0-rc.3" and
     (.host_id | test("^VPS-[0-9]{2}$")) and
     (.mode=="historical" or .mode=="replacement") and
     (.files|type=="object") and
@@ -105,7 +105,7 @@ resolve_baseline_archive() {
     --slurpfile receipt "${baseline_archive}/receipt.json" '
     .tcp_baseline_recovery as $r | $plan[0] as $p | $before[0] as $b | $receipt[0] as $a |
     $r.schema_version==1 and $p.schema_version==1 and $p.approved==true and
-    $r.target_version=="0.2.0-rc.2" and $p.target_version==$r.target_version and
+    $r.target_version=="0.2.0-rc.3" and $p.target_version==$r.target_version and
     $r.host_id==$p.host_id and $r.host_id==$a.host_id and $r.mode==$p.mode and $r.mode==$a.mode and
     $r.original_state_sha256==$a.files["state.before.json"] and
     $r.plan_sha256==$a.files["plan.json"] and $p.binding==$a.binding and
@@ -184,8 +184,8 @@ prepare() {
   validate_file source-profile "$source_profile"; validate_file target-profile "$target_profile"
   [[ "$source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]] &&
     [[ "$target_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]] || die 'source/target version 格式无效。'
-  if [ "$target_version" != '0.2.0-rc.2' ] || ! [[ "$source_version" =~ ^0\.1\.0-rc\.([1-9]|1[0-9])$ ]]; then
-    die '本版迁移器只接受 rc.1–rc.19 来源并迁移到 0.2.0-rc.2。'
+  if [ "$target_version" != '0.2.0-rc.3' ] || ! [[ "$source_version" =~ ^(0\.1\.0-rc\.([1-9]|1[0-9])|0\.2\.0-rc\.2)$ ]]; then
+    die '本版迁移器只接受 0.1.0-rc.1–rc.19 或 0.2.0-rc.2 来源并迁移到 0.2.0-rc.3。'
   fi
   [[ "$profile_id" =~ ^debian1[23]-[A-Za-z0-9-]+$ ]] || die 'profile-id 格式无效。'
   [[ "$port_mbps" =~ ^[0-9]+$ ]] && [ "$((10#$port_mbps))" -ge 100 ] && [ "$((10#$port_mbps))" -le 1000 ] || die 'port 必须是 100..1000。'

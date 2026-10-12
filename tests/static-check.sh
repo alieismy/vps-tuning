@@ -146,7 +146,7 @@ expected_keys=17
 for script in "${scripts[@]}"; do
   actual="$(awk '/^PROFILE_SYSCTL_KEYS=\(/,/^\)/ {if ($1 ~ /^(net\.|vm\.)/) count++} END {print count+0}' "$script")"
   [ "$actual" -eq "$expected_keys" ] || { printf 'unexpected managed-key count: %s (%s)\n' "$script" "$actual" >&2; exit 1; }
-  grep -Fq "SCRIPT_VERSION='0.2.0-rc.2'" "$script"
+  grep -Fq "SCRIPT_VERSION='0.2.0-rc.3'" "$script"
   grep -Eq '^STATE_SCHEMA_VERSION=4$' "$script"
   grep -Eq '^LEGACY_STATE_SCHEMA_VERSION=3$' "$script"
   grep -Fq 'PROFILE_CPU_MIN=' "$script"
@@ -333,19 +333,28 @@ for script in "${scripts[@]}"; do
   }
 done
 
-grep -Fq "CONTROLLER_VERSION='0.2.0-rc.2'" "$controller"
-grep -Fq "RELEASE_TAG='v0.2.0-rc.2'" "$controller"
+grep -Fq "CONTROLLER_VERSION='0.2.0-rc.3'" "$controller"
+grep -Fq "RELEASE_TAG='v0.2.0-rc.3'" "$controller"
 grep -Fq "DEFAULT_PORT_SPEED_MBPS=200" "$controller"
 grep -Fq 'verify_profile_contract' "$controller"
 grep -Fq 'debian12-1c512m-vps-tuning.sh' "$controller"
 grep -Fq 'debian13-1c512m-vps-tuning.sh' "$controller"
 grep -Fq "resource_class='2C2GB'" "$controller"
-grep -Fq 'diagnose（按实际 Linux 能力只读诊断，无需 profile）' "$controller"
-grep -Fq 'probe（重复、限速、advisory-only；需已授权 iperf3）' "$controller"
-grep -Fq 'benchmark（高级单次证据入口；需 BENCHMARK_HOST）' "$controller"
-grep -Fq 'HTB 实验（仅 Debian 13 / 200 Mbps / 非持久化）' "$controller"
-grep -Fq 'update（只读检查并生成升级计划）' "$controller"
-grep -Fq 'reconfigure（重配置服务商端口带宽）' "$controller"
+grep -Fq "home_item 7 '能力诊断' 'Diagnose (no profile needed)' '只读'" "$controller"
+grep -Fq "home_item 8 '检查升级' 'Update check and handoff plan' '只读 联网'" "$controller"
+grep -Fq "home_item 4 '修改带宽' 'Reconfigure provider port speed' '写入'" "$controller"
+grep -Fq "home_item 9 '回滚' 'Rollback managed changes' '写入'" "$controller"
+grep -Fq "ui_item 1 'HTB 实验' 'HTB trial: Debian 13 / 200 Mbps' \"\$tag\"" "$controller"
+grep -Fq "ui_reference '流量' 'dvt probe --host HOST --ledger PATH --window-id ID'" "$controller"
+grep -Fq "ui_reference '流量' 'BENCHMARK_HOST=HOST dvt benchmark'" "$controller"
+grep -Fq "confirm_answer '是否执行 rollback？[y/N]：'" "$controller"
+# The menu renders with SGR color sequences only: no clearing, cursor movement
+# or alternate screen, so the scrollback keeps every action's output.
+if grep -oE '\\033\[[0-9;%s?]*[A-Za-z]' "$controller" | grep -v 'm$' ||
+  grep -Eqw 'tput|clear' "$controller"; then
+  printf 'controller UI uses a non-SGR terminal control\n' >&2
+  exit 1
+fi
 grep -Fq 'reconfigure 必须显式使用 --port' "$controller"
 grep -Fq 'resolve_companion_assets' "$controller"
 grep -Fq 'ACTION_ARGS=("$@")' "$controller"
@@ -362,7 +371,7 @@ if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://
   exit 1
 fi
 
-grep -Fq "RELEASE_TAG='v0.2.0-rc.2'" "$installer"
+grep -Fq "RELEASE_TAG='v0.2.0-rc.3'" "$installer"
 grep -Eq "EXPECTED_MANIFEST_SHA256='[0-9a-f]{64}'" "$installer"
 if grep -Fq "EXPECTED_MANIFEST_SHA256='0000000000000000000000000000000000000000000000000000000000000000'" "$installer"; then
   printf 'installer manifest digest placeholder was not finalized\n' >&2
@@ -374,8 +383,8 @@ grep -Fq '安装过程没有执行 preflight/apply' "$installer"
 manifest_hash="$(sha256sum SHA256SUMS | awk '{print $1}')"
 grep -Fq "EXPECTED_MANIFEST_SHA256='${manifest_hash}'" "$installer"
 installer_hash="$(sha256sum "$installer" | awk '{print $1}')"
-grep -Fq "$installer_hash" docs/releases/v0.2.0-rc.2.md
-grep -Fq "$manifest_hash" docs/releases/v0.2.0-rc.2.md
+grep -Fq "$installer_hash" docs/releases/v0.2.0-rc.3.md
+grep -Fq "$manifest_hash" docs/releases/v0.2.0-rc.3.md
 if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://' "$installer"; then
   printf 'mutable or insecure installer download source detected\n' >&2
   exit 1
@@ -1400,7 +1409,7 @@ EXIT_USAGE=2
 EXIT_UNSUPPORTED=3
 EXIT_CONFLICT=4
 EXIT_VERIFY=5
-SCRIPT_VERSION='0.2.0-rc.2'
+SCRIPT_VERSION='0.2.0-rc.3'
 PROFILE_ID='debian13-1c1g'
 STATE_FILE="$test_root/no-state.json"
 ensure_required_tools() { :; }
@@ -1627,7 +1636,7 @@ cross_version_apply_test="$tmp_dir/cross-version-apply-test.sh"
   awk '/^apply_settings\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_CROSS_VERSION_APPLY_TEST'
 EXIT_CONFLICT=4
-SCRIPT_VERSION='0.2.0-rc.2'
+SCRIPT_VERSION='0.2.0-rc.3'
 PORT_SPEED_MBPS=200
 BUFFER_TARGET_RTT_MS=200
 BUF_MAX=16777216
@@ -1658,7 +1667,7 @@ parameter_mismatch_apply_test="$tmp_dir/parameter-mismatch-apply-test.sh"
   awk '/^apply_settings\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_PARAMETER_MISMATCH_APPLY_TEST'
 EXIT_CONFLICT=4
-SCRIPT_VERSION='0.2.0-rc.2'
+SCRIPT_VERSION='0.2.0-rc.3'
 PORT_SPEED_MBPS=100
 BUFFER_TARGET_RTT_MS=200
 BUF_MAX=16777216
@@ -2565,7 +2574,7 @@ STATE_DIR='/var/lib/proxy-vps-tuning'
 SYSCTL_SCAN_ROOT='/etc'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
-SCRIPT_VERSION='0.2.0-rc.2'
+SCRIPT_VERSION='0.2.0-rc.3'
 PROFILE_ID='debian12-1c1g'
 UPDATE_PREFLIGHT=0
 stat() { printf '%s\n' '0'; }
@@ -2584,7 +2593,7 @@ for fixture in empty whitespace null object multiple; do
   fi
 done
 
-printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.2","profile":{"id":"debian12-1c1g"},"state":"PREPARED","network":{},"original_sysctls":{},"qdisc":{"file":"/tmp/qdisc","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"swap":{},"provider_sysctl_transfer":{"required":false,"source_path":"/etc/sysctl.conf","backup_path":"/var/lib/proxy-vps-tuning/provider-sysctl.conf.original","original_sha256":null,"backup_sha256":null,"transferred_sha256":null,"original_uid":null,"original_gid":null,"original_mode":null,"keys":[],"state":"NOT_REQUIRED"},"managed_files":[],"timestamps":{}}' >"$STATE_FILE"
+printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.3","profile":{"id":"debian12-1c1g"},"state":"PREPARED","network":{},"original_sysctls":{},"qdisc":{"file":"/tmp/qdisc","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"swap":{},"provider_sysctl_transfer":{"required":false,"source_path":"/etc/sysctl.conf","backup_path":"/var/lib/proxy-vps-tuning/provider-sysctl.conf.original","original_sha256":null,"backup_sha256":null,"transferred_sha256":null,"original_uid":null,"original_gid":null,"original_mode":null,"keys":[],"state":"NOT_REQUIRED"},"managed_files":[],"timestamps":{}}' >"$STATE_FILE"
 state_file_is_valid
 
 cp -- "$STATE_FILE" "${STATE_FILE}.valid"
@@ -2620,6 +2629,21 @@ if state_file_is_valid; then
 fi
 UPDATE_PREFLIGHT=1
 state_file_is_valid
+
+# rc.2 managed states are accepted only by the read-only update-preflight.
+UPDATE_PREFLIGHT=0
+jq '.script_version="0.2.0-rc.2"' "${STATE_FILE}.valid" >"$STATE_FILE"
+if state_file_is_valid; then
+  printf 'state validator accepted an rc.2 state outside update-preflight\n' >&2
+  exit 1
+fi
+UPDATE_PREFLIGHT=1
+state_file_is_valid
+jq '.script_version="0.2.0-rc.1"' "${STATE_FILE}.valid" >"$STATE_FILE"
+if state_file_is_valid; then
+  printf 'update-preflight accepted an unpublished 0.2.0-rc.1 state\n' >&2
+  exit 1
+fi
 EOF_STATE_VALIDATION_TEST
 } >"$state_validation_test"
 bash "$state_validation_test"
