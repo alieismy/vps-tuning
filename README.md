@@ -1,8 +1,8 @@
 # VPS Tuning
 
-简体中文 · [English](README.en-US.md) · [v0.2.0-rc.2 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.2)
+简体中文 · [English](README.en-US.md) · [v0.2.0-rc.3 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
-**v0.2.0-rc.2 预发行版**修复旧 schema 4 的只读升级预检，范围和证据见[发布说明](docs/releases/v0.2.0-rc.2.md)。预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。
+**v0.2.0-rc.3 预发行版**重做无 action 时的 `dvt` 交互菜单，迁移器另接受 `0.2.0-rc.2` 来源；调优内容不变，范围和证据见[发布说明](docs/releases/v0.2.0-rc.3.md)。已受管主机要在新版本下执行受管动作，须先完成跨版本迁移；预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。
 
 为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
 
@@ -52,7 +52,7 @@
 
 ### 安装
 
-在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.2` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
+在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.3` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
 
 ```bash
 (
@@ -63,9 +63,9 @@
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/install.sh
   printf '%s  %s\n' \
-    '8cc038ff6a2386879769f8f08b5d143cf76311b348a29ccb4584a1acd3ad3f00' \
+    '82daec1ed1c36a845c18720cac714e617d86e0f1b439a3f3d7fb5c536273cbe1' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -103,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` 是允许的结果；退出码 0 只表示报告采集完成。测试不经过 VLESS/REALITY 客户端，不能据此承诺业务提速。临时整形另见 [htb-sweep 指南](docs/temporary-htb.md)，执行前必须理解整个接口限速及恢复条件。
 
-需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，主程序版本仍为 `v0.2.0-rc.2`。
+需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，主程序版本仍为 `v0.2.0-rc.3`。
 
 ### 路径 B：应用持久配置
 
@@ -170,13 +170,13 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 ## 验证状态与已知限制
 
-- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性。
+- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性；rc.3 尚未在这些主机上迁移或验证。
 - 七组隔离客体生命周期覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 adaptive，以及 Debian 13 x86_64 legacy；包括真实客体重启、幂等、重配置与恢复。ARM64 使用 ARM runner 上的 QEMU/TCG，不能替代特定云厂商硬件验收。
 - 公共 IPv4 自动测量、临时 HTB 正常与信号中断恢复有有限 VPS 证据。完整低速扫描曾获得 15 个样本、11 个有效，整轮仍为 `INSUFFICIENT_EVIDENCE`，尚未证明可靠 policer 拐点或代理收益。
 - 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。
 - 1–10000 Mbps 是参数范围；更广泛公网平台、IPv6、高速、特定大资源硬件及业务性能仍有未验收项。
 
-固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.2.md)。
+固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.3.md)。
 
 ## 文档导航
 

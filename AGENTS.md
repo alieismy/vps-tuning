@@ -8,7 +8,7 @@
 
 ## 当前项目阶段：v0.2.0-rc.3 交互界面版本交付
 
-用户于 2026-10-12 批准把 dvt 交互界面改版并入 `v0.2.0-rc.3`，同时让该版本的只读 update-preflight 和迁移器接受 `0.2.0-rc.2` 来源。本阶段完成该版本的 CI、合并、Pre-release、公开资产回验和发布入口同步，不重新开启已完成的 rc.18 实现任务。界面行为以[交互界面详细设计](docs/interactive-cli-design.md)为准，版本范围、升级影响和迁移限制以[rc.3 发布说明](docs/releases/v0.2.0-rc.3.md)为准；rc.3 公开前，安装和主程序升级仍以[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)与[平台支持及旧状态限制](docs/platform-support.md)为准。涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)。具体提交、CI、公开资产回验与剩余运行缺口以[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)为准，不在本文件复制验证日志。
+用户于 2026-10-12 批准把 dvt 交互界面改版并入 `v0.2.0-rc.3`，同时让该版本的只读 update-preflight 和迁移器接受 `0.2.0-rc.2` 来源。本阶段完成该版本的 CI、合并、Pre-release、公开资产回验和发布入口同步，不重新开启已完成的 rc.18 实现任务。界面行为以[交互界面详细设计](docs/interactive-cli-design.md)为准，版本范围、升级影响和迁移限制以[rc.3 发布说明](docs/releases/v0.2.0-rc.3.md)为准；安装和主程序升级以该说明与[平台支持及旧状态限制](docs/platform-support.md)为准，五台主机迁移到 rc.2 的历史依据见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)。涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)。具体提交、CI、公开资产回验与剩余运行缺口以[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)为准，不在本文件复制验证日志。
 
 rc.3 只改变总控表现层、版本标识和迁移来源；保持 17 项受管 sysctl、资源感知 BDP 缓冲、默认 `BBR + fq`、非持久 HTB、managed-state schema 4、benchmark schema 3、预算 ledger 和迁移 checkpoint 边界，不改变 HTB rate/burst/cburst 或启用持久整形。修改 mq 寻址或回滚逻辑前，阅读[rc.18 技术记录](docs/releases/v0.1.0-rc.18.md)及相关源码/fixture，保留全 fq 无写入、混合拓扑写前拒绝、队列集合核对和限定 parent 规范化契约；该记录中的候选状态属于历史时间点。
 

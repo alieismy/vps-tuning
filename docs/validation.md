@@ -29,11 +29,26 @@
 | --- | --- | --- |
 | 本次五台升级 | 固定资产、来源与恢复条件、PREPARED、旧版退出、两次重启、目标验证、入口及基本业务确认；已完成 | 保留逐台证据，不因历史矩阵空项重跑升级 |
 | 发布后文档收尾 | 当前验收记录、中英文入口、发布／验证指针一致，历史状态可辨，文档检查通过，运行资产不变 | 只更新相关文档；本地检查与后续提交／CI 状态分别记录 |
+| rc.3 版本交付 | PR CI、七组平台归档、合并、tag CI、Pre-release 与 26 项公开回验；已完成，见[rc.3 发布验证](#rc3-release-validation) | `0.2.0-rc.2 → 0.2.0-rc.3` 实机迁移和人工终端渲染矩阵需另行授权，不因发布自动启动 |
 | 稳定版或扩展平台 | 结合明确支持范围，评审 T1–T10 及生命周期／失败场景要求，并将当前 CI、隔离 VM 和实机证据逐项映射 | 既有稳定版要求保留；本轮不批准削减门槛、不将预发行升级为稳定版 |
 | 性能、判据与整形研究 | 需要可复现症状或明确研究／性能主张、独立环境、预算和停止条件 | 按默认验收路径的研究边界处理；判据校准维持[已延后决定](knee-calibration-design.md#131-延后决定) |
 | 长期稳定性与整机还原演练 | 本次无完整验收证据 | 单独确定观察或演练范围，不作为已闭合迁移的补做指令 |
 
 下方历史表中的 T 编号不是 VPS 编号，不能按顺序或相同规格直接对应。回填通过须同时核对目标环境、操作范围、版本／资产及证据层级；旧记录和待执行项保留，新证据以绑定版本的后继记录补充。首次稳定版的最终适用矩阵和接受条件仍需另行确认，本轮只澄清范围。
+
+<a id="rc3-release-validation"></a>
+
+## 0.2.0-rc.3 交互界面版本发布（2026-10-13）
+
+范围见[发布说明](releases/v0.2.0-rc.3.md)和[交互界面详细设计](interactive-cli-design.md)：重做无 action 的 `dvt` 交互菜单，只读 update-preflight 与迁移器增加 `0.2.0-rc.2` 来源。日期按 Asia/Singapore；GitHub 时间戳为 UTC。
+
+- 首轮 CI：[PR #39](https://github.com/alieismy/vps-tuning/pull/39) head `1e5ba69` 的 [PR CI 38278037151](https://github.com/alieismy/vps-tuning/actions/runs/38278037151) 与 [push CI 38278005677](https://github.com/alieismy/vps-tuning/actions/runs/38278005677) 中，静态、root 安装/rc18 迁移/恢复专项和原生 HTB 步骤通过，ShellCheck 0.11.0 报告三项发现（总控 SC2017，测试 SC2154、SC2001）而失败。`cadc23f` 修复：`ui_measure` 改为先乘后除，CJK 字节数为 3 的倍数，结果不变；测试补变量初始化及 SGR 去除的指令说明；重新生成清单与安装器内置摘要。`bd42f24` 处理评审意见，只改文档。`1e5ba69`、`cadc23f` 上的平台运行（38278046068、38279072080）因运行资产或文件树随后变化而主动取消，未计为通过。
+- 最终 head `bd42f248ae67ada39e1b5c07918cf742cb0201c4`：[PR CI 38279329010](https://github.com/alieismy/vps-tuning/actions/runs/38279329010) 与 [push CI 38279323553](https://github.com/alieismy/vps-tuning/actions/runs/38279323553) 全部步骤成功，含 ShellCheck 0.11.0；rc18 检查包含新增的 `0.2.0-rc.2` 来源迁移 fixture。
+- 七组平台生命周期绑定 `bd42f24`：[平台 CI 38279339634](https://github.com/alieismy/vps-tuning/actions/runs/38279339634)，结果：七组全部成功。归档复核：七份归档 zip 的大小与 GitHub SHA-256 一致；目标状态为 `0.2.0-rc.3` / schema 4 / `VERIFIED`；apply 后和 rollback 后两次客体重启的 boot ID 均变化；17 项 sysctl 与 qdisc 恢复为应用前快照。隔离客体证据覆盖全新安装生命周期，不代表 rc.2 → rc.3 迁移或五台存量主机。
+- 评审：CodeRabbit 对 `1e5ba69` 处理 29 个文件，1 项 actionable（设计文档引用旧阶段），已在 `bd42f24` 修复并在线程中回复；之后的推送遇额度限制，未再评审。未另行安排独立评审。
+- 合并与 tag：squash 合并提交 `08ce2045cb990e39ecc278ac5a9cd43227af5d06`，文件树 `04ee8b429d371f218fe44110e574b7cf66329545` 与 `bd42f24` 相同；[合并后 CI 38282886142](https://github.com/alieismy/vps-tuning/actions/runs/38282886142) 结果：success。主线自动触发的平台重复矩阵 38282886127 因文件树相同主动取消，未计为通过，平台门禁采用上条已核验结果。annotated tag `v0.2.0-rc.3`（对象 `0d2e686a443486fa2b3b7fcf92d797444e00606b`）解引用该合并提交，[tag CI 38284317901](https://github.com/alieismy/vps-tuning/actions/runs/38284317901) 结果：success。
+- 公开发布：先以草稿上传 26 项资产，核对名称、大小、GitHub digest 与 tag 的 Git blob；tag CI 成功后公开为 [v0.2.0-rc.3 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)，不设 Latest，发布时间 2026-10-12T17:32:48Z。公开回验结果：26 项下载文件逐字节匹配固定 tag 与 GitHub digest，24 项 manifest 及安装器内置摘要链通过；旧仓库 installer/manifest 地址均经两次 HTTPS 跳转返回 200 且字节一致。原 15 个 Release、225 项资产及 29 条 tag refs 不变，新增仅 rc.3 Release 与其两条 tag refs，无遗留草稿。
+- 边界：发布工作未连接或修改真实 VPS，未产生公网测速流量。`0.2.0-rc.2 → 0.2.0-rc.3` 迁移只有 CI fixture 证据；人工终端渲染矩阵未执行，字符宽度测试不证明各终端实际对齐。迁移器仍限 Debian profile 与 100–1000 Mbps 端口；rc.2 版恢复工具归档只被 rc.2 迁移器接受。
 
 <a id="rc2-mainline-release-validation"></a>
 
