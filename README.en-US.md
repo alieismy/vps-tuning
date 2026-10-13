@@ -1,12 +1,12 @@
 # VPS Tuning
 
-[简体中文](README.md) · English · [v0.2.0-rc.4 candidate notes](docs/releases/v0.2.0-rc.4.md) · [Published rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
+[简体中文](README.md) · English · [v0.2.0-rc.4 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4) · [Published rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
-**v0.2.0-rc.4 candidate, not yet published.** The `dvt` menu now defaults to local capability diagnostics when the entrypoint and managed-state versions differ; managed actions are unavailable and update checks require an explicit selection. Its migrator also accepts `0.2.0-rc.3` sources. Tuning behaviour is unchanged. See the [release notes (Chinese)](docs/releases/v0.2.0-rc.4.md) for scope and evidence. Managed hosts must complete a cross-version migration before running managed actions under the new version; successful preflight does not establish complete original TCP snapshots, and migration must still pass `migrate prepare`. Stable rc.2 hosts should not migrate solely for the interactive interface.
+**v0.2.0-rc.4 prerelease.** The `dvt` menu now defaults to local capability diagnostics when the entrypoint and managed-state versions differ; managed actions are unavailable and update checks require an explicit selection. Its migrator also accepts `0.2.0-rc.3` sources. Tuning behaviour is unchanged. See the [release notes (Chinese)](docs/releases/v0.2.0-rc.4.md) for scope and evidence. Managed hosts must complete a cross-version migration before running managed actions under the new version; successful preflight does not establish complete original TCP snapshots, and migration must still pass `migrate prepare`. Stable rc.2 hosts should not migrate solely for the interactive interface.
 
 Host network diagnostics, budgeted automatic measurement with public iperf3 endpoints, and verifiable, reversible BBR + fq configuration for Linux VPS hosts. Measurement needs neither prior tuning nor a self-hosted endpoint. Temporary HTB rate sweeps explore the relationship between sending rate and retransmissions.
 
-This is a **Pre-release candidate**. Use the rc.4 download commands below only after publication and public-asset verification. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities. Functional and recovery evidence does not establish reliable policer identification or improved proxy performance.
+This is a **Pre-release**. The pinned rc.4 assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities. Functional and recovery evidence does not establish reliable policer identification or improved proxy performance.
 
 The repository was renamed from `debian-vps-tuning` on 2026-10-10. Old links redirect here automatically. The `dvt` command, release asset file names, installation paths and managed-state paths are unchanged.
 
@@ -52,7 +52,7 @@ Original Debian resource tiers keep their policies; other supported combinations
 
 ### Installation
 
-Run in a root shell (`id -u` must return `0`). After rc.4 publication and public-asset verification, this downloads the complete fixed `v0.2.0-rc.4` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
+Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.4` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
 
 ```bash
 (
@@ -176,7 +176,7 @@ Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call 
 - The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.
 - 1–10000 Mbps is an input range. Broader public-path platform coverage, IPv6, high rates, specific large-resource hardware and business performance still have unvalidated areas.
 
-Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [candidate notes](docs/releases/v0.2.0-rc.4.md), currently in Chinese.
+Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.4.md), currently in Chinese.
 
 ## Documentation
 
