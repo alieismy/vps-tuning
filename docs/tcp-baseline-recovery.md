@@ -1,6 +1,6 @@
 # 旧 TCP 快照恢复与新基线迁移
 
-状态：`0.2.0-rc.4` 候选配套源码工具，待发布。本文和源码工具不构成生产变更授权。适用范围限 Debian 13、`debian13-1c1g` / `debian13-1c2g`、100/200/500 Mbps、来源 rc.11/rc.12/rc.16/rc.17，且两项 TCP 原值均因已确认的旧缺陷保存为字符串 `4096`。
+状态：`0.2.0-rc.4` 预发行版配套源码工具。本文和源码工具不构成生产变更授权。适用范围限 Debian 13、`debian13-1c1g` / `debian13-1c2g`、100/200/500 Mbps、来源 rc.11/rc.12/rc.16/rc.17，且两项 TCP 原值均因已确认的旧缺陷保存为字符串 `4096`。
 
 ## 恢复语义
 
@@ -20,7 +20,7 @@
 
 ## 工具及写入边界
 
-[tools/recover_tcp_baseline.py](../tools/recover_tcp_baseline.py) 是源码树中的一次性恢复工具，使用 Python 3 标准库；不是已发布 `dvt` 子命令，也不由安装器部署。运行前使用[固定 `v0.2.0-rc.4` 源码（发布后使用）](https://github.com/alieismy/vps-tuning/tree/v0.2.0-rc.4)，并核对[该 tag 下的工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.4/tools/recover_tcp_baseline.py) SHA-256：`54b3a066967f05be3397d5083fffd3badb176f3cfb7be5e28a4b888b0a5c8308`。计划、归档和 receipt 绑定工具版本，只被同版本迁移器接受：已用 [rc.2 版工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.2/tools/recover_tcp_baseline.py)（SHA-256 `0389fe2ddadbe031bb5054c2b0542a187b0e087ade2c72928864c1169e591a4e`）建立归档的主机，应以 rc.2 目标完成迁移，不能把该归档交给 rc.3/rc.4 迁移器。已有 [rc.3 版工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.3/tools/recover_tcp_baseline.py)（SHA-256 `276606bd43b5ef32474c5abb357c4b51a9286516c7e86ae9ea9f8fe8c2ce5dd7`）归档时，先以 rc.3 目标完成迁移，再独立评估迁移 rc.4；不能把 rc.3 归档交给 rc.4 迁移器。该工具不在 26 项安装发布资产中；来源 profile 则使用对应旧版的固定 SHA-256。不得混用来源和目标 Release 的清单。
+[tools/recover_tcp_baseline.py](../tools/recover_tcp_baseline.py) 是源码树中的一次性恢复工具，使用 Python 3 标准库；不是已发布 `dvt` 子命令，也不由安装器部署。运行前使用[固定 `v0.2.0-rc.4` 源码](https://github.com/alieismy/vps-tuning/tree/v0.2.0-rc.4)，并核对[该 tag 下的工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.4/tools/recover_tcp_baseline.py) SHA-256：`54b3a066967f05be3397d5083fffd3badb176f3cfb7be5e28a4b888b0a5c8308`。计划、归档和 receipt 绑定工具版本，只被同版本迁移器接受：已用 [rc.2 版工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.2/tools/recover_tcp_baseline.py)（SHA-256 `0389fe2ddadbe031bb5054c2b0542a187b0e087ade2c72928864c1169e591a4e`）建立归档的主机，应以 rc.2 目标完成迁移，不能把该归档交给 rc.3/rc.4 迁移器。已有 [rc.3 版工具](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.3/tools/recover_tcp_baseline.py)（SHA-256 `276606bd43b5ef32474c5abb357c4b51a9286516c7e86ae9ea9f8fe8c2ce5dd7`）归档时，先以 rc.3 目标完成迁移，再独立评估迁移 rc.4；不能把 rc.3 归档交给 rc.4 迁移器。该工具不在 26 项安装发布资产中；来源 profile 则使用对应旧版的固定 SHA-256。不得混用来源和目标 Release 的清单。
 
 | 操作 | 行为 |
 |---|---|

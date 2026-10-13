@@ -1,6 +1,6 @@
 # 安装、持久配置与日常操作
 
-适用版本：`v0.2.0-rc.4` 候选，待发布；下方 rc.4 下载命令须在发布及公开资产回验完成后使用。本页承接 [README](../README.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
+适用版本：`v0.2.0-rc.4` 预发行版，固定资产已完成公开下载回验。本页承接 [README](../README.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
 
 ## 执行前准备
 

@@ -1,12 +1,12 @@
 # VPS Tuning
 
-简体中文 · [English](README.en-US.md) · [v0.2.0-rc.4 候选说明](docs/releases/v0.2.0-rc.4.md) · [已发布 rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
+简体中文 · [English](README.en-US.md) · [v0.2.0-rc.4 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4) · [已发布 rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
-**v0.2.0-rc.4 候选，待发布。** 修正 `dvt` 菜单在入口版本与受管版本不一致时的引导：默认选择本地能力诊断，受管动作显示不可用，检查升级须显式选择；迁移器另接受 `0.2.0-rc.3` 来源。调优内容不变，范围和证据见[发布说明](docs/releases/v0.2.0-rc.4.md)。已受管主机要在新版本下执行受管动作，须先完成跨版本迁移；预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。不建议稳定 rc.2 主机仅为交互界面迁移。
+**v0.2.0-rc.4 预发行版。** 修正 `dvt` 菜单在入口版本与受管版本不一致时的引导：默认选择本地能力诊断，受管动作显示不可用，检查升级须显式选择；迁移器另接受 `0.2.0-rc.3` 来源。调优内容不变，范围和证据见[发布说明](docs/releases/v0.2.0-rc.4.md)。已受管主机要在新版本下执行受管动作，须先完成跨版本迁移；预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。不建议稳定 rc.2 主机仅为交互界面迁移。
 
 为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
 
-当前 rc.4 为 **Pre-release 候选**，发布和公开资产回验完成后才能使用下方 rc.4 下载命令。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
+当前为 **Pre-release**，rc.4 固定资产已完成公开下载回验。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
 
 仓库原名 `debian-vps-tuning`，2026-10-10 改为现名，旧链接会自动跳转到本仓库。`dvt` 命令、发布资产文件名、安装路径和受管状态路径均保持不变。
 
@@ -52,7 +52,7 @@
 
 ### 安装
 
-在 root shell 中执行（`id -u` 应为 `0`）。rc.4 发布及公开回验完成后，以下命令完整下载固定 `v0.2.0-rc.4` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
+在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.4` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
 
 ```bash
 (
@@ -176,7 +176,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 - 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。
 - 1–10000 Mbps 是参数范围；更广泛公网平台、IPv6、高速、特定大资源硬件及业务性能仍有未验收项。
 
-固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前候选说明](docs/releases/v0.2.0-rc.4.md)。
+固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.4.md)。
 
 ## 文档导航
 

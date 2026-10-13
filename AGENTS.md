@@ -8,7 +8,7 @@
 
 ## 当前项目阶段：v0.2.0-rc.4 菜单兼容引导修正与预发行交付
 
-用户于 2026-10-13 批准按 rc.3 评审建议修正交互菜单，并明确授权验证通过后提交、推送、合并及发布 `v0.2.0-rc.4` Pre-release。本阶段落实版本不一致时的菜单引导、相应回归与 PTY 验证、必要版本同步和发布闭环。界面契约见[交互界面详细设计](docs/interactive-cli-design.md)，范围和迁移限制见[rc.4 发布说明](docs/releases/v0.2.0-rc.4.md)，已发布历史见[rc.3 说明](docs/releases/v0.2.0-rc.3.md)。五台现有主机继续保持 rc.2，不因界面修正迁移；版本解耦仍待独立设计决策。五台迁移历史见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)；涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)。安装与主程序升级同时遵循[平台支持及旧状态限制](docs/platform-support.md)。具体证据与待完成事项见[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)。
+用户于 2026-10-13 批准按 rc.3 评审建议修正交互菜单，并明确授权验证通过后提交、推送、合并及发布 `v0.2.0-rc.4` Pre-release。本阶段已交付版本不一致时的菜单引导、相应回归与 PTY 验证、必要版本同步和公开预发行；后续只完成该版本证据与文档闭环，不自动启动存量迁移或下一版本。界面契约见[交互界面详细设计](docs/interactive-cli-design.md)，范围和迁移限制见[rc.4 发布说明](docs/releases/v0.2.0-rc.4.md)，已发布历史见[rc.3 说明](docs/releases/v0.2.0-rc.3.md)。五台现有主机继续保持 rc.2，不因界面修正迁移；版本解耦仍待独立设计决策。五台迁移历史见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)；涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)。安装与主程序升级同时遵循[平台支持及旧状态限制](docs/platform-support.md)。具体证据与待完成事项见[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)。
 
 rc.4 只改变总控菜单引导、版本标识和迁移来源；保持 17 项受管 sysctl、资源感知 BDP 缓冲、默认 `BBR + fq`、非持久 HTB、managed-state schema 4、benchmark schema 3、预算 ledger 和迁移 checkpoint 边界，不改变 HTB rate/burst/cburst 或启用持久整形。修改 mq 寻址或回滚逻辑前，阅读[rc.18 技术记录](docs/releases/v0.1.0-rc.18.md)及相关源码/fixture，保留全 fq 无写入、混合拓扑写前拒绝、队列集合核对和限定 parent 规范化契约；该记录中的候选状态属于历史时间点。
 

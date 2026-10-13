@@ -29,6 +29,7 @@
 | --- | --- | --- |
 | 本次五台升级 | 固定资产、来源与恢复条件、PREPARED、旧版退出、两次重启、目标验证、入口及基本业务确认；已完成 | 保留逐台证据，不因历史矩阵空项重跑升级 |
 | 发布后文档收尾 | 当前验收记录、中英文入口、发布／验证指针一致，历史状态可辨，文档检查通过，运行资产不变 | 只更新相关文档；本地检查与后续提交／CI 状态分别记录 |
+| rc.4 版本交付 | PR CI、Linux PTY、七组平台归档、合并、tag CI、Pre-release 与 26 项公开回验；已完成，见[rc.4 发布验证](#rc4-release-validation) | 五台主机保持 rc.2；实机菜单、存量迁移和人工终端渲染未验收，不因发布自动启动 |
 | rc.3 版本交付 | PR CI、七组平台归档、合并、tag CI、Pre-release 与 26 项公开回验；已完成，见[rc.3 发布验证](#rc3-release-validation) | `0.2.0-rc.2 → 0.2.0-rc.3` 实机迁移和人工终端渲染矩阵需另行授权，不因发布自动启动 |
 | 稳定版或扩展平台 | 结合明确支持范围，评审 T1–T10 及生命周期／失败场景要求，并将当前 CI、隔离 VM 和实机证据逐项映射 | 既有稳定版要求保留；本轮不批准削减门槛、不将预发行升级为稳定版 |
 | 性能、判据与整形研究 | 需要可复现症状或明确研究／性能主张、独立环境、预算和停止条件 | 按默认验收路径的研究边界处理；判据校准维持[已延后决定](knee-calibration-design.md#131-延后决定) |
@@ -40,12 +41,18 @@
 
 ## 0.2.0-rc.4 菜单版本兼容引导（2026-10-13）
 
-范围见 [rc.4 说明](releases/v0.2.0-rc.4.md)。用户已授权验证通过后发布 Pre-release；当前为本地候选，CI、合并、tag 和公开回验待执行。
+范围见 [rc.4 说明](releases/v0.2.0-rc.4.md)。用户已授权验证通过后发布 Pre-release；本轮完成合并、固定 tag、公开发布和资产回验。日期按 Asia/Singapore。
 
 - **缺陷复现：** 修改前新增 controller 断言，rc.2 VERIFIED 状态的默认选择实际为 `selected=status:1`，期望为本地 `diagnose`，明确失败。修改后将菜单版本不一致独立于状态默认项处理，且不修改底层拒绝契约。
 - **本地门禁：** `bash tests/static-check.sh` 返回 0，controller、生成一致性、语法和摘要链检查通过；141 项 Python 测试运行完成，11 项因宿主条件跳过（含 8 项 Linux PTY），不能计为实际 PTY 验证。Markdown 相对链接与锚点、UTF-8/LF 和 diff 检查通过。
-- **独立代码评审：** 检查默认项、可用性、CLI 分派、只读预检兼容和迁移门禁，未发现阻断性代码缺陷。发布仍取决于必要 CI 和制品回验。
+- **Linux CI：** 受测 head `e03531f9bd7bdb31118f1a0b93b0b12b94ae4d80` 的 [PR CI 38337747393](https://github.com/alieismy/vps-tuning/actions/runs/38337747393) 与 [push CI 38337708775](https://github.com/alieismy/vps-tuning/actions/runs/38337708775) 全部通过。141 项常规测试中 1 项 root 集成跳过，随后 20 项 root 恢复专项全部通过；8 项 Linux PTY 实际运行通过。controller、安装、6 组来源迁移 fixture（含 rc.2/rc.3）、隔离原生 HTB 和 ShellCheck 0.11.0 通过。
+- **平台生命周期：** [平台 CI 38337708776](https://github.com/alieismy/vps-tuning/actions/runs/38337708776) 七组全部成功。七份 zip 大小与 GitHub SHA-256 一致；目标为 rc.4 / schema 4 / VERIFIED，架构与客体相符；apply 后和 rollback 后两次 boot ID 均变化，17 项 sysctl 及 qdisc 按恢复契约回到应用前状态。覆盖 Debian 12/13、Ubuntu 24.04 x86_64/ARM64 和 Debian 13 x86_64 legacy；属于隔离客体全新安装生命周期证据。
+- **评审：** 独立代码及提交后复核均无阻断 finding；CodeRabbit 对 `e03531f` 完成实质评审，未产生 actionable comments。结果不替代运行门禁。
+- **合并与 tag：** [PR #41](https://github.com/alieismy/vps-tuning/pull/41) squash 合并为 `589de37a2983be3d393aae56ef5e4df27d83db75`，tree `954a9a606740a878917a40fe6f89a54250e4ed3c` 与受测 head 相同；[主线 CI 38340234180](https://github.com/alieismy/vps-tuning/actions/runs/38340234180) 和 [tag CI 38340249002](https://github.com/alieismy/vps-tuning/actions/runs/38340249002) 均成功。annotated tag `v0.2.0-rc.4` 对象为 `e875bbd6526f3a627a9fba18312f7c0df97e5105`，解引用合并提交。主线重复平台矩阵 `38340234229` 因同一文件树主动取消，未计为通过，采用已核验的七组结果。
+- **公开发布：** 先建立草稿并验证 26 项上传资产，tag CI 通过后公开为 [v0.2.0-rc.4 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4)，不设 Latest，公开时间 `2026-10-13T03:14:12Z`。26 项公开下载文件与固定 tag blob、GitHub digest 和大小一致；24 项 manifest、安装器内置摘要链及固定源码恢复工具摘要通过。旧仓库 installer/manifest 地址经 HTTPS 重定向返回 200 且字节一致；原 16 个 Release、251 项资产和 31 条 tag refs 不变，新增仅 rc.4 Release 与两条 tag refs。固定 tag 内文档保留发布前时间点，发布后事实由本记录补充。
 - **未验证边界：** 真实终端字体及客户端渲染矩阵、真实 VPS 菜单、rc.2/rc.3 → rc.4 实机迁移均未执行。PTY 保留真实终端和总控控制流程，系统调用边界使用测试替身；它不证明真实 profile/业务行为。五台主机继续 rc.2。
+
+发布后文档由 [PR #42](https://github.com/alieismy/vps-tuning/pull/42) 交付；该 PR 的检查和合并状态独立追踪，运行代码与固定 tag 保持一致。本地 63 份 Markdown 的 538 项相对链接/锚点、UTF-8/LF、diff 和独立文档复核通过。
 
 <a id="rc3-release-validation"></a>
 
