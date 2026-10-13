@@ -256,6 +256,28 @@ set_menu_facts 1 0 UNMANAGED
 assert_menu '' diagnose 'default for an unsupported platform'
 
 set_menu_facts 1 1 VERIFIED
+HOME_STATE_VERSION=0.2.0-rc.2
+assert_menu '' diagnose 'version mismatch defaults to local diagnosis, not managed status or network'
+for key in 1 2 3 4 5 6 9; do
+  assert_menu "${key}"$'\n7' diagnose "version mismatch blocks managed key ${key}"
+done
+assert_menu $'a\n1\n0\n7' diagnose 'version mismatch blocks the HTB wrapper'
+assert_menu '8' update 'version mismatch leaves update as an explicit choice'
+assert_menu_exit '0' 0 '版本不一致' 'version mismatch is explained before a selection'
+HOME_STATE=APPLIED
+assert_menu '' diagnose 'old APPLIED record does not recommend current-version verify'
+HOME_STATE_VERSION=9.0.0
+assert_menu '' diagnose 'newer recorded version also defaults to local diagnosis'
+HOME_STATE_VERSION="$CONTROLLER_VERSION"
+assert_menu '' verify 'same-version APPLIED record keeps verify as default'
+HOME_STATE=VERIFIED
+assert_menu '' status 'same-version VERIFIED record keeps status as default'
+HOME_ROOT=0
+assert_menu $'8\n7' diagnose 'non-root precedence is preserved'
+HOME_ROOT=1 HOME_PLATFORM_OK=0
+assert_menu $'8\n7' diagnose 'unsupported-platform precedence is preserved'
+
+set_menu_facts 1 1 VERIFIED
 for mapping in 1:guided 2:preflight 3:apply 4:reconfigure 5:verify 6:status 7:diagnose 8:update 9:rollback; do
   assert_menu "${mapping%%:*}" "${mapping#*:}" "menu key ${mapping%%:*}"
 done
@@ -277,7 +299,7 @@ assert_menu_exit $'3\n0' 0 '该项当前不可用' 'unavailable key explains the
 # Frame rows: 66 columns, frame character set only, in Unicode and ASCII modes.
 set_menu_facts 1 1 VERIFIED
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
-HOME_STATE_VERSION=0.2.0-rc.3 HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
+HOME_STATE_VERSION=0.2.0-rc.4 HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
 for ascii in '' 1; do
   DVT_ASCII="$ascii" TERM=xterm ui_init
   # shellcheck disable=SC2034  # Consumed by the sourced controller.
@@ -336,19 +358,19 @@ DETECTED_PRETTY_NAME='Test OS 13' DETECTED_ARCH=x86_64 DETECTED_CPUS=1 DETECTED_
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 DETECTED_RESOURCE_CLASS=1C1GB DETECTED_LABEL='Debian 13 / 1 vCPU / 1 GiB'
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
-STATE_PROFILE=debian13-1c1g STATE_VERSION=0.2.0-rc.3 STATE_PORT_SPEED_MBPS=200
+STATE_PROFILE=debian13-1c1g STATE_VERSION=0.2.0-rc.4 STATE_PORT_SPEED_MBPS=200
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 ACTION=preflight PROFILE_FILE=debian13-1c1g-vps-tuning.sh PROFILE_SOURCE=local PROFILE_SHA256=abc
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 PORT_SPEED_MBPS_SELECTED=200
-expected_plain=$'\nDebian VPS Tuning '"${CONTROLLER_VERSION}"$'\n\n检测结果：\n  系统：Test OS 13\n  架构：x86_64\n  CPU：1 vCPU\n  内存：1024 MiB\n  资源档：1C1GB\n  实现档位：Debian 13 / 1 vCPU / 1 GiB\n  已安装档位：debian13-1c1g\n  状态脚本版本：0.2.0-rc.3\n  已安装端口带宽：200 Mbps\n\n执行计划：\n  action：preflight\n  调用脚本：debian13-1c1g-vps-tuning.sh\n  脚本来源：local\n  SHA-256：abc\n  端口带宽：200 Mbps\n\nend'
+expected_plain=$'\nDebian VPS Tuning '"${CONTROLLER_VERSION}"$'\n\n检测结果：\n  系统：Test OS 13\n  架构：x86_64\n  CPU：1 vCPU\n  内存：1024 MiB\n  资源档：1C1GB\n  实现档位：Debian 13 / 1 vCPU / 1 GiB\n  已安装档位：debian13-1c1g\n  状态脚本版本：0.2.0-rc.4\n  已安装端口带宽：200 Mbps\n\n执行计划：\n  action：preflight\n  调用脚本：debian13-1c1g-vps-tuning.sh\n  脚本来源：local\n  SHA-256：abc\n  端口带宽：200 Mbps\n\nend'
 [ "$({ print_environment_summary; print_execution_plan; printf 'end'; })" = "$expected_plain" ] ||
   fail 'plain summary or plan output changed'
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 UI_STYLED=1
 styled_plan="$({ print_environment_summary; print_execution_plan; })"
 for value in 'Test OS 13' x86_64 '1 vCPU' '1024 MiB' 1C1GB 'Debian 13 / 1 vCPU / 1 GiB' debian13-1c1g \
-  0.2.0-rc.3 '200 Mbps' preflight debian13-1c1g-vps-tuning.sh local abc; do
+  0.2.0-rc.4 '200 Mbps' preflight debian13-1c1g-vps-tuning.sh local abc; do
   grep -Fq -- "$value" <<<"$styled_plan" || fail "styled summary lacks ${value}"
 done
 

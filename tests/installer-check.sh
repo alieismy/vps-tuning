@@ -13,8 +13,8 @@ bash "${repo_root}/install.sh" --source-dir "$repo_root" --prefix "$prefix" --no
 test -x "${prefix}/bin/dvt"
 test -L "${prefix}/lib/debian-vps-tuning/current"
 test "$(readlink -f "${prefix}/lib/debian-vps-tuning/current")" = \
-  "${prefix}/lib/debian-vps-tuning/0.2.0-rc.3"
-test "$("${prefix}/bin/dvt" --version)" = 'controller=0.2.0-rc.3 release=v0.2.0-rc.3'
+  "${prefix}/lib/debian-vps-tuning/0.2.0-rc.4"
+test "$("${prefix}/bin/dvt" --version)" = 'controller=0.2.0-rc.4 release=v0.2.0-rc.4'
 (
   cd "${prefix}/lib/debian-vps-tuning/current"
   sha256sum -c SHA256SUMS >/dev/null
@@ -24,11 +24,11 @@ test "$("${prefix}/bin/dvt" --version)" = 'controller=0.2.0-rc.3 release=v0.2.0-
 bash "${repo_root}/install.sh" --source-dir "$repo_root" --prefix "$prefix" --no-launch >/dev/null
 
 # An altered immutable version asset must be rejected rather than overwritten.
-printf '\n# tamper fixture\n' >>"${prefix}/lib/debian-vps-tuning/0.2.0-rc.3/dvt-probe.sh"
+printf '\n# tamper fixture\n' >>"${prefix}/lib/debian-vps-tuning/0.2.0-rc.4/dvt-probe.sh"
 if bash "${repo_root}/install.sh" --source-dir "$repo_root" --prefix "$prefix" --no-launch >/dev/null 2>&1; then
   printf 'installer accepted a modified existing version directory\n' >&2
   exit 1
 fi
-grep -Fq '# tamper fixture' "${prefix}/lib/debian-vps-tuning/0.2.0-rc.3/dvt-probe.sh"
+grep -Fq '# tamper fixture' "${prefix}/lib/debian-vps-tuning/0.2.0-rc.4/dvt-probe.sh"
 
 printf 'installer checks passed\n'
