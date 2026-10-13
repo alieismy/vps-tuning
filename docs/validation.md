@@ -52,6 +52,8 @@
 - **公开发布：** 先建立草稿并验证 26 项上传资产，tag CI 通过后公开为 [v0.2.0-rc.4 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4)，不设 Latest，公开时间 `2026-10-13T03:14:12Z`。26 项公开下载文件与固定 tag blob、GitHub digest 和大小一致；24 项 manifest、安装器内置摘要链及固定源码恢复工具摘要通过。旧仓库 installer/manifest 地址经 HTTPS 重定向返回 200 且字节一致；原 16 个 Release、251 项资产和 31 条 tag refs 不变，新增仅 rc.4 Release 与两条 tag refs。固定 tag 内文档保留发布前时间点，发布后事实由本记录补充。
 - **未验证边界：** 真实终端字体及客户端渲染矩阵、真实 VPS 菜单、rc.2/rc.3 → rc.4 实机迁移均未执行。PTY 保留真实终端和总控控制流程，系统调用边界使用测试替身；它不证明真实 profile/业务行为。五台主机继续 rc.2。
 
+发布后文档由 [PR #42](https://github.com/alieismy/vps-tuning/pull/42) 交付；该 PR 的检查和合并状态独立追踪，运行代码与固定 tag 保持一致。本地 63 份 Markdown 的 538 项相对链接/锚点、UTF-8/LF、diff 和独立文档复核通过。
+
 <a id="rc3-release-validation"></a>
 
 ## 0.2.0-rc.3 交互界面版本发布（2026-10-13）
