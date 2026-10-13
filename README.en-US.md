@@ -151,7 +151,7 @@ Persistent installation and migration use fixed-asset verification, preflight, a
 | Operation | Command or documentation |
 |---|---|
 | Interactive menu | `dvt`; guided preflight asks before apply; mismatched state defaults to local diagnostics, while update requires explicit selection |
-| Entrypoint version / managed state | `dvt --version` / `dvt status`; entrypoint and state versions may differ |
+| Entrypoint version / managed state | `dvt --version` shows the entrypoint version; `dvt status` requires a matching managed-state version. If they differ, use the read-only state inspection in the [migration guide (Chinese)](docs/migration.md) |
 | Verify managed configuration | `dvt verify` |
 | Legacy profile incremental/proxy diagnostics | `dvt diagnose --managed`; `DIAG_*` variables affect this path only |
 | Change only the plan bandwidth, with the same version/profile | `dvt reconfigure --port 500`; requires valid `VERIFIED` state |

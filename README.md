@@ -151,7 +151,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 | 操作 | 命令或文档 |
 |---|---|
 | 交互菜单 | `dvt`；安全引导先 preflight，明确确认后才 apply；异版状态默认本地诊断，升级检查须显式选择 |
-| 当前入口版本 / 受管状态 | `dvt --version` / `dvt status`；入口版本与状态版本可能不同 |
+| 当前入口版本 / 受管状态 | `dvt --version` 查看入口版本；`dvt status` 要求入口与受管状态版本一致。版本不一致时，按[迁移指南](docs/migration.md)只读盘点受管状态 |
 | 当前配置验证 | `dvt verify` |
 | 旧 profile 增量与代理诊断 | `dvt diagnose --managed`；`DIAG_*` 变量只作用于该路径 |
 | 同版本、同 profile 仅改变套餐带宽 | `dvt reconfigure --port 500`；要求有效 `VERIFIED` 状态 |
