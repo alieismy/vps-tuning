@@ -1,8 +1,8 @@
 # 升级、旧状态与历史恢复
 
-当前目标：`v0.2.0-rc.3`。本页用于已有 DVT 管理状态的主机；全新安装见 [README](../README.md#安装)。历史版本步骤保留在后面的附录，不能直接换版本号套用。
+当前目标：`v0.2.0-rc.4` 候选，待发布。本页用于已有 DVT 管理状态的主机；全新安装见 [README](../README.md#安装)。历史版本步骤保留在后面的附录，不能直接换版本号套用。
 
-**历史问题（2026-10-04）：** 已发布 rc.1 的目标 profile 会把旧 schema 4 的版本不一致报告为笼统状态错误；旧版 verify 成功不能解除此拒绝。[rc.2 预发行版](releases/v0.2.0-rc.2.md)修复只读预检，仍保留恢复完整性门禁。下方命令使用已发布并回验的 rc.3 固定资产。
+**历史问题（2026-10-04）：** 已发布 rc.1 的目标 profile 会把旧 schema 4 的版本不一致报告为笼统状态错误；旧版 verify 成功不能解除此拒绝。[rc.2 预发行版](releases/v0.2.0-rc.2.md)修复只读预检，仍保留恢复完整性门禁。下方命令为 rc.4 固定候选资产；发布及公开回验完成前不要执行其下载步骤。rc.3 的固定步骤保留在历史附录。
 
 盘点原值时应直接读取受管状态，而不是当前内核的调优值。下面命令只输出非敏感摘要，不修改状态：
 
@@ -14,7 +14,7 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
   /var/lib/proxy-vps-tuning/state.json
 ```
 
-两项原值各须为完整的三个整数。若各只有 `4096`，即使目标预检通过，仍应停在恢复证据核查；`ALLOW_EMPTY_STATE_RECOVERY=1` 不适用于有效旧状态的缺失三元组。历史完整三元组只有在能证明对应同一主机、本次部署的应用前状态及其间配置连续性时，才能作为恢复依据。对于明确接受新恢复语义的主机，rc.3 完整源码另提供[带来源的 TCP 基线恢复工具](tcp-baseline-recovery.md)：保留原件，区分历史证据与替代值，再接续迁移；该工具不由安装器部署，不属于下面命令的通用强制选项，其归档只被同版本迁移器接受。
+两项原值各须为完整的三个整数。若各只有 `4096`，即使目标预检通过，仍应停在恢复证据核查；`ALLOW_EMPTY_STATE_RECOVERY=1` 不适用于有效旧状态的缺失三元组。历史完整三元组只有在能证明对应同一主机、本次部署的应用前状态及其间配置连续性时，才能作为恢复依据。对于明确接受新恢复语义的主机，rc.4 完整源码另提供[带来源的 TCP 基线恢复工具](tcp-baseline-recovery.md)：保留原件，区分历史证据与替代值，再接续迁移；该工具不由安装器部署，不属于下面命令的通用强制选项，其归档只被同版本迁移器接受。
 
 ## 先判断能否迁移
 
@@ -22,16 +22,16 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 
 **恢复原值不完整时，普通迁移停止在只读检查。** 更早版本可能只保存了 `net.ipv4.tcp_rmem` / `net.ipv4.tcp_wmem` 的第一项。三元组缺项时，新迁移器拒绝创建 checkpoint；旧版 verify 成功也不能证明原值完整。不得手改状态、猜默认值冒充历史快照，或调用旧版 rollback 绕过拒绝。选择新基线时须独立完成上文恢复工具的逐台计划、归档和来源记录，不能直接解除完整性门禁。已发布流程的处置边界见 [平台支持：旧状态与迁移](platform-support.md#旧状态与迁移)。
 
-当前 rc.3 迁移器接受已定义的 `0.1.0-rc.1`–`0.1.0-rc.19` 与 `0.2.0-rc.2` Debian 来源，端口带宽限 100–1000 Mbps；**不支持 `0.2.0-rc.1` 来源**，Ubuntu 24.04 的 rc.2 主机和端口超出该范围的主机也不在其范围内。还必须通过实际来源状态、profile、资源、所有权、原值和目标预检。版本在此范围内不等于必然可迁移。跨 OS、资源变化导致的 profile 切换不由以下步骤自动处理。
+当前 rc.4 迁移器接受已定义的 `0.1.0-rc.1`–`0.1.0-rc.19`、`0.2.0-rc.2` 与 `0.2.0-rc.3` Debian 来源，端口带宽限 100–1000 Mbps；**不支持 `0.2.0-rc.1` 来源**，Ubuntu 24.04 的 rc.2/rc.3 主机和端口超出该范围的主机也不在其范围内。还必须通过实际来源状态、profile、资源、所有权、原值和目标预检。版本在此范围内不等于必然可迁移。跨 OS、资源变化导致的 profile 切换不由以下步骤自动处理。
 
-**rc.2 主机：** [rc.3](releases/v0.2.0-rc.3.md) 只改变交互界面、版本标识和迁移来源，调优内容不变；是否在维护窗口迁移由主机负责人决定。迁移按下文步骤执行，来源为 `0.2.0-rc.2`；`0.2.0-rc.2 → 0.2.0-rc.3` 迁移尚无真实主机证据，只有 CI fixture 迁移用例和隔离客体的全新安装生命周期证据。已用 rc.2 版 TCP 基线恢复工具建立归档但尚未迁移的主机，按[附录中的 rc.2 目标](#历史-rc2-目标)完成到 rc.2 的迁移，不能把该归档交给 rc.3 迁移器。
+**rc.2/rc.3 主机：** [rc.4](releases/v0.2.0-rc.4.md) 修正菜单版本冲突引导并增加 rc.3 迁移来源，调优内容不变；不建议稳定 rc.2 主机仅为交互界面迁移。五台已验收主机仍为 rc.2，本轮不执行真实主机迁移。rc.2/rc.3 → rc.4 尚无真实主机迁移或业务验收证据；候选 CI 与 fixture 结果见发布说明，不能代替逐台验收。已有 rc.2 或 rc.3 版 TCP 基线恢复归档但尚未迁移的主机，先按[历史 rc.2 目标](#历史-rc2-目标)或[历史 rc.3 目标](#历史-rc3-目标)完成各自目标，再决定是否迁移 rc.4；归档不能交给其他版本迁移器。
 
 迁移前确认控制台/救援入口、系统及代理业务备份、SSH 管理路径与 swap 清理所需内存余量。保留来源版本的完整资产和备份。不同 Release 的总控、`SHA256SUMS`、profile 与伴随工具不得混放；发生失败保留 state/checkpoint，不跳阶段。
 
 <a id="迁移到-v020-rc1"></a>
 <a id="迁移到-v020-rc2"></a>
 
-## 迁移到 v0.2.0-rc.3
+## 迁移到 v0.2.0-rc.4
 
 以下命令在被迁移主机的 root shell 中分步执行。示例目录必须尚不存在；已存在时检查并接续原任务，不能覆盖或换名绕过未完成状态。任何命令失败即停止。
 
@@ -42,22 +42,22 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 ```bash
 set -Eeuo pipefail
 test "$(id -u)" -eq 0
-test ! -e /root/dvt-to-0.2.0-rc.3
-test ! -L /root/dvt-to-0.2.0-rc.3
-install -d -m 0700 /root/dvt-to-0.2.0-rc.3
+test ! -e /root/dvt-to-0.2.0-rc.4
+test ! -L /root/dvt-to-0.2.0-rc.4
+install -d -m 0700 /root/dvt-to-0.2.0-rc.4
 curl --fail --show-error --silent --location \
   --proto '=https' --proto-redir '=https' \
   --connect-timeout 15 --max-time 120 --max-redirs 5 \
   --remove-on-error \
-  -o /root/dvt-to-0.2.0-rc.3/debian-vps-tuning.sh \
-  https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/debian-vps-tuning.sh
+  -o /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh \
+  https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/debian-vps-tuning.sh
 printf '%s  %s\n' \
-  '2c7b0eba904a8490df0da042e39f525d6bd3cf40bcd06f5c72fe2a1254c421a9' \
-  /root/dvt-to-0.2.0-rc.3/debian-vps-tuning.sh | sha256sum -c -
-bash /root/dvt-to-0.2.0-rc.3/debian-vps-tuning.sh update --target v0.2.0-rc.3
+  '1e5e7e3065d67aa483b94e2ca7a61cad75611f14c7cf46a36937fb395a428e84' \
+  /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh | sha256sum -c -
+bash /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh update --target v0.2.0-rc.4
 ```
 
-检查输出中的来源版本、profile、端口带宽和目标 `v0.2.0-rc.3`。只有来源 verify、目标预检均通过，并显示“升级检查通过；系统配置未修改”才继续。此步骤成功仍不证明原始快照可以恢复；下一步 prepare 必须检查该条件。
+检查输出中的来源版本、profile、端口带宽和目标 `v0.2.0-rc.4`。只有来源 verify、目标预检均通过，并显示“升级检查通过；系统配置未修改”才继续。此步骤成功仍不证明原始快照可以恢复；下一步 prepare 必须检查该条件。
 
 ### 2. 使用目标总控准备 checkpoint
 
@@ -65,13 +65,13 @@ bash /root/dvt-to-0.2.0-rc.3/debian-vps-tuning.sh update --target v0.2.0-rc.3
 
 ```bash
 set -Eeuo pipefail
-test ! -e /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3
-test ! -L /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3
-bash /root/dvt-to-0.2.0-rc.3/debian-vps-tuning.sh migrate prepare \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3/dvt-migrate.sh status \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3 |
-  jq -e 'select(.phase=="PREPARED" and .target_version=="0.2.0-rc.3") | {phase,source_version,target_version,profile_id,port_speed_mbps}'
+test ! -e /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
+test ! -L /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
+bash /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh migrate prepare \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh status \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4 |
+  jq -e 'select(.phase=="PREPARED" and .target_version=="0.2.0-rc.4") | {phase,source_version,target_version,profile_id,port_speed_mbps}'
 ```
 
 核对显示的来源版本和 profile 与原主机一致。原值完整性、来源状态或任何检查失败时，到此停止，不执行下方回滚和重启。
@@ -82,8 +82,8 @@ checkpoint 内固定的**旧版固定 Release** profile 执行受管 rollback，
 
 ```bash
 set -Eeuo pipefail
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3/dvt-migrate.sh rollback \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh rollback \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
 reboot
 ```
 
@@ -95,8 +95,8 @@ continue 检查 boot ID 已变化，再运行目标 preflight/apply。失败时�
 
 ```bash
 set -Eeuo pipefail
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3/dvt-migrate.sh continue \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh continue \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
 reboot
 ```
 
@@ -106,14 +106,14 @@ reboot
 
 ```bash
 set -Eeuo pipefail
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3/dvt-migrate.sh continue \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3/dvt-migrate.sh status \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.3 |
-  jq -e 'select(.phase=="COMPLETE" and .target_version=="0.2.0-rc.3") | {phase,source_version,target_version,profile_id}'
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh continue \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh status \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4 |
+  jq -e 'select(.phase=="COMPLETE" and .target_version=="0.2.0-rc.4") | {phase,source_version,target_version,profile_id}'
 ```
 
-随后按 [README 固定版本安装块](../README.md#安装) 安装 `v0.2.0-rc.3` 入口（保留 `--no-launch`）；这一步不再 apply。若入口已是该版本，核对版本与完整性后可跳过重复安装。最后执行：
+随后按 [README 固定版本安装块](../README.md#安装) 安装 `v0.2.0-rc.4` 入口（保留 `--no-launch`）；这一步不再 apply。若入口已是该版本，核对版本与完整性后可跳过重复安装。最后执行：
 
 ```bash
 dvt --version
@@ -126,7 +126,7 @@ dvt verify
 ## 失败、混合版本与恢复
 
 - checkpoint 中途失败：查看其 `status`，依据实际 phase 接续；不得跳过两个 reboot gate。
-- 新入口配旧状态：普通 `status`/`verify` 可能报告版本或 schema 不匹配；单凭这条错误不能推断状态损坏。使用固定目标的只读 update 核对来源，不能直接 recover/apply。
+- 新入口配旧状态：rc.4 菜单显示冲突，阻断 1–6、9 和 HTB，默认 7 本地诊断；显式 8 才运行联网升级检查。CLI 普通 `status`/`verify` 仍可能报告版本或 schema 不匹配；单凭这条错误不能推断状态损坏。使用固定目标的只读 update 核对来源，不能直接 recover/apply。
 - 带宽重配置的 `RECONFIGURING` / `DEGRADED`：属于同版本事务恢复，见[操作指南](usage.md#状态与重复执行)，不是跨版本迁移。
 - 未知损坏、原值缺失或早期无可靠所有权状态：保留只读证据。没有应用前原始证据时，需另行评估有可恢复业务备份的干净系统重建；不能把删除旧文件当作恢复。
 - 新安装本身不会迁移旧状态，也不授权用当前版本的 rollback 卸载任意历史版本。
@@ -136,7 +136,13 @@ dvt verify
 
 本附录保留原目标版本、URL、摘要和恢复行为，仅用于处理与原前提一致的旧任务。所有历史 rollback/reboot 前仍必须满足 [原值完整性条件](platform-support.md#旧状态与迁移)；缺少原值时停在只读盘点，旧版 verify 成功不能替代该检查。不要把本附录当作当前版本安装步骤。
 
-旧流程中的短命令 `dvt migrate prepare` 只在已校验的 `dvt` 恰好属于该节目标版本时适用。入口仍是来源版本或已切到其他版本时，必须使用该节已取得并核验的目标总控绝对路径调用 prepare；当前 `0.2.0-rc.3` 入口不能用于准备这些历史目标。
+旧流程中的短命令 `dvt migrate prepare` 只在已校验的 `dvt` 恰好属于该节目标版本时适用。入口仍是来源版本或已切到其他版本时，必须使用该节已取得并核验的目标总控绝对路径调用 prepare；当前 `0.2.0-rc.4` 入口不能用于准备这些历史目标。
+
+<a id="迁移到-v020-rc3"></a>
+
+### 历史 rc.3 目标
+
+已发布 rc.3 的固定命令原文见[该 tag 下的迁移指南](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.3/docs/migration.md#迁移到-v020-rc3)；目标总控 SHA-256 为 `2c7b0eba904a8490df0da042e39f525d6bd3cf40bcd06f5c72fe2a1254c421a9`。rc.3 来源范围为 `0.1.0-rc.1`–`0.1.0-rc.19` 与 `0.2.0-rc.2` Debian profile、100–1000 Mbps。已有 rc.3 版恢复工具归档或未完成 rc.3 checkpoint 时，按原目标及实际阶段接续，不能以 rc.4 工具改写归档或跳过重启门禁；完成 rc.3 后再独立评估迁移 rc.4。
 
 ### 历史 rc.2 目标
 

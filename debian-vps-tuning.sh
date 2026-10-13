@@ -6,8 +6,8 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-CONTROLLER_VERSION='0.2.0-rc.3'
-RELEASE_TAG='v0.2.0-rc.3'
+CONTROLLER_VERSION='0.2.0-rc.4'
+RELEASE_TAG='v0.2.0-rc.4'
 REPOSITORY='alieismy/debian-vps-tuning'
 RELEASE_BASE_URL="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}"
 
@@ -127,7 +127,7 @@ Usage:
 Options:
   --port MBPS    provider port cap for guided/preflight/apply; default 200;
                  required explicitly by CLI reconfigure
-  --target TAG    update target, for example v0.2.0-rc.3; default is the
+  --target TAG    update target, for example v0.2.0-rc.4; default is the
                   highest non-draft Release in the installed major.minor line;
                   stable installations ignore prereleases automatically
   -h, --help     show this help
@@ -596,8 +596,13 @@ home_facts_collect() {
   HOME_FACTS_READY=1
 }
 
+# 只使用主页已经校验的版本字段；实际状态完整性仍由 profile 检查。
+home_version_mismatch() {
+  [ -n "$HOME_STATE_VERSION" ] && [ "$HOME_STATE_VERSION" != "$CONTROLLER_VERSION" ]
+}
+
 # Sets HOME_BLOCKER to why a menu entry cannot run on this host, or ''. Only
-# presentation: the real refusals stay in need_root and detect_environment.
+# presentation: root, platform and profile state gates remain authoritative.
 home_blocker() {
   HOME_BLOCKER=''
   case "$1" in 1 | 2 | 3 | 4 | 5 | 6 | 8 | 9 | htb) ;; *) return 0 ;; esac
@@ -605,12 +610,19 @@ home_blocker() {
     HOME_BLOCKER='当前用户不是 root；请在 root shell 中运行（本项目命令不需要 sudo）。'
   elif [ "$HOME_PLATFORM_OK" -ne 1 ]; then
     HOME_BLOCKER="当前平台不受支持：${HOME_PLATFORM_REASON}"
+  elif [ "$1" != 8 ] && home_version_mismatch; then
+    HOME_BLOCKER="受管记录属于 ${HOME_STATE_VERSION}，入口为 ${CONTROLLER_VERSION}；请用来源版本入口，或选 8 只读检查升级。"
   fi
 }
 
 # The default is the first read-only action that fits the recorded state.
 home_default_key() {
   if [ "$HOME_ROOT" -ne 1 ] || [ "$HOME_PLATFORM_OK" -ne 1 ]; then
+    HOME_DEFAULT=7
+    return 0
+  fi
+  # 回车只做本地诊断；联网 update 必须由用户明确选择。
+  if home_version_mismatch; then
     HOME_DEFAULT=7
     return 0
   fi
@@ -659,6 +671,7 @@ render_home() {
     INVALID) record='无法解析，请运行 dvt status' ;;
     *)
       case "$HOME_STATE" in VERIFIED) color=32 ;; DEGRADED | ROLLBACK_PENDING) color=31 ;; *) color=33 ;; esac
+      if home_version_mismatch; then color=33; fi
       ui_paint shown "$color" "$HOME_STATE"
       record="$shown"
       [ -z "$HOME_STATE_VERSION" ] || record+=" · ${HOME_STATE_VERSION}"
@@ -673,6 +686,8 @@ render_home() {
     ui_notice '当前用户不是 root，只有 7 可用；a 可查看命令参考。'
   elif [ "$HOME_PLATFORM_OK" -ne 1 ]; then
     ui_notice '当前平台不受支持，只有 7 可用；a 可查看命令参考。'
+  elif home_version_mismatch; then
+    ui_notice '版本不一致：7 本地诊断，8 联网检查；受管操作请用来源版本入口。'
   else
     case "$HOME_STATE" in
       APPLIED) ui_notice '受管记录为 APPLIED：重启主机后运行 5 验证配置。' ;;

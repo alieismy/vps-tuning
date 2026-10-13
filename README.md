@@ -1,12 +1,12 @@
 # VPS Tuning
 
-简体中文 · [English](README.en-US.md) · [v0.2.0-rc.3 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
+简体中文 · [English](README.en-US.md) · [v0.2.0-rc.4 候选说明](docs/releases/v0.2.0-rc.4.md) · [已发布 rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
-**v0.2.0-rc.3 预发行版**重做无 action 时的 `dvt` 交互菜单，迁移器另接受 `0.2.0-rc.2` 来源；调优内容不变，范围和证据见[发布说明](docs/releases/v0.2.0-rc.3.md)。已受管主机要在新版本下执行受管动作，须先完成跨版本迁移；预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。
+**v0.2.0-rc.4 候选，待发布。** 修正 `dvt` 菜单在入口版本与受管版本不一致时的引导：默认选择本地能力诊断，受管动作显示不可用，检查升级须显式选择；迁移器另接受 `0.2.0-rc.3` 来源。调优内容不变，范围和证据见[发布说明](docs/releases/v0.2.0-rc.4.md)。已受管主机要在新版本下执行受管动作，须先完成跨版本迁移；预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。不建议稳定 rc.2 主机仅为交互界面迁移。
 
 为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
 
-当前为 **Pre-release**。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
+当前 rc.4 为 **Pre-release 候选**，发布和公开资产回验完成后才能使用下方 rc.4 下载命令。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
 
 仓库原名 `debian-vps-tuning`，2026-10-10 改为现名，旧链接会自动跳转到本仓库。`dvt` 命令、发布资产文件名、安装路径和受管状态路径均保持不变。
 
@@ -52,7 +52,7 @@
 
 ### 安装
 
-在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.3` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
+在 root shell 中执行（`id -u` 应为 `0`）。rc.4 发布及公开回验完成后，以下命令完整下载固定 `v0.2.0-rc.4` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
 
 ```bash
 (
@@ -63,9 +63,9 @@
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/install.sh
   printf '%s  %s\n' \
-    '82daec1ed1c36a845c18720cac714e617d86e0f1b439a3f3d7fb5c536273cbe1' \
+    '06c8b235ce0538d6e5247b3b50fa568e6c71f9ee9f28b4cc999f031b5e9978ec' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -103,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` 是允许的结果；退出码 0 只表示报告采集完成。测试不经过 VLESS/REALITY 客户端，不能据此承诺业务提速。临时整形另见 [htb-sweep 指南](docs/temporary-htb.md)，执行前必须理解整个接口限速及恢复条件。
 
-需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，主程序版本仍为 `v0.2.0-rc.3`。
+需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，不改变主机已安装的主程序版本。
 
 ### 路径 B：应用持久配置
 
@@ -150,7 +150,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 | 操作 | 命令或文档 |
 |---|---|
-| 交互菜单 | `dvt`；安全引导先 preflight，明确确认后才 apply |
+| 交互菜单 | `dvt`；安全引导先 preflight，明确确认后才 apply；异版状态默认本地诊断，升级检查须显式选择 |
 | 当前入口版本 / 受管状态 | `dvt --version` / `dvt status`；入口版本与状态版本可能不同 |
 | 当前配置验证 | `dvt verify` |
 | 旧 profile 增量与代理诊断 | `dvt diagnose --managed`；`DIAG_*` 变量只作用于该路径 |
@@ -170,13 +170,13 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 ## 验证状态与已知限制
 
-- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性；rc.3 尚未在这些主机上迁移或验证。
+- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性；五台仍为 rc.2，rc.3/rc.4 尚未在这些主机上迁移或验证。
 - 七组隔离客体生命周期覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 adaptive，以及 Debian 13 x86_64 legacy；包括真实客体重启、幂等、重配置与恢复。ARM64 使用 ARM runner 上的 QEMU/TCG，不能替代特定云厂商硬件验收。
 - 公共 IPv4 自动测量、临时 HTB 正常与信号中断恢复有有限 VPS 证据。完整低速扫描曾获得 15 个样本、11 个有效，整轮仍为 `INSUFFICIENT_EVIDENCE`，尚未证明可靠 policer 拐点或代理收益。
 - 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。
 - 1–10000 Mbps 是参数范围；更广泛公网平台、IPv6、高速、特定大资源硬件及业务性能仍有未验收项。
 
-固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.3.md)。
+固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前候选说明](docs/releases/v0.2.0-rc.4.md)。
 
 ## 文档导航
 
