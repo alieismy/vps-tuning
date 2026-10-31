@@ -103,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` is an allowed result; exit code 0 only means report collection completed. Tests do not traverse a VLESS/REALITY client and do not establish proxy performance benefits. For temporary shaping, read the [htb-sweep guide (Chinese)](docs/temporary-htb.md), including its whole-interface impact and restoration conditions.
 
-For absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.0.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer and does not change the installed main-program version.
+For absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.1](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.1). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.1.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer and does not change the installed main-program version.
 
 ### Path B: persistent configuration
 
@@ -187,7 +187,7 @@ The two README files share the current core workflows. Detailed guides below are
 | Installation, daily operation, diagnostics, parameters and rollback | [Operations](docs/usage.md) |
 | Upgrades, old state and historical recovery | [Migration](docs/migration.md) |
 | Automatic selection, budgets and result interpretation | [Independent measurement](docs/automatic-measurement.md) |
-| Offline counts, byte exposure and candidate limits | [Explanation tool](docs/measurement-explanation.md) · [Separate tool release](docs/releases/measurement-explanation-v0.1.0.md) |
+| Offline counts, byte exposure and candidate limits | [Explanation tool](docs/measurement-explanation.md) · [Separate tool release](docs/releases/measurement-explanation-v0.1.1.md) |
 | Temporary HTB and full restoration | [Temporary experiments](docs/temporary-htb.md) |
 | Platforms, resources and adaptive buffers | [Support matrix](docs/platform-support.md) |
 | Advanced explicit measurement and research | [Advanced measurement](docs/advanced-measurement.md) |

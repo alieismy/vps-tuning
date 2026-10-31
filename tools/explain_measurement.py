@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import copy
 from fractions import Fraction
 import importlib.util
@@ -16,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 spec = importlib.util.spec_from_file_location('dvt_measure_explanation_source', ROOT / 'dvt-measure.py')
 measurement = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(measurement)
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 GIB = 1073741824
 
 
@@ -103,12 +104,84 @@ def explain_directory(directory):
     return explanation
 
 
-def print_explanation(data):
+def _coverage_lines(data, plan):
+    """仅为文本对照最终计划、样本数与原汇总，不重算分类或扩展 JSON 契约。"""
+    unavailable = ['计划覆盖不可评估：归档计划或逐档汇总字段不足/不支持。']
+    inconsistent = ['计划覆盖不可评估：计划、扫描样本与逐档汇总资料不一致。']
+    def supported_rate(value):
+        try:
+            return positive(value)
+        except OverflowError:
+            return False
+    if not isinstance(plan, dict) or not isinstance(plan.get('schedule'), list):
+        return unavailable
+    expected = Counter()
+    for item in plan['schedule']:
+        if (not isinstance(item, (list, tuple)) or len(item) != 2 or
+                item[0] not in ('control-start', 'control-end', 'sweep', 'reference-start', 'reference-end') or
+                not supported_rate(item[1])):
+            return unavailable
+        if item[0] == 'sweep':
+            expected[item[1]] += 1
+
+    # data 已由 explain() 校验；只检查新增展示依赖的计划与汇总边界。
+    samples = [row for row in data['samples'] if row['role'] == 'sweep']
+    observed = Counter(row['rate_mbps'] for row in samples)
+    eligible = Counter(row['rate_mbps'] for row in samples if row['eligible'])
+    tested = data['original_analysis'].get('tested_rates')
+    if not isinstance(tested, list):
+        return unavailable
+    groups = {}
+    for group in tested:
+        if (not isinstance(group, dict) or not supported_rate(group.get('rate_mbps')) or
+                type(group.get('samples')) is not int or group['samples'] < 0 or
+                type(group.get('eligible')) is not bool or
+                group.get('status') not in ('RETRANSMISSION_RISE', 'NO_CONFIRMED_RISE', 'INCONCLUSIVE')):
+            return unavailable
+        rate = group['rate_mbps']
+        if rate in groups:
+            return inconsistent
+        groups[rate] = group
+    if set(groups) != set(expected) or not set(observed) <= set(expected):
+        return inconsistent
+
+    complete, gaps = [], []
+    for rate in sorted(expected):
+        count, valid, wanted = observed[rate], eligible[rate], expected[rate]
+        group = groups[rate]
+        all_eligible = count == wanted and valid == wanted
+        if (count > wanted or group['samples'] != count or group['eligible'] != all_eligible or
+                group['eligible'] != (group['status'] != 'INCONCLUSIVE')):
+            return inconsistent
+        if all_eligible:
+            complete.append(f'{rate:g} Mbps')
+        else:
+            reasons = []
+            if count == 0:
+                reasons.append('无扫描样本')
+            elif count < wanted:
+                reasons.append('样本不足')
+            if valid < count:
+                reasons.append('含无效样本')
+            gaps.append(f'{rate:g} Mbps（{"、".join(reasons)}；已采 {count}/{wanted}，原标记有效 {valid}）')
+
+    if not expected:
+        return ['归档计划：无独立扫描档；控制/reference 不计入扫描覆盖。']
+    planned = '、'.join(f'{rate:g} Mbps × {expected[rate]}' for rate in sorted(expected))
+    return [f'归档计划扫描档（最终 schedule，含已追加细扫）：{planned}',
+            '样本齐全且原汇总有效的档位：' + ('、'.join(complete) or '无'),
+            '缺失/不足/无效的档位：' + ('；'.join(gaps) or '无'),
+            '覆盖仅描述离散 sweep 档位；整体结论及控制/reference 约束保持原报告。']
+
+
+def print_explanation(data, coverage=()):
     analysis = data['original_analysis']
     print('原报告状态：' + str(analysis.get('status')))
     print('原报告候选：' + str(analysis.get('candidate_interval')))
     if data['original_stop_reason']:
         print('原报告停止原因：' + str(data['original_stop_reason']))
+    for line in coverage:
+        print(line)
     print('逐样本：角色 / Mbps / 有效 / payload bytes / 重传次数 / 重传每 GiB / 单次重传每 GiB / 达阈值所需次数')
     def show(value):
         return '不可评估' if value is None else value
@@ -142,7 +215,12 @@ def main(argv=None):
         if args.json:
             print(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False))
         else:
-            print_explanation(data)
+            # 只在归档校验成功后读计划；旧计划不可解析不阻断既有解释。
+            try:
+                plan = json.loads((Path(args.input_dir) / 'plan.json').read_text(encoding='utf-8'))
+            except (ValueError, RecursionError):
+                plan = None
+            print_explanation(data, _coverage_lines(data, plan))
     except (measurement.MeasurementError, ValueError, OSError, KeyError, TypeError, OverflowError) as exc:
         print('测量解释失败：' + str(exc), file=sys.stderr)
         return 2
