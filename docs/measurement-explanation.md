@@ -1,6 +1,6 @@
 # 测量证据解释工具：设计与使用
 
-日期：2026-09-30。状态：工具 `0.1.0` 已作为独立源码 Pre-release 发布；下载、固定提交及验收见[工具发布说明](releases/measurement-explanation-v0.1.0.md)。本文件维护解释契约，不改变主程序 `0.2.0-rc.1` 的分类器、测量 schema、安装资产或 Release。
+创建日期：2026-09-30；更新日期：2026-10-31。工具版本 `0.1.1`，按独立源码 Pre-release 交付；当前交付状态及下载见[0.1.1 发布说明](releases/measurement-explanation-v0.1.1.md)，此前公开版本见[0.1.0 历史说明](releases/measurement-explanation-v0.1.0.md)。本文件维护解释契约，不改变主程序分类器、测量 schema、安装资产或 Release。
 
 ## 目标与范围
 
@@ -16,7 +16,7 @@ python3 tools/explain_measurement.py --input-dir /path/to/completed-measurement 
 ```
 
 - 输入为单个已完成报告目录；支持 `dvt.path-measurement/1` 和 `dvt.htb-measurement/1`。复用项目 `verify_report()` 的完成标记、清单及 HTB 恢复核验。校验失败退出 2，不生成解释。报告内容本身不构成真实性签名；摘要一致只证明归档内部一致。
-- 输出仅到 stdout，默认中文文本，`--json` 输出独立的 `dvt.measurement-explanation/1`，工具版本 `0.1.0`。退出 0 只表示解释成功。源报告、账本、摘要不被改写；未完整测完但已正式结算的部分报告可解释，原拒绝状态保持。
+- 输出仅到 stdout，默认中文文本，`--json` 输出独立的 `dvt.measurement-explanation/1`，`tool_version` 为 `0.1.1`。本次不增加 JSON 字段或改变原有语义。退出 0 只表示解释成功。源报告、账本、摘要不被改写；未完整测完但已正式结算的部分报告可解释，原拒绝状态保持。
 - JSON 的 `source` 包含原测量 schema/version、报告和清单摘要；`original_analysis` 保留原分类、区间和限制字段。输出不包含 IP、源端口或主机路径，不引用未经验证的证据目录脚本。
 - `samples` 每行包含 role、rate_mbps、eligible、payload_bytes、retransmits、重算的 retransmits_per_gib、single_event_per_gib、events_at_threshold。计数和字节要求非布尔整数、字节大于零；速率和阈值要求有限正数。计数缺失时该行 `UNAVAILABLE`，保留可用基础字段，不把未知值当零。已有数值类型非法或归一化值不一致则拒绝。
 - 中文逐样本输出将缺失字节、计数和阈值所需次数显示为“不可评估”；JSON 仍保留 `null`，不将缺失值补成零。
@@ -24,6 +24,16 @@ python3 tools/explain_measurement.py --input-dir /path/to/completed-measurement 
 - 缺少 `tested_rates`，或汇总遗漏原始样本中实际出现的较高 sweep 档时，高档观察为 `INCOMPLETE`；不能将缺失汇总解释为 `NOT_COVERED`。只有汇总存在且汇总与样本均无更高档时才输出 `NOT_COVERED`。
 - 单报告无法证明独立复现，`independent_replication=NOT_ASSESSED`；`htb_entry=NOT_ESTABLISHED_BY_SINGLE_REPORT`。这些是解释边界，不是新分类门禁或对主机能力的否定。
 - 同一不可变输入产生同一 JSON；不写时间戳、不联网、不调用远程命令，不保存状态，不需要凭据、root、锁或回滚。与采集并发时应使用冻结副本；摘要失败即停止，不重试到通过。数据库、服务认证和运行状态机不适用。
+
+## 中文覆盖摘要（0.1.1）
+
+按[最小吸收方案](tcpfit-minimal-adoption-plan-2026-10-31.md)，中文路径在原状态、候选和停止原因之后，列出归档计划中的扫描档与期望样本数、样本齐全且原汇总有效的档位，以及无样本、样本不足或含无效样本的档位。该摘要在无候选时也显示；逐样本计数和候选解释保持原有内容。
+
+只在 `verify_report()` 成功后读取已校验摘要的 `plan.json`，按最终 `schedule` 的 `sweep` 项计数，并与实际 sweep 样本、原 `analysis.tested_rates` 对照。已追加的细扫纳入，控制与 reference 不计入；不使用发送 cap、全量 rates 列表或潜在细扫上限推测扫描覆盖。每档所称“有效”沿用原样本标记和原汇总，不重新判断样本质量。
+
+覆盖只描述离散档位，不证明连续速率范围、网络容量或整轮测量成功。中间缺口单独列出；即使所有 sweep 样本齐全，控制漂移、reference 或原停止原因导致的 `INSUFFICIENT_EVIDENCE` 仍保留。合法计划没有 sweep 时显示“无独立扫描档”，不输出 `0/0` 或百分比。
+
+旧计划为空对象、不可解析或所需字段不支持时，只将新增摘要降级为“计划覆盖不可评估”；计划、样本和逐档汇总矛盾时明确“资料不一致”，不补值或声称覆盖完整。该降级不覆盖既有输入拒绝：清单篡改、`INCOMPLETE`、核心文件缺失及 HTB 恢复证据不足仍退出 2。JSON 路径不解析计划内容，保留原契约；文本摘要不写回源归档。
 
 ## 数学与解释
 
@@ -36,6 +46,8 @@ python3 tools/explain_measurement.py --input-dir /path/to/completed-measurement 
 独立构造恒定清洁、持续高档上升、低档短突发、最高档候选、无候选、不完整与 HTB reference 场景，验证计数、暴露量、候选解释和原分类不变。另验证清单篡改拒绝、缺失计数、布尔/负数/非有限值拒绝、归一化冲突、整数边界和源目录不变。合成场景只证明契约，不能估算公网误报/漏报率。
 
 再用四轮真实归档做端到端解释，核对与研究及后续复验结论一致且全部源文件摘要不变。运行现有 Python 回归及生成检查，不为离线工具另行执行公网 tc/iperf3 实验。源码纳入仓库自动发现的 unittest 门禁；验收结果必须绑定具体提交与制品，已发布版本的结果见[验证说明](validation.md#测量证据解释工具2026-09-30独立-pre-release)。
+
+`0.1.1` 复用同一测试文件补充覆盖摘要边界，并对照修改前的解释器核验 JSON 只变化 `tool_version`、输入目录不变。本轮只完成离线合成归档验证，没有新增真实归档回读；既有四轮回读属于 `0.1.0` 历史证据。具体范围及结果见[本轮验证](validation.md#coverage-summary-20261031)。
 
 ## 后续运行决策
 
