@@ -9,7 +9,11 @@
 
 本地实现与自检已通过 29 项解释器回归、8 个合成冻结归档的前后 JSON 对照（仅工具版本变化）、32 个源文件摘要不变，以及生产计划/共同 analyze 的 240 个纯函数组合和 18 个中文/JSON 入口检查。补充入口覆盖实际 HTB 分析后处理、恢复失败、reference 漂移、细扫中止、缺核心文件与旧计划解码失败。版本由本地 0.1.1-dev 转为 0.1.1 后，按发布候选重新执行工具回归、生成及文档检查。
 
-合并和 tag CI、固定源码 ZIP、三个资产校验及公开下载回验在完成后追加到[发布说明](releases/measurement-explanation-v0.1.1.md)及本节。现有完整 Linux CI 按原 workflow 运行，不因独立工具发布扩大平台生命周期矩阵。历史真实归档目录在当前本地不可用，此次没有新增真实报告回读、VPS、公网性能、业务收益或可靠 policer 识别验收。0.1.0 的四轮真实回读保持其历史版本边界。
+发布已完成：[PR #44](https://github.com/alieismy/vps-tuning/pull/44) 合并为 `30d5ca4063274ae06a1c8497db745f2c3257b419`，annotated tag 对象为 `cb9d8447b7ae995baca1720db6566800c76f3bfc`，解引用到该提交。[合并 CI](https://github.com/alieismy/vps-tuning/actions/runs/41197058699)与[tag CI](https://github.com/alieismy/vps-tuning/actions/runs/41197087932)通过；主 Python 154 项 `OK (skipped=1)`，root 限定恢复用例由后继 sudo 20 项入口覆盖，静态、PTY、安装/迁移、隔离 HTB 和 ShellCheck 通过。
+
+固定 ZIP 的 132 个文件逐 Git blob 相等，重复制包相同；大小 1707132 bytes，SHA-256 `eafed801458ba5965760ca508107e80c70f57e2689c5ffd76b41f8363c2a54c7`。Windows 无 .git 的中文/空格解包路径通过 29 项工具测试、生成及 24 项运行摘要检查，8 个合成归档的 32 个源文件保持；实际 PowerShell 说明命令通过。三个草稿资产的 GitHub digest 校验后公开为 [0.1.1 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.1)，不设 Latest；随后无认证下载与本地制品逐字节一致，下载 ZIP 的 29 项测试通过。此前 17 个 Release 的记录和资产标识/摘要保持。实际主程序版本选择函数仍选 rc.4。制品、CI 日志、回验与输入范围回执保留于 `.tmp/local/measurement-explanation-release-20261031/`，公开下载及命令见[发布说明](releases/measurement-explanation-v0.1.1.md)。
+
+现有完整 Linux CI 按原 workflow 运行，不因独立工具发布扩大平台生命周期矩阵。历史真实归档目录在当前本地不可用，此次没有新增真实报告回读、VPS、公网性能、业务收益或可靠 policer 识别验收。0.1.0 的四轮真实回读保持其历史版本边界。
 
 <a id="rc2-fleet-acceptance"></a>
 

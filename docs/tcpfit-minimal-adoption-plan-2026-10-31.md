@@ -1,6 +1,6 @@
 # tcpfit 有价值内容的最小吸收方案
 
-日期：2026-10-31（Asia/Singapore）。状态：**最小实现及自检已完成；用户随后授权推送并发布独立工具 0.1.1。** 本方案保留实现时的范围及取舍，发布状态见[工具发布说明](releases/measurement-explanation-v0.1.1.md)，实际验证见[验证记录](validation.md#coverage-summary-20261031)。
+日期：2026-10-31（Asia/Singapore）。状态：**最小实现及自检已完成；独立工具 0.1.1 已按用户授权发布为 Pre-release。** 本方案保留实现时的范围及取舍，发布状态见[工具发布说明](releases/measurement-explanation-v0.1.1.md)，实际验证见[验证记录](validation.md#coverage-summary-20261031)。
 
 控制输入：[tcpfit 当前研究与自检](tcpfit-v0.5.9-research-2026-10-05.md#2026-10-31-research-selfcheck)。方案阶段使用 `rd-solution`，只把已核实的候选收敛为一个小改动及继续暂缓的事项；获批后的实施遵循第 2、3 节，不重做上游研究、不启动新版本发布或运行试验。
 
