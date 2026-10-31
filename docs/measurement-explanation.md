@@ -1,6 +1,6 @@
 # 测量证据解释工具：设计与使用
 
-创建日期：2026-09-30；更新日期：2026-10-31。工具版本 `0.1.1`，按独立源码 Pre-release 交付；当前交付状态及下载见[0.1.1 发布说明](releases/measurement-explanation-v0.1.1.md)，此前公开版本见[0.1.0 历史说明](releases/measurement-explanation-v0.1.0.md)。本文件维护解释契约，不改变主程序分类器、测量 schema、安装资产或 Release。
+创建日期：2026-09-30；更新日期：2026-10-31。工具版本 `0.1.1` 已作为独立源码 Pre-release 发布；当前交付状态及下载见[0.1.1 发布说明](releases/measurement-explanation-v0.1.1.md)，此前公开版本见[0.1.0 历史说明](releases/measurement-explanation-v0.1.0.md)。本文件维护解释契约，不改变主程序分类器、测量 schema、安装资产或 Release。
 
 ## 目标与范围
 
@@ -47,7 +47,7 @@ python3 tools/explain_measurement.py --input-dir /path/to/completed-measurement 
 
 再用四轮真实归档做端到端解释，核对与研究及后续复验结论一致且全部源文件摘要不变。运行现有 Python 回归及生成检查，不为离线工具另行执行公网 tc/iperf3 实验。源码纳入仓库自动发现的 unittest 门禁；验收结果必须绑定具体提交与制品，已发布版本的结果见[验证说明](validation.md#测量证据解释工具2026-09-30独立-pre-release)。
 
-`0.1.1` 复用同一测试文件补充覆盖摘要边界，并对照修改前的解释器核验 JSON 只变化 `tool_version`、输入目录不变。本轮只完成离线合成归档验证，没有新增真实归档回读；既有四轮回读属于 `0.1.0` 历史证据。具体范围及结果见[本轮验证](validation.md#coverage-summary-20261031)。
+`0.1.1` 复用同一测试文件补充覆盖摘要边界，并对照修改前的解释器核验 JSON 只变化 `tool_version`、输入目录不变。本轮报告回读仅覆盖合成归档，没有新增真实归档回读；既有四轮回读属于 `0.1.0` 历史证据。具体范围及结果见[本轮验证](validation.md#coverage-summary-20261031)。
 
 ## 后续运行决策
 
