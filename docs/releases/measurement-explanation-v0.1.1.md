@@ -18,8 +18,33 @@
 
 保留完整解包目录，使用 Python 3.9+ 执行 `python tools/explain_measurement.py --input-dir <已完成报告目录>`；追加 `--json` 输出机器结果。无需 pip、Git、root、SSH 凭据或运行安装器。与采集并发时先使用冻结副本。
 
+发布后将三项资产下载到同一目录，先校验，再解包。Windows PowerShell：
+
+```powershell
+Get-Content -LiteralPath .\SHA256SUMS | ForEach-Object {
+    $parts = $_ -split '  ', 2
+    if ($parts.Count -ne 2) { throw 'Invalid checksum entry' }
+    $actual = (Get-FileHash -LiteralPath $parts[1] -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $parts[0]) { throw ('Checksum mismatch: ' + $parts[1]) }
+}
+Expand-Archive -LiteralPath .\dvt-measurement-explanation-0.1.1-source.zip -DestinationPath .\explanation-0.1.1
+Set-Location .\explanation-0.1.1\dvt-measurement-explanation-0.1.1
+python tools/explain_measurement.py --input-dir 'D:\reports\completed-measurement'
+```
+
+Linux：
+
+```bash
+sha256sum -c SHA256SUMS
+python3 -m zipfile -e dvt-measurement-explanation-0.1.1-source.zip explanation-0.1.1
+cd explanation-0.1.1/dvt-measurement-explanation-0.1.1
+python3 tools/explain_measurement.py --input-dir /path/to/completed-measurement
+```
+
+两段命令的报告路径均为示例，须替换为自己的已完成报告目录。退出 0 仅表示解释成功；是否形成有效测量仍以原报告状态为准。三项资产公开并回验前，中英文 README 继续指向已发布的 0.1.0。
+
 ## 验证边界
 
-29 项解释器回归及既有完整 Linux CI 分别验证工具契约和源码树回归；打包时核对 ZIP 文件与固定提交逐字节一致，并核验重复制包、解包运行和源证据不变。最终结果见[验证记录](../validation.md#measurement-explanation-011-release)。
+发布门禁包括 29 项解释器回归及既有完整 Linux CI，分别验证工具契约和源码树回归；打包时核对 ZIP 文件与固定提交逐字节一致，并核验重复制包、解包运行和源证据不变。最终结果见[验证记录](../validation.md#measurement-explanation-011-release)。
 
 此次只有合成冻结归档，没有新增历史真实归档回读。测试不证明网络容量、性能改善、可靠 policer 识别或旧部署迁移；其他工作区运行代码修复未纳入此版本，原有发布资产保持不可变。

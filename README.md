@@ -103,7 +103,7 @@ dvt report --input-dir /root/dvt-measure-01
 
 `INSUFFICIENT_EVIDENCE` 是允许的结果；退出码 0 只表示报告采集完成。测试不经过 VLESS/REALITY 客户端，不能据此承诺业务提速。临时整形另见 [htb-sweep 指南](docs/temporary-htb.md)，执行前必须理解整个接口限速及恢复条件。
 
-需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.1](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.1)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.1.md)，无需升级 VPS 或运行安装器，不改变主机已安装的主程序版本。
+需要查看绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.0](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.0)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.0.md)，无需升级 VPS 或运行安装器，不改变主机已安装的主程序版本。
 
 ### 路径 B：应用持久配置
 
@@ -185,7 +185,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 | 安装、日常操作、诊断、参数和回滚 | [操作指南](docs/usage.md) |
 | 升级、旧状态、历史恢复 | [迁移指南](docs/migration.md) |
 | 自动选点、预算、结果解读 | [独立测量](docs/automatic-measurement.md) |
-| 离线解释重传次数、暴露量及候选限制 | [解释工具](docs/measurement-explanation.md) · [独立工具发布](docs/releases/measurement-explanation-v0.1.1.md) |
+| 离线解释重传次数、暴露量及候选限制 | [解释工具](docs/measurement-explanation.md) · [独立工具发布](docs/releases/measurement-explanation-v0.1.0.md) |
 | 临时 HTB 与完整恢复 | [临时实验](docs/temporary-htb.md) |
 | 平台、资源、自适应缓冲 | [支持矩阵](docs/platform-support.md) |
 | 高级显式测量与研究入口 | [高级测量](docs/advanced-measurement.md) |
