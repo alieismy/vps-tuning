@@ -1,14 +1,14 @@
 # VPS Tuning
 
-This working tree contains the **unreleased 0.2.0-rc.5 fix candidate**. See the [candidate notes (Chinese)](docs/releases/v0.2.0-rc.5.md) for scope, local installation and validation status. Online download commands below still select the published rc.4 assets.
+**v0.2.0-rc.5 prerelease.** Fixed assets have passed public download verification. See the [release notes (Chinese)](docs/releases/v0.2.0-rc.5.md) for review fixes, evidence and remaining limits.
 
-[简体中文](README.md) · English · [v0.2.0-rc.4 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4) · [Published rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
+[简体中文](README.md) · English · [v0.2.0-rc.5 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.5) · [Published rc.4](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4)
 
-**v0.2.0-rc.4 prerelease.** The `dvt` menu now defaults to local capability diagnostics when the entrypoint and managed-state versions differ; managed actions are unavailable and update checks require an explicit selection. Its migrator also accepts `0.2.0-rc.3` sources. Tuning behaviour is unchanged. See the [release notes (Chinese)](docs/releases/v0.2.0-rc.4.md) for scope and evidence. Managed hosts must complete a cross-version migration before running managed actions under the new version; successful preflight does not establish complete original TCP snapshots, and migration must still pass `migrate prepare`. Stable rc.2 hosts should not migrate solely for the interactive interface.
+This release fixes service validation, managed-file recovery, migration continuation and measurement accounting. It preserves the 17 managed sysctls, resource-aware buffers and default BBR + fq. Managed hosts must pass the cross-version migration and original-state checks before using managed actions. Ubuntu and port speeds above 1000 Mbps remain outside the migrator scope; new-install support does not expand migration support.
 
 Host network diagnostics, budgeted automatic measurement with public iperf3 endpoints, and verifiable, reversible BBR + fq configuration for Linux VPS hosts. Measurement needs neither prior tuning nor a self-hosted endpoint. Temporary HTB rate sweeps explore the relationship between sending rate and retransmissions.
 
-This is a **Pre-release**. The pinned rc.4 assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities. Functional and recovery evidence does not establish reliable policer identification or improved proxy performance.
+This is a **Pre-release**. The pinned rc.5 assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities. Functional and recovery evidence does not establish reliable policer identification or improved proxy performance.
 
 The repository was renamed from `debian-vps-tuning` on 2026-10-10. Old links redirect here automatically. The `dvt` command, release asset file names, installation paths and managed-state paths are unchanged.
 
@@ -54,7 +54,7 @@ Original Debian resource tiers keep their policies; other supported combinations
 
 ### Installation
 
-Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.4` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
+Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.5` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
 
 ```bash
 (
@@ -65,9 +65,9 @@ Run in a root shell (`id -u` must return `0`). This downloads the complete fixed
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.5/install.sh
   printf '%s  %s\n' \
-    '06c8b235ce0538d6e5247b3b50fa568e6c71f9ee9f28b4cc999f031b5e9978ec' \
+    'de7967a738fb28d0da24ff70b7928f32aee6d0ad7965d938d4152e2903f0ada0' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -178,7 +178,7 @@ Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call 
 - The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.
 - 1–10000 Mbps is an input range. Broader public-path platform coverage, IPv6, high rates, specific large-resource hardware and business performance still have unvalidated areas.
 
-Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.4.md), currently in Chinese.
+Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.5.md), currently in Chinese.
 
 ## Documentation
 

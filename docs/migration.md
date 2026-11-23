@@ -1,8 +1,8 @@
 # 升级、旧状态与历史恢复
 
-当前目标：`v0.2.0-rc.4` 预发行版。本页用于已有 DVT 管理状态的主机；全新安装见 [README](../README.md#安装)。历史版本步骤保留在后面的附录，不能直接换版本号套用。
+当前目标：`v0.2.0-rc.5` 预发行版。本页用于已有 DVT 管理状态的主机；全新安装见 [README](../README.md#安装)。历史版本步骤保留在后面的附录，不能直接换版本号套用。
 
-**历史问题（2026-10-04）：** 已发布 rc.1 的目标 profile 会把旧 schema 4 的版本不一致报告为笼统状态错误；旧版 verify 成功不能解除此拒绝。[rc.2 预发行版](releases/v0.2.0-rc.2.md)修复只读预检，仍保留恢复完整性门禁。下方命令使用已发布并完成公开回验的 rc.4 固定资产。rc.3 的固定步骤保留在历史附录。
+**历史问题（2026-10-04）：** 已发布 rc.1 的目标 profile 会把旧 schema 4 的版本不一致报告为笼统状态错误；旧版 verify 成功不能解除此拒绝。[rc.2 预发行版](releases/v0.2.0-rc.2.md)修复只读预检，仍保留恢复完整性门禁。下方命令使用已发布并完成公开回验的 rc.5 固定资产。rc.4 及更早固定步骤保留在历史附录。
 
 盘点原值时应直接读取受管状态，而不是当前内核的调优值。下面命令只输出非敏感摘要，不修改状态：
 
@@ -14,15 +14,15 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
   /var/lib/proxy-vps-tuning/state.json
 ```
 
-两项原值各须为完整的三个整数。若各只有 `4096`，即使目标预检通过，仍应停在恢复证据核查；`ALLOW_EMPTY_STATE_RECOVERY=1` 不适用于有效旧状态的缺失三元组。历史完整三元组只有在能证明对应同一主机、本次部署的应用前状态及其间配置连续性时，才能作为恢复依据。对于明确接受新恢复语义的主机，rc.4 完整源码另提供[带来源的 TCP 基线恢复工具](tcp-baseline-recovery.md)：保留原件，区分历史证据与替代值，再接续迁移；该工具不由安装器部署，不属于下面命令的通用强制选项，其归档只被同版本迁移器接受。
+两项原值各须为完整的三个整数。若各只有 `4096`，即使目标预检通过，仍应停在恢复证据核查；`ALLOW_EMPTY_STATE_RECOVERY=1` 不适用于有效旧状态的缺失三元组。历史完整三元组只有在能证明对应同一主机、本次部署的应用前状态及其间配置连续性时，才能作为恢复依据。对于明确接受新恢复语义的主机，rc.5 完整源码另提供[带来源的 TCP 基线恢复工具](tcp-baseline-recovery.md)：保留原件，区分历史证据与替代值，再接续迁移；该工具不由安装器部署，不属于下面命令的通用强制选项，其归档只被同版本迁移器接受。
 
-## rc.5 本地候选的恢复提示
+## rc.5 的恢复提示
 
-[rc.5 候选](releases/v0.2.0-rc.5.md)以 rc.5 为目标，增加 rc.4 来源。下方发布版下载命令继续绑定 rc.4。候选仅接受 rc.5 恢复工具产生、明确批准以 rc.5 为目标的归档。已有 rc.4 已批准归档继续使用固定 rc.4 恢复与迁移流程，不自动转换为 rc.5 批准。
+[rc.5](releases/v0.2.0-rc.5.md)以 rc.5 为目标，增加 rc.4 来源。只接受 rc.5 恢复工具产生、明确批准以 rc.5 为目标的归档。已有 rc.4 已批准归档继续使用[历史 rc.4 目标](#历史-rc4-目标)，不自动转换为 rc.5 批准。
 
-候选迁移器在调用旧来源 rollback 前检查来源状态目录。遇到账本、未知目录或文件时，先保留并核验它们，再迁到状态树之外。checkpoint 本身也必须在状态树之外。
+rc.5 迁移器在调用旧来源 rollback 前检查来源状态目录。遇到账本、未知目录或文件时，先保留并核验它们，再迁到状态树之外。checkpoint 本身也必须在状态树之外。
 
-若目标 apply 被不可捕获中断并留下 APPLIED，候选会停在 APPLY_RUNNING。先保存 state、checkpoint 和当时日志，核对目标固定脚本的版本与摘要。按目标脚本的 rollback 流程恢复原始配置和队列，确认回滚完成并按需清理项目 swap，再重启后用同一 checkpoint 继续。发生原值、所有权或队列恢复失败时，保留现场处理该错误。普通 verify 只读，无法把 APPLIED 写成 VERIFIED。
+若目标 apply 被不可捕获中断并留下 APPLIED，rc.5 会停在 APPLY_RUNNING。先保存 state、checkpoint 和当时日志，核对目标固定脚本的版本与摘要。按目标脚本的 rollback 流程恢复原始配置和队列，确认回滚完成并按需清理项目 swap，再重启后用同一 checkpoint 继续。发生原值、所有权或队列恢复失败时，保留现场处理该错误。普通 verify 只读，无法把 APPLIED 写成 VERIFIED。
 
 ## 先判断能否迁移
 
@@ -30,16 +30,16 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 
 **恢复原值不完整时，普通迁移停止在只读检查。** 更早版本可能只保存了 `net.ipv4.tcp_rmem` / `net.ipv4.tcp_wmem` 的第一项。三元组缺项时，新迁移器拒绝创建 checkpoint；旧版 verify 成功也不能证明原值完整。不得手改状态、猜默认值冒充历史快照，或调用旧版 rollback 绕过拒绝。选择新基线时须独立完成上文恢复工具的逐台计划、归档和来源记录，不能直接解除完整性门禁。已发布流程的处置边界见 [平台支持：旧状态与迁移](platform-support.md#旧状态与迁移)。
 
-当前 rc.4 迁移器接受已定义的 `0.1.0-rc.1`–`0.1.0-rc.19`、`0.2.0-rc.2` 与 `0.2.0-rc.3` Debian 来源，端口带宽限 100–1000 Mbps；**不支持 `0.2.0-rc.1` 来源**，Ubuntu 24.04 的 rc.2/rc.3 主机和端口超出该范围的主机也不在其范围内。还必须通过实际来源状态、profile、资源、所有权、原值和目标预检。版本在此范围内不等于必然可迁移。跨 OS、资源变化导致的 profile 切换不由以下步骤自动处理。
+当前 rc.5 迁移器接受已定义的 `0.1.0-rc.1`–`0.1.0-rc.19`、`0.2.0-rc.2`、`0.2.0-rc.3` 与 `0.2.0-rc.4` Debian 来源，端口带宽限 100–1000 Mbps；**不支持 `0.2.0-rc.1` 来源**，Ubuntu 24.04 的 rc.2/rc.3/rc.4 主机和端口超出该范围的主机也不在其范围内。还必须通过实际来源状态、profile、资源、所有权、原值和目标预检。版本在此范围内不等于必然可迁移。跨 OS、资源变化导致的 profile 切换不由以下步骤自动处理。
 
-**rc.2/rc.3 主机：** [rc.4](releases/v0.2.0-rc.4.md) 修正菜单版本冲突引导并增加 rc.3 迁移来源，调优内容不变；不建议稳定 rc.2 主机仅为交互界面迁移。五台已验收主机仍为 rc.2，本轮不执行真实主机迁移。rc.2/rc.3 → rc.4 尚无真实主机迁移或业务验收证据；CI 与 fixture 结果见发布说明，不能代替逐台验收。已有 rc.2 或 rc.3 版 TCP 基线恢复归档但尚未迁移的主机，先按[历史 rc.2 目标](#历史-rc2-目标)或[历史 rc.3 目标](#历史-rc3-目标)完成各自目标，再决定是否迁移 rc.4；归档不能交给其他版本迁移器。
+**已有 rc.2/rc.3/rc.4 主机：** rc.5 提供评审修复，是否采用仍须结合具体缺陷、维护窗口和恢复条件。五台已验收主机继续 rc.2，本轮未执行真实主机迁移。CI、fixture 和隔离客体结果不能代替逐台业务验收。已有 rc.2、rc.3 或 rc.4 版 TCP 基线恢复归档或未完成 checkpoint 时，先按下方历史附录接续各自固定目标，再独立评估 rc.5；归档不能交给其他版本迁移器。
 
 迁移前确认控制台/救援入口、系统及代理业务备份、SSH 管理路径与 swap 清理所需内存余量。保留来源版本的完整资产和备份。不同 Release 的总控、`SHA256SUMS`、profile 与伴随工具不得混放；发生失败保留 state/checkpoint，不跳阶段。
 
 <a id="迁移到-v020-rc1"></a>
 <a id="迁移到-v020-rc2"></a>
 
-## 迁移到 v0.2.0-rc.4
+## 迁移到 v0.2.0-rc.5
 
 以下命令在被迁移主机的 root shell 中分步执行。示例目录必须尚不存在；已存在时检查并接续原任务，不能覆盖或换名绕过未完成状态。任何命令失败即停止。
 
@@ -50,22 +50,22 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 ```bash
 set -Eeuo pipefail
 test "$(id -u)" -eq 0
-test ! -e /root/dvt-to-0.2.0-rc.4
-test ! -L /root/dvt-to-0.2.0-rc.4
-install -d -m 0700 /root/dvt-to-0.2.0-rc.4
+test ! -e /root/dvt-to-0.2.0-rc.5
+test ! -L /root/dvt-to-0.2.0-rc.5
+install -d -m 0700 /root/dvt-to-0.2.0-rc.5
 curl --fail --show-error --silent --location \
   --proto '=https' --proto-redir '=https' \
   --connect-timeout 15 --max-time 120 --max-redirs 5 \
   --remove-on-error \
-  -o /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh \
-  https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/debian-vps-tuning.sh
+  -o /root/dvt-to-0.2.0-rc.5/debian-vps-tuning.sh \
+  https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.5/debian-vps-tuning.sh
 printf '%s  %s\n' \
-  '1e5e7e3065d67aa483b94e2ca7a61cad75611f14c7cf46a36937fb395a428e84' \
-  /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh | sha256sum -c -
-bash /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh update --target v0.2.0-rc.4
+  '1f3340172cf4bbb043dca2d3bc6f9d7eb68bd95f2601b691ddfd18871aa586a1' \
+  /root/dvt-to-0.2.0-rc.5/debian-vps-tuning.sh | sha256sum -c -
+bash /root/dvt-to-0.2.0-rc.5/debian-vps-tuning.sh update --target v0.2.0-rc.5
 ```
 
-检查输出中的来源版本、profile、端口带宽和目标 `v0.2.0-rc.4`。只有来源 verify、目标预检均通过，并显示“升级检查通过；系统配置未修改”才继续。此步骤成功仍不证明原始快照可以恢复；下一步 prepare 必须检查该条件。
+检查输出中的来源版本、profile、端口带宽和目标 `v0.2.0-rc.5`。只有来源 verify、目标预检均通过，并显示“升级检查通过；系统配置未修改”才继续。此步骤成功仍不证明原始快照可以恢复；下一步 prepare 必须检查该条件。
 
 ### 2. 使用目标总控准备 checkpoint
 
@@ -73,13 +73,13 @@ bash /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh update --target v0.2.0-rc.4
 
 ```bash
 set -Eeuo pipefail
-test ! -e /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
-test ! -L /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
-bash /root/dvt-to-0.2.0-rc.4/debian-vps-tuning.sh migrate prepare \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh status \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4 |
-  jq -e 'select(.phase=="PREPARED" and .target_version=="0.2.0-rc.4") | {phase,source_version,target_version,profile_id,port_speed_mbps}'
+test ! -e /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5
+test ! -L /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5
+bash /root/dvt-to-0.2.0-rc.5/debian-vps-tuning.sh migrate prepare \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5/dvt-migrate.sh status \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5 |
+  jq -e 'select(.phase=="PREPARED" and .target_version=="0.2.0-rc.5") | {phase,source_version,target_version,profile_id,port_speed_mbps}'
 ```
 
 核对显示的来源版本和 profile 与原主机一致。原值完整性、来源状态或任何检查失败时，到此停止，不执行下方回滚和重启。
@@ -90,8 +90,8 @@ checkpoint 内固定的**旧版固定 Release** profile 执行受管 rollback，
 
 ```bash
 set -Eeuo pipefail
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh rollback \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5/dvt-migrate.sh rollback \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5
 reboot
 ```
 
@@ -103,8 +103,8 @@ continue 检查 boot ID 已变化，再运行目标 preflight/apply。失败时�
 
 ```bash
 set -Eeuo pipefail
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh continue \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5/dvt-migrate.sh continue \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5
 reboot
 ```
 
@@ -114,14 +114,14 @@ reboot
 
 ```bash
 set -Eeuo pipefail
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh continue \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4
-bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4/dvt-migrate.sh status \
-  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.4 |
-  jq -e 'select(.phase=="COMPLETE" and .target_version=="0.2.0-rc.4") | {phase,source_version,target_version,profile_id}'
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5/dvt-migrate.sh continue \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5
+bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5/dvt-migrate.sh status \
+  --checkpoint /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5 |
+  jq -e 'select(.phase=="COMPLETE" and .target_version=="0.2.0-rc.5") | {phase,source_version,target_version,profile_id}'
 ```
 
-随后按 [README 固定版本安装块](../README.md#安装) 安装 `v0.2.0-rc.4` 入口（保留 `--no-launch`）；这一步不再 apply。若入口已是该版本，核对版本与完整性后可跳过重复安装。最后执行：
+随后按 [README 固定版本安装块](../README.md#安装) 安装 `v0.2.0-rc.5` 入口（保留 `--no-launch`）；这一步不再 apply。若入口已是该版本，核对版本与完整性后可跳过重复安装。最后执行：
 
 ```bash
 dvt --version
@@ -144,7 +144,13 @@ dvt verify
 
 本附录保留原目标版本、URL、摘要和恢复行为，仅用于处理与原前提一致的旧任务。所有历史 rollback/reboot 前仍必须满足 [原值完整性条件](platform-support.md#旧状态与迁移)；缺少原值时停在只读盘点，旧版 verify 成功不能替代该检查。不要把本附录当作当前版本安装步骤。
 
-旧流程中的短命令 `dvt migrate prepare` 只在已校验的 `dvt` 恰好属于该节目标版本时适用。入口仍是来源版本或已切到其他版本时，必须使用该节已取得并核验的目标总控绝对路径调用 prepare；当前 `0.2.0-rc.4` 入口不能用于准备这些历史目标。
+旧流程中的短命令 `dvt migrate prepare` 只在已校验的 `dvt` 恰好属于该节目标版本时适用。入口仍是来源版本或已切到其他版本时，必须使用该节已取得并核验的目标总控绝对路径调用 prepare；当前 `0.2.0-rc.5` 入口不能用于准备这些历史目标。
+
+<a id="迁移到-v020-rc4"></a>
+
+### 历史 rc.4 目标
+
+已有 rc.4 恢复归档或未完成 rc.4 checkpoint 时，按[固定 rc.4 迁移指南](https://github.com/alieismy/vps-tuning/blob/v0.2.0-rc.4/docs/migration.md#迁移到-v020-rc4)接续原目标；总控 SHA-256 为 `1e5e7e3065d67aa483b94e2ca7a61cad75611f14c7cf46a36937fb395a428e84`。不要使用当前 README 的 rc.5 安装块替代历史 rc.4 步骤，安装入口也须使用固定 rc.4 README。完成原目标后再独立评估 rc.5，归档批准不能跨版复用。
 
 <a id="迁移到-v020-rc3"></a>
 
