@@ -168,11 +168,11 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 三个仓库按下表的顺序使用：先加固，再调优，最后搭建代理（vps-hardening 需求 D27；理由见其[需求规格说明第 7.3 节](https://github.com/alieismy/vps-hardening/blob/master/docs/requirements.md#73-与-vps-tuning-的约定)）。
 
-| 顺序 | 仓库 | 用途 | 状态 |
-|---|---|---|---|
-| 1 | [vps-hardening](https://github.com/alieismy/vps-hardening) | 基础安全加固 | 正式版 v0.2.1 |
-| 2 | vps-tuning（本仓库） | 网络调优、诊断与测量 | Pre-release v0.2.0-rc.4 |
-| 3 | [vps-proxy-setup](https://github.com/alieismy/vps-proxy-setup) | 代理服务搭建（以 3X-UI 为例） | 开发中，尚无发行版 |
+| 顺序 | 仓库 | 用途 |
+|---|---|---|
+| 1 | [vps-hardening](https://github.com/alieismy/vps-hardening) | 基础安全加固 |
+| 2 | vps-tuning（本仓库） | 网络调优、诊断与测量 |
+| 3 | [vps-proxy-setup](https://github.com/alieismy/vps-proxy-setup) | 代理服务搭建（以 3X-UI 为例） |
 
 完整流程（vps-hardening 需求 D27、D41、D42）：
 

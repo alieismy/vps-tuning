@@ -168,11 +168,11 @@ Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call 
 
 The three repositories are used in the order of the table below: harden first, then tune, then set up the proxy (vps-hardening requirements D27; rationale in its [requirements §7.3](https://github.com/alieismy/vps-hardening/blob/master/docs/requirements.md#73-与-vps-tuning-的约定)).
 
-| Order | Repository | Purpose | Status |
-|---|---|---|---|
-| 1 | [vps-hardening](https://github.com/alieismy/vps-hardening) | Baseline security hardening | Release v0.2.1 |
-| 2 | vps-tuning (this repository) | Network tuning, diagnostics and measurement | Pre-release v0.2.0-rc.4 |
-| 3 | [vps-proxy-setup](https://github.com/alieismy/vps-proxy-setup) | Proxy service setup (3X-UI as the example) | In development, no release yet |
+| Order | Repository | Purpose |
+|---|---|---|
+| 1 | [vps-hardening](https://github.com/alieismy/vps-hardening) | Baseline security hardening |
+| 2 | vps-tuning (this repository) | Network tuning, diagnostics and measurement |
+| 3 | [vps-proxy-setup](https://github.com/alieismy/vps-proxy-setup) | Proxy service setup (3X-UI as the example) |
 
 Full flow (vps-hardening requirements D27, D41, D42):
 
