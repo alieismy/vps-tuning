@@ -517,8 +517,13 @@ printf '%s\n' '{"schema_version":1,"status":"PASS","exit_code":0,"phases":{"uplo
   >"${BENCHMARK_OUTPUT_DIR}/benchmark-result.json"
 script_sha="$(sha256sum "${BASH_SOURCE[0]}" | awk '{print $1}')"
 jq -n --arg script_sha "$script_sha" \
+  --argjson enforced "$BENCHMARK_ENFORCE_RATE_CAP" \
+  --argjson rate "$BENCHMARK_RATE_CAP_MBPS" --argjson parallel "$BENCHMARK_PARALLEL" \
   '{schema_version:1,script_version:"0.2.0-rc.1",profile:"debian13-1c1g",
-    script_sha256:$script_sha,state:"VERIFIED",state_network:{port_speed_mbps:200}}' \
+    script_sha256:$script_sha,state:"VERIFIED",state_network:{port_speed_mbps:200},
+    benchmark:{rate_cap_enforced:($enforced == 1),rate_cap_method:"iperf3-bitrate",
+      rate_cap_scope:"aggregate-target-divided-across-streams",
+      rate_cap_per_stream_bps:(($rate * 1000000 / $parallel) | floor)}}' \
   >"${BENCHMARK_OUTPUT_DIR}/benchmark-meta.json"
 printf 'user\t100\nnice\t0\nsystem\t50\nidle\t100\niowait\t0\nirq\t0\nsoftirq\t10\nsteal\t0\n' \
   >"${BENCHMARK_OUTPUT_DIR}/upload.cpu.before"
@@ -587,7 +592,11 @@ runner_stage_dir="$(printf '%s\n' "${mock_output}"/stages/*/ | head -n 1)"
 jq -e '.status == "PASS" and .qdisc_restored_to_root_fq == true and
   .persistent_shaping_created == false and .benchmark_binding_valid == true and
   .managed_binding.profile_id == "debian13-1c1g" and
-  .managed_binding.state == "VERIFIED"' "${runner_stage_dir}/stage-result.json" >/dev/null
+  .managed_binding.state == "VERIFIED" and
+  .software_rate_cap.rate_cap_enforced == true and
+  .software_rate_cap.rate_cap_method == "iperf3-bitrate" and
+  .software_rate_cap.rate_cap_scope == "aggregate-target-divided-across-streams" and
+  .software_rate_cap.rate_cap_per_stream_bps == 200000000' "${runner_stage_dir}/stage-result.json" >/dev/null
 grep -Fq 'rtt:2.5/0.4' "${runner_stage_dir}/socket-metrics.txt"
 grep -Fq 'pacing_rate:201Mbps' "${runner_stage_dir}/socket-metrics.txt"
 grep -Fq 'delivery_rate:188.5Mbps' "${runner_stage_dir}/socket-metrics.txt"

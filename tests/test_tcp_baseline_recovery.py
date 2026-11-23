@@ -5,6 +5,8 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -300,6 +302,42 @@ class BaselineRecoveryTest(unittest.TestCase):
         with self.assertRaises(r.Refused):
             self.prepare()
 
+    def test_rc4_approval_cannot_be_reused_for_rc5(self):
+        self.assertEqual(r.VERSION, '0.2.0-rc.5')
+        self.plan['target_version'] = '0.2.0-rc.4'
+        with self.assertRaisesRegex(r.Refused, '目标必须为当前候选版本'):
+            self.prepare()
+        self.assertFalse(self.archive.exists())
+        with patch.object(r, 'VERSION', '0.2.0-rc.4'):
+            self.prepare()
+        with self.assertRaisesRegex(r.Refused, '归档契约不符'):
+            self.transition('status')
+
+    @unittest.skipUnless(shutil.which('bash') and shutil.which('jq'), 'requires Bash and jq')
+    def test_migrator_archive_version_matches_approved_target(self):
+        self.prepare()
+        receipt = self.archive / 'receipt.json'
+        source = (ROOT / 'dvt-migrate.sh').read_text(encoding='utf-8')
+        validate = re.search(r'^validate_baseline_archive\(\) \{.*?^\}', source,
+                             re.M | re.S).group()
+        # 权限由 Linux root 生命周期单独验证。这里执行正式归档校验与摘要读取。
+        archive = subprocess.check_output(['bash', '-c', 'cygpath -u "$1" 2>/dev/null || printf "%s" "$1"',
+                                           '--', str(self.archive)]).decode()
+        script = '''set -euo pipefail
+die() { printf '%s\\n' "$*" >&2; exit 2; }
+validate_file() { :; }
+stat() { case "$2" in '%u') echo 0;; '%a') echo 700;; esac; }
+jq() { command jq "$@" | tr -d '\\r'; }
+''' + validate + '\nvalidate_baseline_archive "$1"\n'
+        result = subprocess.run(['bash', '-s', '--', archive], input=script.encode(), capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
+        old = r.decode(receipt.read_bytes())
+        old['tool_version'] = '0.2.0-rc.4'
+        receipt.write_bytes(r.encode(old))
+        result = subprocess.run(['bash', '-s', '--', archive], input=script.encode(), capture_output=True)
+        self.assertEqual(result.returncode, 2, result.stderr.decode(errors='replace'))
+        self.assertIn('基线恢复归档契约无效', result.stderr.decode(errors='replace'))
+
     def test_duplicate_json_and_malformed_vectors_refused(self):
         with self.assertRaises(r.Refused):
             r.decode('{"approved":false,"approved":true}')
@@ -346,14 +384,14 @@ esac
 """)
                 target = self.write('/target.sh', f"""#!/bin/bash
 set -Eeuo pipefail
-SCRIPT_VERSION='{r.VERSION}'
+SCRIPT_VERSION='0.2.0-rc.5'
 PROFILE_ID='{profile}'
 case "$1" in
  preflight) : ;;
  apply)
    jq -n --arg rmem "$(sysctl -n net.ipv4.tcp_rmem)" --arg wmem "$(sysctl -n net.ipv4.tcp_wmem)" \\
-     '{{schema_version:4,script_version:"{r.VERSION}",state:"APPLIED",profile:{{id:"{profile}"}},original_sysctls:{{"net.ipv4.tcp_rmem":$rmem,"net.ipv4.tcp_wmem":$wmem}}}}' >"$DVT_STATE_FILE" ;;
- verify) jq '.state="VERIFIED"' "$DVT_STATE_FILE" >"$DVT_STATE_FILE.tmp"; mv "$DVT_STATE_FILE.tmp" "$DVT_STATE_FILE" ;;
+     '{{schema_version:4,script_version:"0.2.0-rc.5",state:"VERIFIED",profile:{{id:"{profile}"}},original_sysctls:{{"net.ipv4.tcp_rmem":$rmem,"net.ipv4.tcp_wmem":$wmem}}}}' >"$DVT_STATE_FILE" ;;
+ verify) jq -e '.state=="VERIFIED"' "$DVT_STATE_FILE" >/dev/null ;;
  *) exit 2 ;;
 esac
 """)
@@ -373,7 +411,7 @@ esac
                     return result
                 migrate(ROOT / 'dvt-migrate.sh', 'prepare', '--source-profile', str(source),
                         '--target-profile', str(target), '--source-version', version,
-                        '--target-version', r.VERSION, '--profile-id', profile, '--port', '200',
+                        '--target-version', '0.2.0-rc.5', '--profile-id', profile, '--port', '200',
                         '--state-sha256', r.sha(self.host.path(r.STATE).read_bytes()))
                 tool = checkpoint / 'dvt-migrate.sh'
                 original = (checkpoint / 'baseline-recovery/state.before.json').read_bytes()

@@ -7,7 +7,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-SCRIPT_VERSION='0.2.0-rc.4'
+SCRIPT_VERSION='0.2.0-rc.5'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
 NAMESPACE='proxy-vps'
@@ -239,7 +239,11 @@ validate_inputs() {
   fi
   BUFFER_COVERAGE_MS=$((BUF_MAX * 8 / (PORT_SPEED_MBPS * 1000)))
   if [ "$BUFFER_CLAMPED" -eq 1 ]; then
-    warn "按 ${PROFILE_LABEL} 的内存预算将自动 socket 上限限制为 $((MAX_BUF_MAX / 1048576)) MiB；约覆盖 ${BUFFER_COVERAGE_MS} ms，未达到 ${BUFFER_TARGET_NUMERATOR}/${BUFFER_TARGET_DENOMINATOR}×BDP 性能目标。"
+    if [ "$BUF_MAX" -lt "$BUFFER_TARGET_BYTES" ]; then
+      warn "按 ${PROFILE_LABEL} 的内存预算将自动 socket 上限限制为 $((MAX_BUF_MAX / 1048576)) MiB；约覆盖 ${BUFFER_COVERAGE_MS} ms，未达到 ${BUFFER_TARGET_NUMERATOR}/${BUFFER_TARGET_DENOMINATOR}×BDP 性能目标。"
+    else
+      warn "按 ${PROFILE_LABEL} 的内存预算将自动 socket 上限限制为 $((MAX_BUF_MAX / 1048576)) MiB；约覆盖 ${BUFFER_COVERAGE_MS} ms，仍覆盖 ${BUFFER_TARGET_NUMERATOR}/${BUFFER_TARGET_DENOMINATOR}×BDP 目标。"
+    fi
   fi
 
   is_bool "$ENABLE_SWAP" || die "$EXIT_USAGE" 'ENABLE_SWAP 只能为 0 或 1。'
@@ -349,7 +353,7 @@ state_file_path_is_valid() {
       (if .schema_version == $schema then
         (.script_version == $version or
           ($update_preflight == 1 and
-            (.script_version | test("^(0\\.1\\.0-rc\\.([1-9]|1[0-9])|0\\.2\\.0-rc\\.[23])$")))) and
+            (.script_version | test("^(0\\.1\\.0-rc\\.([1-9]|1[0-9])|0\\.2\\.0-rc\\.[234])$")))) and
         (.provider_sysctl_transfer | type == "object") and
         (.provider_sysctl_transfer.required | type == "boolean") and
         (.provider_sysctl_transfer.source_path == $provider_file) and
@@ -1105,10 +1109,25 @@ write_managed_file() {
   local path="$1" mode="$2" dir
   dir="$(dirname "$path")"
   mkdir -p "$dir" || return 1
-  local tmp
+  local tmp hash state_tmp
   tmp="$(mktemp "${path}.tmp.XXXXXX")"
-  if ! cat >"$tmp" || ! chmod "$mode" "$tmp" || ! chown root:root "$tmp" ||
-    ! mv -f -- "$tmp" "$path"; then
+  if ! cat >"$tmp" || ! chmod "$mode" "$tmp" || ! chown root:root "$tmp"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+  # 首次发布前登记预期内容，使发布后中断仍可按哈希确认所有权。
+  # 重配置已有独立的前镜像与恢复事务，继续使用其原有提交顺序。
+  if [ "$(state_get '.state')" = 'APPLYING' ]; then
+    hash="$(sha256sum "$tmp" | awk '{print $1}')" || { rm -f -- "$tmp"; return 1; }
+    state_tmp="$(mktemp "${STATE_FILE}.tmp.XXXXXX")" || { rm -f -- "$tmp"; return 1; }
+    if ! jq --arg path "$path" --arg hash "$hash" \
+      '.managed_files = ([.managed_files[] | select(.path != $path)] + [{path:$path,sha256:$hash}])' \
+      "$STATE_FILE" >"$state_tmp" || ! atomic_json_commit "$STATE_FILE" "$state_tmp"; then
+      rm -f -- "$tmp" "$state_tmp"
+      return 1
+    fi
+  fi
+  if ! mv -f -- "$tmp" "$path"; then
     rm -f -- "$tmp"
     return 1
   fi
@@ -1467,6 +1486,7 @@ create_swap_if_needed() {
 profile_service_units() {
   local unit
   if [ -n "$PROXY_SERVICE_UNITS_INPUT" ]; then
+    [[ "$PROXY_SERVICE_UNITS_INPUT" != *$'\n'* ]] || die "$EXIT_USAGE" 'PROXY_SERVICE_UNITS 必须是单行、空格分隔的 unit 列表。'
     IFS=' ' read -r -a units <<<"$PROXY_SERVICE_UNITS_INPUT"
     for unit in "${units[@]}"; do
       [[ "$unit" =~ ^[A-Za-z0-9_.@-]+\.service$ ]] || die "$EXIT_USAGE" "非法 systemd unit：${unit}"
@@ -1497,12 +1517,20 @@ verify_runtime_nofile() {
 }
 
 verify_proxy_services() {
-  local unit loaded=0 active_count=0 active main_pid child strict=0 runtime_strict=0 failures=0 configured_soft configured_hard
+  local unit loaded=0 active_count=0 active main_pid child strict=0 runtime_strict=0 failures=0 configured_soft configured_hard core_count executable unit_list
   [ -z "$PROXY_SERVICE_UNITS_INPUT" ] || strict=1
   if [ "$strict" -eq 1 ] || [ "$REQUIRE_PROXY_SERVICE" = '1' ]; then runtime_strict=1; fi
+  unit_list="$(profile_service_units)" || return 1
+  if [ "$strict" -eq 1 ] && [ -z "$unit_list" ]; then
+    error '显式代理服务列表为空，无法核验。'
+    return 1
+  fi
   while IFS= read -r unit; do
     [ -n "$unit" ] || continue
-    [ "$(systemctl show -p LoadState --value "$unit" 2>/dev/null || true)" = 'loaded' ] || continue
+    if [ "$(systemctl show -p LoadState --value "$unit" 2>/dev/null || true)" != 'loaded' ]; then
+      if [ "$strict" -eq 1 ]; then error "指定的服务未加载：${unit}"; failures=$((failures + 1)); fi
+      continue
+    fi
     loaded=$((loaded + 1))
     active="$(systemctl show -p ActiveState --value "$unit" 2>/dev/null || true)"
     main_pid="$(systemctl show -p MainPID --value "$unit" 2>/dev/null || true)"
@@ -1522,14 +1550,28 @@ verify_proxy_services() {
       continue
     fi
     active_count=$((active_count + 1))
+    core_count=0
     if [[ "$main_pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${main_pid}/limits" ]; then
       verify_runtime_nofile "$unit" MainPID "/proc/${main_pid}/limits" "$runtime_strict" || failures=$((failures + 1))
       while IFS= read -r child; do
-        [ -r "/proc/${child}/limits" ] || continue
+        [ -n "$child" ] || continue
+        if [ ! -r "/proc/${child}/limits" ]; then
+          if [ "$runtime_strict" -eq 1 ]; then error "无法核验 ${unit} 子进程 ${child} 的运行时限额。"; failures=$((failures + 1)); fi
+          continue
+        fi
         verify_runtime_nofile "$unit" "child=${child}" "/proc/${child}/limits" "$runtime_strict" || failures=$((failures + 1))
+        executable="$(readlink "/proc/${child}/exe" 2>/dev/null || true)"
+        case "${executable##*/}" in xray | xray-* ) core_count=$((core_count + 1)) ;; esac
       done < <(pgrep -P "$main_pid" 2>/dev/null || true)
+    elif [ "$runtime_strict" -eq 1 ]; then
+      error "无法核验 ${unit} 的 MainPID 运行时限额。"
+      failures=$((failures + 1))
     fi
-  done < <(profile_service_units)
+    if [ "$unit" = 'x-ui.service' ] && [ "$REQUIRE_PROXY_SERVICE" = '1' ] && [ "$core_count" -eq 0 ]; then
+      error '未确认 x-ui.service 的直接 Xray 子进程；已要求代理业务运行，请检查核心状态。'
+      failures=$((failures + 1))
+    fi
+  done <<<"$unit_list"
   if [ "$loaded" -eq 0 ]; then
     if [ "$REQUIRE_PROXY_SERVICE" = '1' ]; then error '没有发现要求的代理服务。'; return 1; fi
     info '尚未安装代理服务；x-ui.service 的 LimitNOFILE drop-in 已预置，安装 3X-UI 后请重新 verify。'
@@ -1557,9 +1599,10 @@ managed_sysctl_value() {
 }
 
 verify_current_qdiscs() {
-  local iface snapshot root_kind root_major rows bad failures=0
+  local iface snapshot root_kind root_major rows bad failures=0 checked=0
   while IFS= read -r iface; do
     [ -n "$iface" ] || continue
+    checked=$((checked + 1))
     snapshot="$(qdisc_snapshot_for_iface "$iface")" || { error "${iface}: 无法读取 qdisc。"; failures=$((failures + 1)); continue; }
     root_kind="$(jq -r '.qdiscs[] | select(.root == true) | .kind' <<<"$snapshot" | head -n1)"
     case "$root_kind" in
@@ -1580,6 +1623,7 @@ verify_current_qdiscs() {
       *) error "${iface}: 实际根 qdisc 不是 fq：${root_kind:-missing}"; failures=$((failures + 1)) ;;
     esac
   done < <(default_route_ifaces)
+  [ "$checked" -gt 0 ] || { error '没有可核验的默认路由接口，无法确认出口 qdisc。'; return 1; }
   [ "$failures" -eq 0 ]
 }
 
@@ -2373,6 +2417,32 @@ recover_empty_legacy_state() {
   info 'State: UNMANAGED。现在可重新执行 preflight。'
 }
 
+remove_managed_state() {
+  local path
+  local -a owned_paths=()
+  # 清理前发现未知内容时保留现场；删除集合固定为本轮确认的普通文件。
+  for path in "$STATE_DIR"/* "$STATE_DIR"/.[!.]* "$STATE_DIR"/..?*; do
+    [ -e "$path" ] || [ -L "$path" ] || continue
+    case "${path##*/}" in
+      state.json | qdisc-original.json | provider-sysctl.conf.original | reconfigure-state.previous.json | reconfigure-sysctl.previous.conf | reconfigure-last-failure.json)
+        if [ -f "$path" ] && [ ! -L "$path" ]; then
+          owned_paths+=("$path")
+          continue
+        fi ;;
+    esac
+    error "状态目录含未归属内容，已保留全部状态。请先迁出并确认账本或其他数据，再重试 rollback：${path}"
+    return 1
+  done
+  for path in "${owned_paths[@]}"; do
+    [ "$path" = "$STATE_FILE" ] || rm -f -- "$path" || return 1
+  done
+  rm -f -- "$STATE_FILE" || return 1
+  if ! rmdir -- "$STATE_DIR"; then
+    error "系统配置已完成回滚，状态目录清理失败。事务文件可能已移除，请保全剩余内容并检查目录：${STATE_DIR}"
+    return 1
+  fi
+}
+
 rollback_internal() {
   local force_purge="$1" path failures=0 phase
   validate_state_file || return 1
@@ -2384,7 +2454,7 @@ rollback_internal() {
   if [ "$phase" = 'SWAP_RETAINED' ]; then
     if [ "$force_purge" = '1' ] || [ "$PURGE_CREATED_SWAP" = '1' ]; then
       purge_owned_swap || { state_set_phase 'DEGRADED' || true; return 1; }
-      rm -rf -- "$STATE_DIR"
+      remove_managed_state || return 1
       info '保留的应急 swap 已清理，管理状态已删除。'
     else
       info "系统配置已处于回滚状态；应急 swap 仍保留：${SWAP_FILE}"
@@ -2395,7 +2465,7 @@ rollback_internal() {
   case "$phase" in
     PREPARED | ROLLBACK_PENDING | DEGRADED)
       if rollback_already_restored; then
-        rm -rf -- "$STATE_DIR"
+        remove_managed_state || return 1
         info "状态 ${phase} 未检测到仍生效的项目配置；已清理残留事务状态。"
         return 0
       fi
@@ -2471,7 +2541,7 @@ rollback_internal() {
     rm -f -- "$QDISC_STATE_FILE"
     info "系统配置已回滚；应急 swap 保留：${SWAP_FILE}"
   else
-    rm -rf -- "$STATE_DIR"
+    remove_managed_state || return 1
     info '回滚完成，管理状态已清理。'
   fi
 }
@@ -2616,6 +2686,11 @@ apply_settings() {
     fi
     saved_port="$(state_get '.network.port_speed_mbps')"; saved_rtt="$(state_get '.network.target_rtt_ms')"; saved_buf="$(state_get '.network.buffer_max_bytes')"
     if [ "$saved_port" != "$PORT_SPEED_MBPS" ] || [ "$saved_rtt" != "$BUFFER_TARGET_RTT_MS" ] || [ "$saved_buf" != "$BUF_MAX" ]; then
+      if [ "$state" = 'VERIFIED' ] && [ "$saved_port" != "$PORT_SPEED_MBPS" ] &&
+        { [ -z "$BUFFER_TARGET_RTT_MS_INPUT" ] || [ "$saved_rtt" = "$BUFFER_TARGET_RTT_MS" ]; } &&
+        { [ -z "$BUF_MAX_ENV_WAS_SET" ] || [ "$saved_buf" = "$BUF_MAX" ]; }; then
+        die "$EXIT_CONFLICT" "仅改套餐带宽请先清除 BUFFER_TARGET_RTT_MS 和 BUF_MAX 环境变量，再执行 dvt reconfigure --port ${PORT_SPEED_MBPS}；此入口保留已安装 RTT 与显式缓冲。本次 apply 尚未写入配置。"
+      fi
       die "$EXIT_CONFLICT" "已安装参数与当前参数不同：saved(port=${saved_port},rtt=${saved_rtt},buf=${saved_buf}) current(port=${PORT_SPEED_MBPS},rtt=${BUFFER_TARGET_RTT_MS},buf=${BUF_MAX})。本次 apply 尚未写入配置；若只是输入错误，请按已安装参数重试或直接执行 verify。确需改参时，请用 PURGE_CREATED_SWAP=1 执行 rollback，重启后再用新参数执行 preflight/apply。"
     fi
     if [ "$state" = 'VERIFIED' ]; then verify_settings || die "$EXIT_VERIFY" '已安装配置验证失败。'; info '配置已存在且验证通过，无需重复写入。'; return 0; fi
@@ -2729,6 +2804,7 @@ show_queue_cpu_evidence() {
 
 show_xray_socket_options() {
   local config='/usr/local/x-ui/bin/config.json' tfo keep_idle keep_interval
+  printf '[xray] source=default-generated-path active_config=unverified\n'
   if [ ! -r "$config" ]; then
     printf '[xray] generated_config=%s status=not-readable-or-not-installed\n' "$config"
     return 0
@@ -2874,7 +2950,8 @@ show_diagnostics() {
 
 benchmark_traffic_estimate_json() {
   local cap_mbps="$1" cap_source="$2" seconds="$3" omit="$4" direction="$5"
-  local direction_count per_direction_seconds total_seconds upper_bound_bytes
+  local direction_count per_direction_seconds total_seconds upper_bound_bytes reservation_bytes
+  local phase_timeout="${6:-$((seconds + omit + 15))}" parallel="${7:-1}"
   case "$direction" in
     upload | download) direction_count=1 ;;
     both) direction_count=2 ;;
@@ -2890,12 +2967,14 @@ benchmark_traffic_estimate_json() {
       --argjson total_seconds "$total_seconds" \
       '{available:false,cap_mbps:null,cap_source:$source,
         direction_count:$direction_count,per_direction_seconds:$per_direction_seconds,
-        total_seconds:$total_seconds,payload_upper_bound_bytes:null,
+        total_seconds:$total_seconds,payload_upper_bound_bytes:null,reservation_bytes:null,
         protocol_overhead_included:false}'
     return
   fi
   [[ "$cap_mbps" =~ ^[0-9]+$ ]] || return 1
   upper_bound_bytes=$((cap_mbps * 125000 * total_seconds))
+  # 软件节拍预算覆盖整个硬超时及 TERM→KILL 宽限，并为每流留一个发送余量。
+  reservation_bytes=$(((cap_mbps * 125000 * (phase_timeout + ${BENCHMARK_TIMEOUT_TERMINATE_GRACE_SECONDS:-5}) + parallel * 1048576) * direction_count))
   jq -nc \
     --argjson cap_mbps "$cap_mbps" \
     --arg source "$cap_source" \
@@ -2903,9 +2982,10 @@ benchmark_traffic_estimate_json() {
     --argjson per_direction_seconds "$per_direction_seconds" \
     --argjson total_seconds "$total_seconds" \
     --argjson upper_bound_bytes "$upper_bound_bytes" \
+    --argjson reservation_bytes "$reservation_bytes" \
     '{available:true,cap_mbps:$cap_mbps,cap_source:$source,
       direction_count:$direction_count,per_direction_seconds:$per_direction_seconds,
-      total_seconds:$total_seconds,payload_upper_bound_bytes:$upper_bound_bytes,
+      total_seconds:$total_seconds,payload_upper_bound_bytes:$upper_bound_bytes,reservation_bytes:$reservation_bytes,
       payload_upper_bound_mib:($upper_bound_bytes/1048576),
       payload_upper_bound_gib:($upper_bound_bytes/1073741824),
       protocol_overhead_included:false}'
@@ -2917,7 +2997,7 @@ run_network_benchmark() {
   local omit="${BENCHMARK_OMIT_SECONDS:-3}" family="${BENCHMARK_IP_FAMILY:-auto}"
   local direction="${BENCHMARK_DIRECTION:-both}" run_id="${BENCHMARK_RUN_ID:-}" output_dir="${BENCHMARK_OUTPUT_DIR:-}"
   local cap_input="${BENCHMARK_RATE_CAP_MBPS:-}" cap_mbps='' cap_source='unavailable' traffic_estimate
-  local enforce_rate_cap="${BENCHMARK_ENFORCE_RATE_CAP:-0}" rate_cap_enforced=false rate_cap_per_stream_bps=0
+  local enforce_rate_cap="${BENCHMARK_ENFORCE_RATE_CAP:-1}" rate_cap_enforced=false rate_cap_per_stream_bps=0
   local phase_timeout="${BENCHMARK_PHASE_TIMEOUT_SECONDS:-}" phase_timeout_default=0
   local tmp_dir rc=0 current_rc=0 persistent_output=0 result_tmp manifest_sha result_sha trap_rc=0
   local benchmark_failure_stage='initialization'
@@ -2925,7 +3005,7 @@ run_network_benchmark() {
   local budget_bypass="${DVT_TRAFFIC_BUDGET_BYPASS:-0}" budget_tool="${DVT_TRAFFIC_BUDGET_TOOL:-}"
   local budget_ledger="${DVT_TRAFFIC_LEDGER:-}" budget_window="${DVT_TRAFFIC_WINDOW_ID:-}"
   local budget_bytes="${DVT_TRAFFIC_BUDGET_BYTES:-}" budget_reservation="benchmark-${run_id:-pending}"
-  local budget_reserved=0 planned_payload=0 actual_payload=0
+  local budget_reserved=0 planned_payload=0 actual_payload=0 budget_commit_action budget_bytes_option
   ensure_required_tools
   check_supported_os
   command -v iperf3 >/dev/null 2>&1 ||
@@ -2984,14 +3064,29 @@ run_network_benchmark() {
       die "$EXIT_USAGE" 'BENCHMARK_RATE_CAP_MBPS 必须在 1–100000 之间。'
     cap_source='explicit'
   fi
-  BENCHMARK_RATE_ARGS=()
-  if [ "$enforce_rate_cap" = '1' ]; then
-    [ -n "$cap_mbps" ] ||
-      die "$EXIT_USAGE" '启用 BENCHMARK_ENFORCE_RATE_CAP 时必须显式设置 BENCHMARK_RATE_CAP_MBPS。'
-    rate_cap_per_stream_bps=$((cap_mbps * 1000000 / parallel))
-    BENCHMARK_RATE_ARGS=(--bitrate "$rate_cap_per_stream_bps")
-    rate_cap_enforced=true
+  [ "$enforce_rate_cap" = 1 ] ||
+    die "$EXIT_USAGE" '有预算的 benchmark 必须启用 BENCHMARK_ENFORCE_RATE_CAP=1。'
+  state_phase='UNMANAGED'
+  state_network='{}'
+  if [ -e "$STATE_FILE" ] || [ -L "$STATE_FILE" ]; then
+    if state_file_is_valid; then
+      state_phase="$(jq -r '.state' "$STATE_FILE")"
+      state_network="$(jq -c '.network' "$STATE_FILE")"
+      if [ -z "$cap_mbps" ]; then
+        cap_mbps="$(jq -r 'if (.network.port_speed_mbps | type) == "number" and (.network.port_speed_mbps | floor) == .network.port_speed_mbps and .network.port_speed_mbps >= 1 and .network.port_speed_mbps <= 100000 then .network.port_speed_mbps else empty end' "$STATE_FILE")"
+        [ -z "$cap_mbps" ] || cap_source='managed-state'
+      fi
+    else
+      state_phase='INVALID'
+    fi
   fi
+  [ -n "$cap_mbps" ] ||
+    die "$EXIT_USAGE" 'benchmark 需要显式 rate cap 或合法管理状态中的带宽。'
+  rate_cap_per_stream_bps=$((cap_mbps * 1000000 / parallel))
+  BENCHMARK_RATE_ARGS=(--bitrate "$rate_cap_per_stream_bps")
+  rate_cap_enforced=true
+  traffic_estimate="$(benchmark_traffic_estimate_json "$cap_mbps" "$cap_source" "$seconds" "$omit" "$direction" "$phase_timeout" "$parallel")" ||
+    die "$EXIT_VERIFY" '无法计算 benchmark 流量估算。'
   if [ -n "$output_dir" ]; then
     [[ "$output_dir" = /* ]] || die "$EXIT_USAGE" 'BENCHMARK_OUTPUT_DIR 必须是绝对路径。'
     [ ! -e "$output_dir" ] && [ ! -L "$output_dir" ] ||
@@ -3035,29 +3130,14 @@ run_network_benchmark() {
   script_hash="$(sha256sum "${BASH_SOURCE[0]}" | awk '{print $1}')"
   iperf_version="$(iperf3 --version 2>&1 | awk 'NR == 1 {print; exit}')"
   boot_id="$(awk 'NR == 1 {print; exit}' /proc/sys/kernel/random/boot_id 2>/dev/null || true)"
-  state_phase='UNMANAGED'
-  state_network='{}'
-  if [ -e "$STATE_FILE" ] || [ -L "$STATE_FILE" ]; then
-    if state_file_is_valid; then
-      state_phase="$(jq -r '.state' "$STATE_FILE")"
-      state_network="$(jq -c '.network' "$STATE_FILE")"
-      if [ -z "$cap_mbps" ]; then
-        cap_mbps="$(jq -r 'if (.network.port_speed_mbps | type) == "number" and (.network.port_speed_mbps | floor) == .network.port_speed_mbps and .network.port_speed_mbps >= 1 and .network.port_speed_mbps <= 100000 then .network.port_speed_mbps else empty end' "$STATE_FILE")"
-        [ -z "$cap_mbps" ] || cap_source='managed-state'
-      fi
-    else
-      state_phase='INVALID'
-    fi
-  fi
-  traffic_estimate="$(benchmark_traffic_estimate_json "$cap_mbps" "$cap_source" "$seconds" "$omit" "$direction")" ||
-    die "$EXIT_VERIFY" '无法计算 benchmark 流量估算。'
   if jq -e '.available == true' <<<"$traffic_estimate" >/dev/null; then
-    info "benchmark payload 估算上界：$(jq -r '.payload_upper_bound_bytes' <<<"$traffic_estimate") 字节 ($(jq -r '.payload_upper_bound_gib | tostring' <<<"$traffic_estimate") GiB)，依据 $(jq -r '.cap_mbps' <<<"$traffic_estimate") Mbps / $(jq -r '.total_seconds' <<<"$traffic_estimate") 秒 / cap_source=$(jq -r '.cap_source' <<<"$traffic_estimate")。"
-    info '该值是按配置带宽上限估算的 iperf payload，不含 TCP/IP/链路层开销；实际计费流量可能不同。'
+    info "benchmark 有效窗口及预热的名义 payload：$(jq -r '.payload_upper_bound_bytes' <<<"$traffic_estimate") 字节 ($(jq -r '.payload_upper_bound_gib | tostring' <<<"$traffic_estimate") GiB)，依据 $(jq -r '.cap_mbps' <<<"$traffic_estimate") Mbps / $(jq -r '.total_seconds' <<<"$traffic_estimate") 秒 / cap_source=$(jq -r '.cap_source' <<<"$traffic_estimate")。"
+    info '软件节拍预算另覆盖硬超时、终止宽限和每流发送余量；它不能保证物理流量绝对上界，也不含协议和重传开销。'
+    info "benchmark 保守预留：$(jq -r '.reservation_bytes' <<<"$traffic_estimate") 字节。"
   else
     die "$EXIT_USAGE" '未提供 BENCHMARK_RATE_CAP_MBPS，且管理状态中没有可信 port_speed_mbps；rc.16 拒绝无法量化并保留预算的测试。'
   fi
-  planned_payload="$(jq -r '.payload_upper_bound_bytes' <<<"$traffic_estimate")"
+  planned_payload="$(jq -r '.reservation_bytes' <<<"$traffic_estimate")"
   budget_reservation="benchmark-${run_id}"
   if [ "$budget_bypass" != 1 ]; then
     [ -n "$budget_tool" ] && [[ "$budget_tool" = /* ]] && [ -f "$budget_tool" ] && [ ! -L "$budget_tool" ] ||
@@ -3094,7 +3174,7 @@ run_network_benchmark() {
     --argjson traffic_estimate "$traffic_estimate" \
     --argjson rate_cap_enforced "$rate_cap_enforced" --argjson rate_cap_per_stream_bps "$rate_cap_per_stream_bps" \
     --arg budget_window "$budget_window" --arg budget_reservation "$budget_reservation" --argjson budget_bypass "$budget_bypass" \
-    '{schema_version:1,run_id:$run_id,utc:$utc,script_version:$script_version,profile:$profile,script_sha256:$script_sha256,boot_id:$boot_id,state:$state,state_network:$state_network,benchmark:{host:$host,port:$port,family:$family,direction:$direction,seconds:$seconds,omit_seconds:$omit_seconds,parallel:$parallel,iperf3:$iperf3,phase_timeout_seconds:$phase_timeout_seconds,terminate_grace_seconds:$terminate_grace_seconds,process_group_isolated:true,traffic_estimate:$traffic_estimate,rate_cap_enforced:$rate_cap_enforced,rate_cap_method:(if $rate_cap_enforced then "iperf3-bitrate" else null end),rate_cap_scope:(if $rate_cap_enforced then "aggregate-target-divided-across-streams" else null end),rate_cap_per_stream_bps:(if $rate_cap_enforced then $rate_cap_per_stream_bps else null end)},policy_routing:{ipv4_custom_rule_state:$policy_routing_ipv4,ipv6_custom_rule_state:$policy_routing_ipv6,evidence_file:"policy-routing.txt",interface_discovery:"conventional-default-routes-only"},traffic_budget:{parent_reserved:($budget_bypass==1),window_id:(if $budget_window=="" then null else $budget_window end),reservation_id:(if $budget_bypass==1 then null else $budget_reservation end),planned_payload_bytes:$traffic_estimate.payload_upper_bound_bytes,protocol_overhead_included:false}}' \
+    '{schema_version:1,run_id:$run_id,utc:$utc,script_version:$script_version,profile:$profile,script_sha256:$script_sha256,boot_id:$boot_id,state:$state,state_network:$state_network,benchmark:{host:$host,port:$port,family:$family,direction:$direction,seconds:$seconds,omit_seconds:$omit_seconds,parallel:$parallel,iperf3:$iperf3,phase_timeout_seconds:$phase_timeout_seconds,terminate_grace_seconds:$terminate_grace_seconds,process_group_isolated:true,traffic_estimate:$traffic_estimate,rate_cap_enforced:$rate_cap_enforced,rate_cap_method:(if $rate_cap_enforced then "iperf3-bitrate" else null end),rate_cap_scope:(if $rate_cap_enforced then "aggregate-target-divided-across-streams" else null end),rate_cap_per_stream_bps:(if $rate_cap_enforced then $rate_cap_per_stream_bps else null end)},policy_routing:{ipv4_custom_rule_state:$policy_routing_ipv4,ipv6_custom_rule_state:$policy_routing_ipv6,evidence_file:"policy-routing.txt",interface_discovery:"conventional-default-routes-only"},traffic_budget:{parent_reserved:($budget_bypass==1),window_id:(if $budget_window=="" then null else $budget_window end),reservation_id:(if $budget_bypass==1 then null else $budget_reservation end),planned_payload_bytes:$traffic_estimate.reservation_bytes,protocol_overhead_included:false}}' \
     >"${tmp_dir}/benchmark-meta.json"
   printf '%s\n' 'null' >"${tmp_dir}/upload.summary.json"
   printf '%s\n' 'null' >"${tmp_dir}/download.summary.json"
@@ -3154,14 +3234,19 @@ run_network_benchmark() {
   if [ "$budget_reserved" -eq 1 ]; then
     if [ "$rc" -eq 0 ]; then
       actual_payload="$(jq '[.phases.upload.sender.bytes?,.phases.download.sender.bytes?] | map(select(type=="number")) | add // 0' "${tmp_dir}/benchmark-result.json")"
-      if ! bash "$budget_tool" commit --ledger "$budget_ledger" --reservation-id "$budget_reservation" --actual-bytes "$actual_payload" >/dev/null; then
+      budget_commit_action=commit; budget_bytes_option=--actual-bytes
+      if [ "$omit" -gt 0 ]; then
+        budget_commit_action=commit-unknown; budget_bytes_option=--known-bytes
+      fi
+      if ! bash "$budget_tool" "$budget_commit_action" --ledger "$budget_ledger" --reservation-id "$budget_reservation" "$budget_bytes_option" "$actual_payload" >/dev/null; then
         warn 'benchmark 已完成采集，但预算 actual-byte 提交失败；reservation 保持占用。'
         rc="$EXIT_VERIFY"
       else
         budget_reserved=0
       fi
     else
-      if bash "$budget_tool" fail --ledger "$budget_ledger" --reservation-id "$budget_reservation" >/dev/null 2>&1; then
+      actual_payload="$(benchmark_known_payload_bytes "$tmp_dir")"
+      if bash "$budget_tool" fail --ledger "$budget_ledger" --reservation-id "$budget_reservation" --known-bytes "$actual_payload" >/dev/null 2>&1; then
         budget_reserved=0
       else
         warn 'benchmark 失败且预算保守结算失败；reservation 保持占用。'
@@ -3229,8 +3314,8 @@ Environment:
   BENCHMARK_DIRECTION=upload|download|both   default both
   BENCHMARK_RUN_ID=id             optional reproducibility label; safe characters only
   BENCHMARK_OUTPUT_DIR=/absolute/new/path   optional persistent JSON/evidence directory; must not exist
-  BENCHMARK_RATE_CAP_MBPS=1..100000 optional traffic-estimate cap; installed state is fallback
-  BENCHMARK_ENFORCE_RATE_CAP=0|1 default 0; 1 requires explicit rate cap and passes iperf3 --bitrate
+  BENCHMARK_RATE_CAP_MBPS=1..100000 optional aggregate sending cap; installed state is fallback
+  BENCHMARK_ENFORCE_RATE_CAP=1 required; passes resolved cap to iperf3 --bitrate
 EOF_USAGE
 }
 

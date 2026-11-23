@@ -125,7 +125,7 @@ env REQUIRE_PROXY_SERVICE=1 \
   bash ./debian13-1c1g-vps-tuning.sh verify
 ```
 
-脚本检查 `x-ui.service` 的 systemd 配置值，以及主进程和直接子进程的 `/proc/<PID>/limits`。严格验证要求配置值与运行时 soft/hard limit 均不低于 65536。
+脚本检查 `x-ui.service` 的 systemd 配置值，以及主进程和直接子进程的 `/proc/<PID>/limits`。严格验证要求配置值与运行时 soft/hard limit 均不低于 65536。rc.5 候选中，显式指定的每个 unit 都须加载并运行，无法读取运行时限额会失败。`REQUIRE_PROXY_SERVICE=1` 对 x-ui 还要求直接子进程的可执行文件名为 `xray` 或 `xray-*`，适用于已启用代理业务的节点。仅安装面板时使用普通 verify。进程核验仍需结合真实客户端连接验收。
 
 ## 诊断与故障定位
 
@@ -233,7 +233,7 @@ jq '.. | objects | select(has("tcpFastOpen")) | .tcpFastOpen' \
   /usr/local/x-ui/bin/config.json
 ```
 
-`verify` 和 `diagnose --managed` 只读报告该字段是否存在，不修改代理配置。`/usr/local/x-ui/bin/config.json` 由 3X-UI 生成，面板重建配置时可能覆盖，不能直接编辑。只有当前 3X-UI 版本提供对应的入站/出站 sockopt 或高级配置入口，并已完成客户端兼容性测试时，才可通过面板配置。配置后应复查生成的 JSON 和实际连接。TFO 主要影响握手阶段，不能替代 BBR、fq 或线路质量，也不保证适用于所有中间设备。
+`verify` 和 `diagnose --managed` 只读报告默认路径中该字段是否存在，输出 `active_config=unverified`。自定义 `XUI_BIN_FOLDER` 时需另行核对活动配置来源。`/usr/local/x-ui/bin/config.json` 由 3X-UI 生成，面板重建配置时可能覆盖，不能直接编辑。只有当前 3X-UI 版本提供对应的入站/出站 sockopt 或高级配置入口，并已完成客户端兼容性测试时，才可通过面板配置。配置后应复查生成的 JSON 和实际连接。TFO 主要影响握手阶段，不能替代 BBR、fq 或线路质量，也不保证适用于所有中间设备。
 
 主机的 `tcp_keepalive_time/intvl/probes` 只影响已经启用 `SO_KEEPALIVE`、且未被应用覆盖的 socket。Xray 入站 Keep-Alive 默认关闭，设置 `tcpKeepAliveIdle` 或 `tcpKeepAliveInterval` 后才启用；出站使用自身的默认值。主机 sysctl 不能单独证明 Xray 连接采用了这些 keepalive 参数。参见 [Linux IP sysctl](https://docs.kernel.org/networking/ip-sysctl.html) 和 [Xray Sockopt](https://xtls.github.io/en/config/transports/sockopt.html)。
 
@@ -314,7 +314,7 @@ env PORT_SPEED_MBPS=1000 \
 | `SWAP_MB` | `1024` | 512M/1G 脚本最高 2048，2G/adaptive 最高 4096 |
 | `PURGE_CREATED_SWAP` | `0` | 回滚时是否清理脚本创建的 swap |
 | `PROXY_SERVICE_UNITS` | 自动识别 | 空格分隔的 systemd service |
-| `REQUIRE_PROXY_SERVICE` | `0` | 为 `1` 时没有目标代理服务即验证失败 |
+| `REQUIRE_PROXY_SERVICE` | `0` | 为 `1` 时要求活动目标代理服务；对 x-ui 另要求可识别的直接 Xray 子进程 |
 | `DIAG_INTERVAL_SECONDS` | `5` | `1–60`，仅 `diagnose --managed` 的增量窗口 |
 | `DIAG_INCLUDE_SOCKET_DETAILS` | `0` | `diagnose --managed` 中为 `1` 时输出可能包含对端地址的 `ss -tinp` |
 | `UPDATE_TAG` | 自动发现 | `update` 的目标 Release；等价命令行参数为 `--target` |
@@ -330,6 +330,8 @@ env PORT_SPEED_MBPS=1000 \
 已有根 `fq` 和 `mq` 下已有的 `fq` 叶子不会被重复替换；回滚也不会以默认 fq 重置其自定义参数。脚本只将能够可靠恢复的 `fq_codel` 根/叶或常规根 `pfifo_fast` 切换为 fq，并在回滚时按预先保存的语义恢复。
 
 `tc` 的显示格式与命令输入格式并不完全相同。例如，状态可显示 `limit 10240p`，恢复命令仍使用 `limit 10240`。脚本通过 `tc -j` 保存数值，并按命令输入语法重建。比较 `target`、`interval` 和 `ce_threshold` 时，只容忍内核或工具回显造成的 ±1 微秒量化差异；其他受支持参数必须一致。
+
+rc.5 候选在清理前发现状态目录含账本、子目录或其他未知内容时，会返回失败并完整保留状态。先把相关内容迁到独立目录并核验其字节与预算窗口，再重试 rollback。新账本与 checkpoint 应放在 `/var/lib/proxy-vps-tuning` 之外。若清理已开始后，旧版工具或其他 root 进程又向目录写入，新内容会保留，但部分事务文件可能已经删除，最后的目录删除会失败。该情况应先停止相关写入、保全剩余内容并核对恢复结果，不能假定原状态仍支持直接重试。
 
 执行 qdisc 恢复命令后，rollback 会重新读取实际状态。只有恢复结果与原始快照语义一致，才删除状态和快照。原快照中的 `handle 0:` 表示未指定，允许内核为 classless qdisc 自动分配运行时 handle；显式非零 handle 会尝试恢复并严格比较。后置验证失败时，状态保留为 `DEGRADED`，回滚不得报告成功。
 

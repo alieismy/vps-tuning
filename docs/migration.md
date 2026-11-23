@@ -16,6 +16,14 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 
 两项原值各须为完整的三个整数。若各只有 `4096`，即使目标预检通过，仍应停在恢复证据核查；`ALLOW_EMPTY_STATE_RECOVERY=1` 不适用于有效旧状态的缺失三元组。历史完整三元组只有在能证明对应同一主机、本次部署的应用前状态及其间配置连续性时，才能作为恢复依据。对于明确接受新恢复语义的主机，rc.4 完整源码另提供[带来源的 TCP 基线恢复工具](tcp-baseline-recovery.md)：保留原件，区分历史证据与替代值，再接续迁移；该工具不由安装器部署，不属于下面命令的通用强制选项，其归档只被同版本迁移器接受。
 
+## rc.5 本地候选的恢复提示
+
+[rc.5 候选](releases/v0.2.0-rc.5.md)以 rc.5 为目标，增加 rc.4 来源。下方发布版下载命令继续绑定 rc.4。候选仅接受 rc.5 恢复工具产生、明确批准以 rc.5 为目标的归档。已有 rc.4 已批准归档继续使用固定 rc.4 恢复与迁移流程，不自动转换为 rc.5 批准。
+
+候选迁移器在调用旧来源 rollback 前检查来源状态目录。遇到账本、未知目录或文件时，先保留并核验它们，再迁到状态树之外。checkpoint 本身也必须在状态树之外。
+
+若目标 apply 被不可捕获中断并留下 APPLIED，候选会停在 APPLY_RUNNING。先保存 state、checkpoint 和当时日志，核对目标固定脚本的版本与摘要。按目标脚本的 rollback 流程恢复原始配置和队列，确认回滚完成并按需清理项目 swap，再重启后用同一 checkpoint 继续。发生原值、所有权或队列恢复失败时，保留现场处理该错误。普通 verify 只读，无法把 APPLIED 写成 VERIFIED。
+
 ## 先判断能否迁移
 
 安装新入口、迁移 managed state、重启持久性和真实业务验收是不同步骤。`dvt --version` 显示执行入口版本，不一定等于状态里的 `script_version`。`update` 只检查和生成计划，不执行 rollback、purge、apply、reconfigure 或 reboot。

@@ -1,5 +1,7 @@
 # VPS Tuning
 
+This working tree contains the **unreleased 0.2.0-rc.5 fix candidate**. See the [candidate notes (Chinese)](docs/releases/v0.2.0-rc.5.md) for scope, local installation and validation status. Online download commands below still select the published rc.4 assets.
+
 [简体中文](README.md) · English · [v0.2.0-rc.4 prerelease](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4) · [Published rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
 **v0.2.0-rc.4 prerelease.** The `dvt` menu now defaults to local capability diagnostics when the entrypoint and managed-state versions differ; managed actions are unavailable and update checks require an explicit selection. Its migrator also accepts `0.2.0-rc.3` sources. Tuning behaviour is unchanged. See the [release notes (Chinese)](docs/releases/v0.2.0-rc.4.md) for scope and evidence. Managed hosts must complete a cross-version migration before running managed actions under the new version; successful preflight does not establish complete original TCP snapshots, and migration must still pass `migrate prepare`. Stable rc.2 hosts should not migrate solely for the interactive interface.

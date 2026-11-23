@@ -146,7 +146,7 @@ expected_keys=17
 for script in "${scripts[@]}"; do
   actual="$(awk '/^PROFILE_SYSCTL_KEYS=\(/,/^\)/ {if ($1 ~ /^(net\.|vm\.)/) count++} END {print count+0}' "$script")"
   [ "$actual" -eq "$expected_keys" ] || { printf 'unexpected managed-key count: %s (%s)\n' "$script" "$actual" >&2; exit 1; }
-  grep -Fq "SCRIPT_VERSION='0.2.0-rc.4'" "$script"
+  grep -Fq "SCRIPT_VERSION='0.2.0-rc.5'" "$script"
   grep -Eq '^STATE_SCHEMA_VERSION=4$' "$script"
   grep -Eq '^LEGACY_STATE_SCHEMA_VERSION=3$' "$script"
   grep -Fq 'PROFILE_CPU_MIN=' "$script"
@@ -304,7 +304,7 @@ for script in "${scripts[@]}"; do
   grep -Fq 'qdisc 恢复后与原始快照不一致' "$script"
   post_restore_line="$(grep -nF 'elif ! qdisc_snapshot_semantically_matches_current; then' "$script" | head -n1 | cut -d: -f1)"
   # shellcheck disable=SC2016  # Intentionally match literal shell source.
-  state_cleanup_line="$(grep -nF '    rm -rf -- "$STATE_DIR"' "$script" | tail -n1 | cut -d: -f1)"
+  state_cleanup_line="$(grep -nF '    remove_managed_state || return 1' "$script" | tail -n1 | cut -d: -f1)"
   if [ -z "$post_restore_line" ] || [ -z "$state_cleanup_line" ] || [ "$post_restore_line" -ge "$state_cleanup_line" ]; then
     printf 'qdisc post-restore verification must precede state cleanup: %s\n' "$script" >&2
     exit 1
@@ -333,8 +333,8 @@ for script in "${scripts[@]}"; do
   }
 done
 
-grep -Fq "CONTROLLER_VERSION='0.2.0-rc.4'" "$controller"
-grep -Fq "RELEASE_TAG='v0.2.0-rc.4'" "$controller"
+grep -Fq "CONTROLLER_VERSION='0.2.0-rc.5'" "$controller"
+grep -Fq "RELEASE_TAG='v0.2.0-rc.5'" "$controller"
 grep -Fq "DEFAULT_PORT_SPEED_MBPS=200" "$controller"
 grep -Fq 'verify_profile_contract' "$controller"
 grep -Fq 'debian12-1c512m-vps-tuning.sh' "$controller"
@@ -371,7 +371,7 @@ if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://
   exit 1
 fi
 
-grep -Fq "RELEASE_TAG='v0.2.0-rc.4'" "$installer"
+grep -Fq "RELEASE_TAG='v0.2.0-rc.5'" "$installer"
 grep -Eq "EXPECTED_MANIFEST_SHA256='[0-9a-f]{64}'" "$installer"
 if grep -Fq "EXPECTED_MANIFEST_SHA256='0000000000000000000000000000000000000000000000000000000000000000'" "$installer"; then
   printf 'installer manifest digest placeholder was not finalized\n' >&2
@@ -383,8 +383,8 @@ grep -Fq '安装过程没有执行 preflight/apply' "$installer"
 manifest_hash="$(sha256sum SHA256SUMS | awk '{print $1}')"
 grep -Fq "EXPECTED_MANIFEST_SHA256='${manifest_hash}'" "$installer"
 installer_hash="$(sha256sum "$installer" | awk '{print $1}')"
-grep -Fq "$installer_hash" docs/releases/v0.2.0-rc.4.md
-grep -Fq "$manifest_hash" docs/releases/v0.2.0-rc.4.md
+grep -Fq "$installer_hash" docs/releases/v0.2.0-rc.5.md
+grep -Fq "$manifest_hash" docs/releases/v0.2.0-rc.5.md
 if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://' "$installer"; then
   printf 'mutable or insecure installer download source detected\n' >&2
   exit 1
@@ -402,7 +402,7 @@ grep -Fq "HTB_INSTALL_PATH='/usr/local/sbin/htb-aggregate-experiment'" "$htb_wra
 grep -Fq '稳定 HTB 执行器与当前 Release 资产 SHA-256 不一致' "$htb_wrapper"
 # shellcheck disable=SC2016
 grep -Fq -- '--htb-tool "$htb_tool"' "$htb_wrapper"
-grep -Fq 'rate_cap * 125000 * (seconds + omit) * direction_count * samples' "$probe_tool"
+grep -Fq 'seconds + omit + 15 + 5' "$probe_tool"
 ( command sha256sum -c SHA256SUMS >/dev/null )
 
 tmp_dir="$(mktemp -d)"
@@ -954,6 +954,7 @@ benchmark_guard_test="$tmp_dir/benchmark-guard-test.sh"
   awk '/^benchmark_traffic_estimate_json\(\)/,/^}/' "${scripts[0]}"
   awk '/^run_network_benchmark\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_BENCHMARK_GUARD_TEST'
+STATE_FILE='/dvt-fixture-missing-state.json'
 EXIT_USAGE=2
 EXIT_UNSUPPORTED=3
 EXIT_CONFLICT=4
@@ -1248,8 +1249,8 @@ EOF_MQ_TC
 tc() { cat "$test_root/mq.tc"; }
 qdisc_counter_snapshot "$test_root/ifaces" >"$test_root/mq.snapshot"
 grep -Fqx $'eth0.root.mq.0:.bytes\t2000' "$test_root/mq.snapshot"
-grep -Fqx $'eth0.leaf.fq.8001:.dropped\t2' "$test_root/mq.snapshot"
-grep -Fqx $'eth0.leaf.fq.8002:.overlimits\t4' "$test_root/mq.snapshot"
+grep -Fqx $'eth0.leaf.fq.8001:.:1.dropped\t2' "$test_root/mq.snapshot"
+grep -Fqx $'eth0.leaf.fq.8002:.:2.overlimits\t4' "$test_root/mq.snapshot"
 grep -Fqx $'eth0.other.ingress.ffff:.dropped\t5' "$test_root/mq.snapshot"
 
 cat >"$test_root/htb.tc" <<'EOF_HTB_TC'
@@ -1263,8 +1264,8 @@ EOF_HTB_TC
 tc() { cat "$test_root/htb.tc"; }
 qdisc_counter_snapshot "$test_root/ifaces" >"$test_root/htb.snapshot"
 grep -Fqx $'eth0.root.htb.1:.overlimits\t17' "$test_root/htb.snapshot"
-grep -Fqx $'eth0.leaf.fq.10:.dropped\t3' "$test_root/htb.snapshot"
-grep -Fqx $'eth0.leaf.fq.10:.requeues\t1' "$test_root/htb.snapshot"
+grep -Fqx $'eth0.leaf.fq.10:.1:10.dropped\t3' "$test_root/htb.snapshot"
+grep -Fqx $'eth0.leaf.fq.10:.1:10.requeues\t1' "$test_root/htb.snapshot"
 grep -Fqx $'eth0.other.ingress.ffff:.dropped\t5' "$test_root/htb.snapshot"
 
 cp "$test_root/upload.tcp.before" "$test_root/mqphase.tcp.before"
@@ -1280,13 +1281,13 @@ eth0.root.mq.0:.overlimits	0
 eth0.root.mq.0:.requeues	0
 eth0.leaf.fq.8001:.bytes	1000
 eth0.leaf.fq.8001:.packets	10
-eth0.leaf.fq.8001:.dropped	2
+eth0.leaf.fq.8001:.:1.dropped	2
 eth0.leaf.fq.8001:.overlimits	3
 eth0.leaf.fq.8001:.requeues	0
 eth0.leaf.fq.8002:.bytes	1000
 eth0.leaf.fq.8002:.packets	10
 eth0.leaf.fq.8002:.dropped	1
-eth0.leaf.fq.8002:.overlimits	4
+eth0.leaf.fq.8002:.:2.overlimits	4
 eth0.leaf.fq.8002:.requeues	0
 EOF_MQ_BEFORE
 cat >"$test_root/mqphase.qdisc.after" <<'EOF_MQ_AFTER'
@@ -1297,13 +1298,13 @@ eth0.root.mq.0:.overlimits	0
 eth0.root.mq.0:.requeues	0
 eth0.leaf.fq.8001:.bytes	2000
 eth0.leaf.fq.8001:.packets	20
-eth0.leaf.fq.8001:.dropped	4
+eth0.leaf.fq.8001:.:1.dropped	4
 eth0.leaf.fq.8001:.overlimits	5
 eth0.leaf.fq.8001:.requeues	0
 eth0.leaf.fq.8002:.bytes	2000
 eth0.leaf.fq.8002:.packets	20
 eth0.leaf.fq.8002:.dropped	2
-eth0.leaf.fq.8002:.overlimits	7
+eth0.leaf.fq.8002:.:2.overlimits	7
 eth0.leaf.fq.8002:.requeues	0
 EOF_MQ_AFTER
 build_benchmark_phase_summary mqphase 0 "$test_root" >/dev/null
@@ -1330,9 +1331,9 @@ eth0.root.htb.1:.overlimits	10
 eth0.root.htb.1:.requeues	0
 eth0.leaf.fq.10:.bytes	990000
 eth0.leaf.fq.10:.packets	990
-eth0.leaf.fq.10:.dropped	0
+eth0.leaf.fq.10:.1:10.dropped	0
 eth0.leaf.fq.10:.overlimits	0
-eth0.leaf.fq.10:.requeues	0
+eth0.leaf.fq.10:.1:10.requeues	0
 EOF_HTB_BEFORE
 cat >"$test_root/htbphase.qdisc.after" <<'EOF_HTB_AFTER'
 eth0.root.htb.1:.bytes	2000000
@@ -1342,9 +1343,9 @@ eth0.root.htb.1:.overlimits	27
 eth0.root.htb.1:.requeues	0
 eth0.leaf.fq.10:.bytes	1980000
 eth0.leaf.fq.10:.packets	1980
-eth0.leaf.fq.10:.dropped	3
+eth0.leaf.fq.10:.1:10.dropped	3
 eth0.leaf.fq.10:.overlimits	0
-eth0.leaf.fq.10:.requeues	1
+eth0.leaf.fq.10:.1:10.requeues	1
 EOF_HTB_AFTER
 build_benchmark_phase_summary htbphase 0 "$test_root" >/dev/null
 jq -e '
@@ -1409,7 +1410,7 @@ EXIT_USAGE=2
 EXIT_UNSUPPORTED=3
 EXIT_CONFLICT=4
 EXIT_VERIFY=5
-SCRIPT_VERSION='0.2.0-rc.4'
+SCRIPT_VERSION='0.2.0-rc.5'
 PROFILE_ID='debian13-1c1g'
 STATE_FILE="$test_root/no-state.json"
 ensure_required_tools() { :; }
@@ -1636,7 +1637,7 @@ cross_version_apply_test="$tmp_dir/cross-version-apply-test.sh"
   awk '/^apply_settings\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_CROSS_VERSION_APPLY_TEST'
 EXIT_CONFLICT=4
-SCRIPT_VERSION='0.2.0-rc.4'
+SCRIPT_VERSION='0.2.0-rc.5'
 PORT_SPEED_MBPS=200
 BUFFER_TARGET_RTT_MS=200
 BUF_MAX=16777216
@@ -1666,8 +1667,10 @@ parameter_mismatch_apply_test="$tmp_dir/parameter-mismatch-apply-test.sh"
   printf '%s\n' '#!/usr/bin/env bash' 'set -Eeuo pipefail'
   awk '/^apply_settings\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_PARAMETER_MISMATCH_APPLY_TEST'
+BUFFER_TARGET_RTT_MS_INPUT=''
+BUF_MAX_ENV_WAS_SET=''
 EXIT_CONFLICT=4
-SCRIPT_VERSION='0.2.0-rc.4'
+SCRIPT_VERSION='0.2.0-rc.5'
 PORT_SPEED_MBPS=100
 BUFFER_TARGET_RTT_MS=200
 BUF_MAX=16777216
@@ -1692,6 +1695,12 @@ rc=$?
 set -e
 [ "$rc" -eq "$EXIT_CONFLICT" ] || { printf 'parameter mismatch apply returned %s\n' "$rc" >&2; exit 1; }
 grep -Fq '本次 apply 尚未写入配置' <<<"$output"
+grep -Fq 'dvt reconfigure --port 100' <<<"$output"
+set +e
+output="$(BUFFER_TARGET_RTT_MS_INPUT=250 BUFFER_TARGET_RTT_MS=250 apply_settings 2>&1)"
+rc=$?
+set -e
+[ "$rc" -eq "$EXIT_CONFLICT" ]
 grep -Fq 'PURGE_CREATED_SWAP=1 执行 rollback' <<<"$output"
 EOF_PARAMETER_MISMATCH_APPLY_TEST
 } >"$parameter_mismatch_apply_test"
@@ -2574,7 +2583,7 @@ STATE_DIR='/var/lib/proxy-vps-tuning'
 SYSCTL_SCAN_ROOT='/etc'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
-SCRIPT_VERSION='0.2.0-rc.4'
+SCRIPT_VERSION='0.2.0-rc.5'
 PROFILE_ID='debian12-1c1g'
 UPDATE_PREFLIGHT=0
 stat() { printf '%s\n' '0'; }
@@ -2593,7 +2602,7 @@ for fixture in empty whitespace null object multiple; do
   fi
 done
 
-printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.4","profile":{"id":"debian12-1c1g"},"state":"PREPARED","network":{},"original_sysctls":{},"qdisc":{"file":"/tmp/qdisc","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"swap":{},"provider_sysctl_transfer":{"required":false,"source_path":"/etc/sysctl.conf","backup_path":"/var/lib/proxy-vps-tuning/provider-sysctl.conf.original","original_sha256":null,"backup_sha256":null,"transferred_sha256":null,"original_uid":null,"original_gid":null,"original_mode":null,"keys":[],"state":"NOT_REQUIRED"},"managed_files":[],"timestamps":{}}' >"$STATE_FILE"
+printf '%s\n' '{"schema_version":4,"script_version":"0.2.0-rc.5","profile":{"id":"debian12-1c1g"},"state":"PREPARED","network":{},"original_sysctls":{},"qdisc":{"file":"/tmp/qdisc","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"swap":{},"provider_sysctl_transfer":{"required":false,"source_path":"/etc/sysctl.conf","backup_path":"/var/lib/proxy-vps-tuning/provider-sysctl.conf.original","original_sha256":null,"backup_sha256":null,"transferred_sha256":null,"original_uid":null,"original_gid":null,"original_mode":null,"keys":[],"state":"NOT_REQUIRED"},"managed_files":[],"timestamps":{}}' >"$STATE_FILE"
 state_file_is_valid
 
 cp -- "$STATE_FILE" "${STATE_FILE}.valid"

@@ -1,5 +1,7 @@
 # VPS Tuning
 
+当前工作树包含 **0.2.0-rc.5 未发布修复候选**，范围、安装方式与验证状态见[候选说明](docs/releases/v0.2.0-rc.5.md)。下方在线下载入口仍指向已公开的 rc.4。
+
 简体中文 · [English](README.en-US.md) · [v0.2.0-rc.4 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4) · [已发布 rc.3](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.3)
 
 **v0.2.0-rc.4 预发行版。** 修正 `dvt` 菜单在入口版本与受管版本不一致时的引导：默认选择本地能力诊断，受管动作显示不可用，检查升级须显式选择；迁移器另接受 `0.2.0-rc.3` 来源。调优内容不变，范围和证据见[发布说明](docs/releases/v0.2.0-rc.4.md)。已受管主机要在新版本下执行受管动作，须先完成跨版本迁移；预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。不建议稳定 rc.2 主机仅为交互界面迁移。

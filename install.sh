@@ -6,10 +6,10 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-INSTALLER_VERSION='0.2.0-rc.4'
-RELEASE_TAG='v0.2.0-rc.4'
+INSTALLER_VERSION='0.2.0-rc.5'
+RELEASE_TAG='v0.2.0-rc.5'
 REPOSITORY='alieismy/debian-vps-tuning'
-EXPECTED_MANIFEST_SHA256='a704a9323b5bb9d9b0d1efe9c1b63825fef6b72aa29b075f43c151d502a2de4b'
+EXPECTED_MANIFEST_SHA256='73705e042310e5e0446f7ccba7b48cfccf37c68c6a2dfa710339e9690a38b0aa'
 DEFAULT_PREFIX='/usr/local'
 
 source_dir=''
@@ -54,7 +54,7 @@ Usage:
   bash install.sh [--no-launch]
   bash install.sh --source-dir /absolute/release-assets [--prefix /usr/local] [--no-launch]
 
-Remote mode downloads only the fixed v0.2.0-rc.4 Release. It first verifies
+Remote mode downloads only the fixed v0.2.0-rc.5 Release. It first verifies
 the pinned SHA-256 of SHA256SUMS, then verifies every installed asset. Local
 mode is intended for release validation and also requires a complete matching
 SHA256SUMS. Installation itself does not apply tuning or run network traffic.
