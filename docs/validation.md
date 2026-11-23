@@ -44,6 +44,7 @@
 | --- | --- | --- |
 | 本次五台升级 | 固定资产、来源与恢复条件、PREPARED、旧版退出、两次重启、目标验证、入口及基本业务确认；已完成 | 保留逐台证据，不因历史矩阵空项重跑升级 |
 | 发布后文档收尾 | 当前验收记录、中英文入口、发布／验证指针一致，历史状态可辨，文档检查通过，运行资产不变 | 只更新相关文档；本地检查与后续提交／CI 状态分别记录 |
+| rc.5 版本交付 | PR/主线/tag CI、Linux PTY、root 恢复、七平台归档、Pre-release 与 26 项公开回验通过，见[rc.5 发布验证](#rc5-release-validation) | 五台继续 rc.2，存量迁移、真实业务和性能未验收 |
 | rc.4 版本交付 | PR CI、Linux PTY、七组平台归档、合并、tag CI、Pre-release 与 26 项公开回验；已完成，见[rc.4 发布验证](#rc4-release-validation) | 五台主机保持 rc.2；实机菜单、存量迁移和人工终端渲染未验收，不因发布自动启动 |
 | rc.3 版本交付 | PR CI、七组平台归档、合并、tag CI、Pre-release 与 26 项公开回验；已完成，见[rc.3 发布验证](#rc3-release-validation) | `0.2.0-rc.2 → 0.2.0-rc.3` 实机迁移和人工终端渲染矩阵需另行授权，不因发布自动启动 |
 | 稳定版或扩展平台 | 结合明确支持范围，评审 T1–T10 及生命周期／失败场景要求，并将当前 CI、隔离 VM 和实机证据逐项映射 | 既有稳定版要求保留；本轮不批准削减门槛、不将预发行升级为稳定版 |
@@ -51,6 +52,20 @@
 | 长期稳定性与整机还原演练 | 本次无完整验收证据 | 单独确定观察或演练范围，不作为已闭合迁移的补做指令 |
 
 下方历史表中的 T 编号不是 VPS 编号，不能按顺序或相同规格直接对应。回填通过须同时核对目标环境、操作范围、版本／资产及证据层级；旧记录和待执行项保留，新证据以绑定版本的后继记录补充。首次稳定版的最终适用矩阵和接受条件仍需另行确认，本轮只澄清范围。
+
+<a id="rc5-release-validation"></a>
+
+## 0.2.0-rc.5 代理 VPS 评审修复（2026-11-23）
+
+范围见[rc.5 说明](releases/v0.2.0-rc.5.md)。用户明确授权 PR、合并、tag 和 Pre-release；本节记录已核验的后继结果，不改写历史版本证据。
+
+- **本地门禁：** 首轮实施自检的完整静态入口通过（185 项 Python：173 通过、12 平台跳过），追加 29 项校准回归、HTB 实验静态入口、38 项 ShellCheck、生成及摘要通过。发布评审整改后另行通过 profile 11 项、预算 10 项、恢复 10 项中 9 项（1 平台跳过）、基线恢复 22 项中 20 项（2 平台跳过）；最终全量由下方 Linux CI 验证。两个新增测试文件按仓库规则统一 LF，语法树保持；运行摘要重新生成并核验。
+- **Linux CI：** 受测 head `e4f437d235e2a636f225c7d1c987479674168ff6` 的[push CI](https://github.com/alieismy/vps-tuning/actions/runs/45150198843)及[PR CI](https://github.com/alieismy/vps-tuning/actions/runs/45150208593)通过。193 项 Python 中 192 项通过、1 项 root 限定跳过；另以 sudo 执行 22 项基线恢复测试全部通过。8 项 Linux PTY、7 个来源迁移 fixture、原生 tc 隔离 HTB 及 ShellCheck 通过。
+- **平台生命周期：** [平台 CI](https://github.com/alieismy/vps-tuning/actions/runs/45150198919)绑定 `e4f437d235e2a636f225c7d1c987479674168ff6`，七组及下载归档核验通过。受测 head 与合并提交同 tree；重复主线平台作业 45163411375 已取消，不记为通过。 覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 和 Debian 13 x86_64 legacy。归档验证 rc.5/schema 4/VERIFIED、架构、apply 与 rollback 后两次 boot ID 变化、17 项 sysctl 及 qdisc 恢复。属于隔离客体全新安装生命周期证据。
+- **评审：** CodeRabbit 在 ee19931 完成实质评审；有效问题已修复并补回归，6 个行内线程已闭合。未知临时文件自动认领建议不采用，改为明确保全/核对/迁出指引；普通清理中断和信号预算结算另行修复。最终 e4f437d 的再次自动评审因额度限制为 NEUTRAL，不计为复审通过；独立反例复核及针对性回归已完成。
+- **合并与 tag：** [PR #47](https://github.com/alieismy/vps-tuning/pull/47) 合并为 `f645be4c83b8a3c650a4c2c748ef8190ae2a27bc`，tree `2f6fec7aa440267afcda84237762da83ae97a243` 与受测 head 一致。[主线 CI](https://github.com/alieismy/vps-tuning/actions/runs/45163411701)和[tag CI](https://github.com/alieismy/vps-tuning/actions/runs/45163466983)通过；annotated tag 对象 `9a9f048ebfc653314c8ff428c85fbf25b5b85cde` 解引用到合并提交。
+- **公开发布：** [v0.2.0-rc.5 Pre-release](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.5)不设 Latest，公开时间 `2026-11-23T11:21:54Z`。26 项公开下载与固定 tag blob、GitHub digest 和大小一致，24 项清单和安装器摘要链通过，固定源码恢复工具摘要已绑定；旧仓库 installer/manifest HTTPS 重定向字节一致。原 18 个 Release、280 项资产、35 条 tag refs 不变，新增仅 rc.5 Release 及两条 tag refs。
+- **未验证与风险边界：** 无真实 VPS、存量迁移、3X-UI 3.11.0 客户端业务、长期稳定性或 2 Gbps 吞吐新验收。外部 root 在清理检查后并发写入时可能保留新材料但丢失部分事务文件；checkpoint 并发互斥和 fq 开机证据按评审限定结论保留。五台既有主机继续 rc.2。固定 tag 的候选文档保留发布前时间点，主线后继文档补充公开事实。
 
 <a id="rc4-release-validation"></a>
 

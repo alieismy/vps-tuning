@@ -1,6 +1,6 @@
 # 高级测量与历史 HTB 研究入口
 
-本页当前命令示例和预算、结算说明适用于 `v0.2.0-rc.5` 本地未发布候选中的 legacy `probe`/`benchmark`/TcpQuality 接口。历史 HTB 附录继续按其明确指定的旧版 bundle 执行，已发布 rc.1 的预算和默认限速行为见对应固定版本。本页不属于默认安装、迁移或日常验收步骤。无需自建对端的新版入口优先见 [自动测量](automatic-measurement.md)；通用临时整形见 [htb-sweep](temporary-htb.md)。
+本页当前命令示例和预算、结算说明适用于 `v0.2.0-rc.5` 预发行版中的 legacy `probe`/`benchmark`/TcpQuality 接口。历史 HTB 附录继续按其明确指定的旧版 bundle 执行，已发布 rc.1 的预算和默认限速行为见对应固定版本。本页不属于默认安装、迁移或日常验收步骤。无需自建对端的新版入口优先见 [自动测量](automatic-measurement.md)；通用临时整形见 [htb-sweep](temporary-htb.md)。
 
 当前工具的 `./...` 示例从完整且已校验的同版本 bundle 根目录执行；历史 HTB 附录则使用它明确指定的旧版 bundle，不能在当前源码目录直接照抄历史相对路径。
 
