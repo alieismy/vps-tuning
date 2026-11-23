@@ -998,7 +998,7 @@ set -e
 [ "$rc" -eq "$EXIT_USAGE" ] || { printf 'benchmark accepted an invalid IP family\n' >&2; exit 1; }
 
 set +e
-( BENCHMARK_HOST=example.com BENCHMARK_RUN_ID='unsafe id' run_network_benchmark ) >/dev/null 2>&1
+( BENCHMARK_HOST=example.com BENCHMARK_RATE_CAP_MBPS=200 BENCHMARK_RUN_ID='unsafe id' run_network_benchmark ) >/dev/null 2>&1
 rc=$?
 set -e
 [ "$rc" -eq "$EXIT_USAGE" ] || { printf 'benchmark accepted an unsafe run id\n' >&2; exit 1; }
@@ -1025,7 +1025,7 @@ case "$(uname -s)" in
   MINGW* | MSYS* | CYGWIN*) ;;
   *)
     set +e
-    ( BENCHMARK_HOST=example.com BENCHMARK_OUTPUT_DIR='relative' run_network_benchmark ) >/dev/null 2>&1
+    ( BENCHMARK_HOST=example.com BENCHMARK_RATE_CAP_MBPS=200 BENCHMARK_OUTPUT_DIR='relative' run_network_benchmark ) >/dev/null 2>&1
     rc=$?
     set -e
     [ "$rc" -eq "$EXIT_USAGE" ] || { printf 'benchmark accepted a relative output directory (rc=%s)\n' "$rc" >&2; exit 1; }
@@ -1037,11 +1037,11 @@ case "$(uname -s)" in
   *)
     existing_output="$(mktemp -d)"
     set +e
-    ( BENCHMARK_HOST=example.com BENCHMARK_OUTPUT_DIR="$existing_output" run_network_benchmark ) >/dev/null 2>&1
+    ( BENCHMARK_HOST=example.com BENCHMARK_RATE_CAP_MBPS=200 BENCHMARK_OUTPUT_DIR="$existing_output" run_network_benchmark ) >/dev/null 2>&1
     rc=$?
     set -e
     rmdir "$existing_output"
-    [ "$rc" -eq "$EXIT_CONFLICT" ] || { printf 'benchmark accepted an existing output directory\n' >&2; exit 1; }
+    [ "$rc" -eq "$EXIT_CONFLICT" ] || { printf 'benchmark existing-output guard returned %s, expected %s\n' "$rc" "$EXIT_CONFLICT" >&2; exit 1; }
     ;;
 esac
 EOF_BENCHMARK_GUARD_TEST
