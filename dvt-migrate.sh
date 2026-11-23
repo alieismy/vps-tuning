@@ -6,7 +6,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-TOOL_VERSION='0.2.0-rc.4'
+TOOL_VERSION='0.2.0-rc.5'
 STATE_FILE="${DVT_STATE_FILE:-/var/lib/proxy-vps-tuning/state.json}"
 
 action=''
@@ -74,7 +74,7 @@ validate_baseline_archive() {
   [[ "$archive" = /* ]] && [ -d "$archive" ] && [ ! -L "$archive" ] || die '基线恢复归档路径无效。'
   [ "$(stat -c '%u' "$archive")" = 0 ] && [ "$(stat -c '%a' "$archive")" = 700 ] || die '基线恢复归档必须为 root/0700。'
   validate_file baseline-receipt "${archive}/receipt.json"
-  jq -e '.schema_version==1 and .tool_version=="0.2.0-rc.4" and
+  jq -e '.schema_version==1 and .tool_version=="0.2.0-rc.5" and
     (.host_id | test("^VPS-[0-9]{2}$")) and
     (.mode=="historical" or .mode=="replacement") and
     (.files|type=="object") and
@@ -105,7 +105,7 @@ resolve_baseline_archive() {
     --slurpfile receipt "${baseline_archive}/receipt.json" '
     .tcp_baseline_recovery as $r | $plan[0] as $p | $before[0] as $b | $receipt[0] as $a |
     $r.schema_version==1 and $p.schema_version==1 and $p.approved==true and
-    $r.target_version=="0.2.0-rc.4" and $p.target_version==$r.target_version and
+    $r.target_version=="0.2.0-rc.5" and $p.target_version==$r.target_version and
     $r.host_id==$p.host_id and $r.host_id==$a.host_id and $r.mode==$p.mode and $r.mode==$a.mode and
     $r.original_state_sha256==$a.files["state.before.json"] and
     $r.plan_sha256==$a.files["plan.json"] and $p.binding==$a.binding and
@@ -145,7 +145,19 @@ verify_target_baseline() {
   ' "$STATE_FILE" >/dev/null || die '目标状态未完整保存第一次重启后实际 TCP 基线；保留现场。'
 }
 
+validate_checkpoint_location() {
+  local canonical managed
+  canonical="$(readlink -m -- "$checkpoint")" || die '无法规范化 checkpoint 路径。'
+  managed="$(readlink -m -- /var/lib/proxy-vps-tuning)" || die '无法规范化受管状态路径。'
+  case "$canonical" in
+    "$managed" | "$managed"/*)
+      die 'checkpoint 必须放在受管状态目录树之外；先保留并外移既有恢复材料。'
+      ;;
+  esac
+}
+
 validate_checkpoint() {
+  validate_checkpoint_location
   [ -n "$checkpoint" ] && [[ "$checkpoint" = /* ]] && [ -d "$checkpoint" ] && [ ! -L "$checkpoint" ] ||
     die 'checkpoint 必须是已存在的绝对路径目录且不能是符号链接。'
   [ "$(stat -c '%u' "$checkpoint")" = 0 ] && [ $((8#$(stat -c '%a' "$checkpoint") & 0022)) -eq 0 ] ||
@@ -180,12 +192,13 @@ update_phase() {
 prepare() {
   local parent name source_hash target_hash tool_hash now current_boot initial_phase=PREPARED
   [ -n "$checkpoint" ] && [[ "$checkpoint" = /* ]] || die 'prepare 必须指定绝对 --checkpoint。'
+  validate_checkpoint_location
   [ ! -e "$checkpoint" ] && [ ! -L "$checkpoint" ] || die 'checkpoint 已存在，拒绝覆盖。'
   validate_file source-profile "$source_profile"; validate_file target-profile "$target_profile"
   [[ "$source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]] &&
     [[ "$target_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]] || die 'source/target version 格式无效。'
-  if [ "$target_version" != '0.2.0-rc.4' ] || ! [[ "$source_version" =~ ^(0\.1\.0-rc\.([1-9]|1[0-9])|0\.2\.0-rc\.[23])$ ]]; then
-    die '本版迁移器只接受 0.1.0-rc.1–rc.19 或 0.2.0-rc.2/rc.3 来源并迁移到 0.2.0-rc.4。'
+  if [ "$target_version" != '0.2.0-rc.5' ] || ! [[ "$source_version" =~ ^(0\.1\.0-rc\.([1-9]|1[0-9])|0\.2\.0-rc\.[234])$ ]]; then
+    die '本版迁移器只接受 0.1.0-rc.1–rc.19 或 0.2.0-rc.2–rc.4 来源并迁移到 0.2.0-rc.5。'
   fi
   [[ "$profile_id" =~ ^debian1[23]-[A-Za-z0-9-]+$ ]] || die 'profile-id 格式无效。'
   [[ "$port_mbps" =~ ^[0-9]+$ ]] && [ "$((10#$port_mbps))" -ge 100 ] && [ "$((10#$port_mbps))" -le 1000 ] || die 'port 必须是 100..1000。'
@@ -239,6 +252,26 @@ prepare() {
   info "下一步：bash ${checkpoint}/dvt-migrate.sh rollback --checkpoint ${checkpoint}"
 }
 
+validate_source_state_directory() {
+  local directory path name
+  directory="$(dirname -- "$STATE_FILE")"
+  [ -d "$directory" ] && [ ! -L "$directory" ] && [ "$(stat -c '%u' "$directory")" = 0 ] ||
+    die '来源状态目录类型或所有权异常；保留现场。'
+  for path in "$directory"/* "$directory"/.[!.]* "$directory"/..?*; do
+    [ -e "$path" ] || [ -L "$path" ] || continue
+    name="${path##*/}"
+    if [ "$name" != "${STATE_FILE##*/}" ]; then
+      case "$name" in
+        state.json | qdisc-original.json | provider-sysctl.conf.original | \
+        reconfigure-state.previous.json | reconfigure-sysctl.previous.conf | reconfigure-last-failure.json) ;;
+        *) die "来源状态目录含非事务材料，先核验并迁出账本或恢复材料；保留现场：${path}" ;;
+      esac
+    fi
+    [ -f "$path" ] && [ ! -L "$path" ] && [ "$(stat -c '%u' "$path")" = 0 ] ||
+      die "来源状态条目必须为 root 所有的普通文件；保留现场：${path}"
+  done
+}
+
 rollback_stage() {
   local phase current_hash
   validate_checkpoint; phase="$(jq -r '.phase' "${checkpoint}/migration.json")"
@@ -246,10 +279,16 @@ rollback_stage() {
     PREPARED)
       current_hash="$(sha256sum "$STATE_FILE" 2>/dev/null | awk '{print $1}')"
       [ "$current_hash" = "$(jq -r '.source_state_sha256' "${checkpoint}/migration.json")" ] || die 'rollback 前 managed state 已漂移。'
+      validate_source_state_directory
       update_phase ROLLBACK_RUNNING
       PURGE_CREATED_SWAP=1 bash "${checkpoint}/source-profile.sh" rollback
       ;;
-    ROLLBACK_RUNNING) [ ! -e "$STATE_FILE" ] || PURGE_CREATED_SWAP=1 bash "${checkpoint}/source-profile.sh" rollback ;;
+    ROLLBACK_RUNNING)
+      if [ -e "$STATE_FILE" ]; then
+        validate_source_state_directory
+        PURGE_CREATED_SWAP=1 bash "${checkpoint}/source-profile.sh" rollback
+      fi
+      ;;
     *) die "当前 phase=${phase} 不能执行 rollback。" ;;
   esac
   [ ! -e "$STATE_FILE" ] && [ ! -L "$STATE_FILE" ] || die '旧版 rollback 后 managed state 仍存在；停止迁移。'
@@ -287,6 +326,8 @@ continue_stage() {
       { [ "$state_phase" != APPLIED ] && [ "$state_phase" != VERIFIED ]; }; then
       die '目标 apply 后 managed state 契约不匹配。'
     fi
+    [ "$state_phase" = VERIFIED ] ||
+      die '目标 apply 留下 APPLIED，尚未完成配置验证；保留现场，按目标版本恢复说明处理后再 continue，当前无需重启。'
     verify_target_baseline
     update_phase TARGET_APPLIED_REBOOT_REQUIRED "$current"
     info '目标版已 apply。现在必须第二次重启；重启前不得再次执行 continue。'
