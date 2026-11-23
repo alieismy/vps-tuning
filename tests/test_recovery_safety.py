@@ -21,6 +21,88 @@ class RecoverySafetyTests(unittest.TestCase):
         result = subprocess.run([shutil.which('bash')], input=script.encode(), capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
 
+    def cleanup_source(self):
+        names = ('atomic_json_commit', 'prepare_rollback_cleanup', 'remove_managed_state',
+                 'rollback_already_restored', 'rollback_internal')
+        source = '\n'.join(function('tools/profile-template.sh.in', name) for name in names)
+        return '''set -Eeuo pipefail
+temp="$(mktemp -d)"
+trap 'command rm -rf -- "$temp"' EXIT
+STATE_DIR="$temp/state"; STATE_FILE="$STATE_DIR/state.json"
+QDISC_STATE_FILE="$STATE_DIR/qdisc-original.json"
+mkdir "$STATE_DIR"
+printf '%s\\n' '{"state":"ROLLBACK_PENDING","swap":{"created_by_script":false}}' >"$STATE_FILE"
+printf '%s\\n' '{}' >"$QDISC_STATE_FILE"
+SYSCTL_FILE="$temp/sysctl"; JOURNAL_FILE="$temp/journal"; FQ_HELPER="$temp/helper"
+FQ_SERVICE="$temp/service"; XUI_DROPIN="$temp/dropin"; XUI_DROPIN_DIR="$temp/dropin-dir"
+SWAP_FILE="$temp/swap"; PURGE_CREATED_SWAP=1; trace="$temp/runtime-called"
+error() { printf '%s\\n' "$*" >&2; }; warn() { :; }; info() { :; }
+chown() { :; }
+validate_state_file() { :; }; state_file_is_valid() { :; }
+state_get() { command jq -er "$1" "$STATE_FILE" | tr -d '\\r'; }
+state_set_phase() { command jq --arg phase "$1" '.state=$phase' "$STATE_FILE" >"$STATE_FILE.next"; command mv "$STATE_FILE.next" "$STATE_FILE"; }
+original_sysctl_vectors_are_complete() { :; }
+project_managed_files_exist() { return 1; }
+provider_sysctl_transfer_matches_original() { :; }
+provider_sysctl_transfer_is_restorable() { :; }
+restore_provider_sysctl_ownership() { :; }
+qdisc_snapshot_matches_current() { printf 'qdisc-check\\n' >>"$trace"; [ -f "$QDISC_STATE_FILE" ]; }
+qdisc_snapshot_semantically_matches_current() { [ -f "$QDISC_STATE_FILE" ]; }
+restore_qdiscs() { printf 'qdisc-restore\\n' >>"$trace"; [ -f "$QDISC_STATE_FILE" ]; }
+original_sysctls_match_current() { :; }; restore_original_sysctls() { :; }
+purge_owned_swap() { :; }; assert_owned_file() { :; }
+systemctl() { :; }; sysctl() { :; }; QDISC_MATCH_REASON=missing-snapshot
+''' + source + '\n'
+
+    def test_interrupted_cleanup_resumes_without_deleted_qdisc_snapshot(self):
+        self.run_shell(self.cleanup_source() + '''
+rm() {
+  command rm "$@"
+  if [ "${*: -1}" = "$QDISC_STATE_FILE" ]; then exit 77; fi
+}
+result=0; (remove_managed_state) || result=$?
+[ "$result" = 77 ]
+[ -f "$STATE_FILE" ] && [ ! -e "$QDISC_STATE_FILE" ]
+jq -e '.state=="ROLLBACK_PENDING" and .rollback_cleanup_ready==true' "$STATE_FILE" >/dev/null
+unset -f rm
+rollback_internal 1
+[ ! -e "$STATE_DIR" ]
+[ ! -e "$trace" ]
+''')
+
+    def test_cleanup_marker_commit_failure_preserves_recovery_material(self):
+        self.run_shell(self.cleanup_source() + '''
+before="$(sha256sum "$STATE_FILE")"
+atomic_json_commit() { return 71; }
+if remove_managed_state; then exit 1; fi
+[ "$(sha256sum "$STATE_FILE")" = "$before" ]
+[ -f "$QDISC_STATE_FILE" ]
+[ ! -e "$trace" ]
+''')
+
+    def test_cleanup_rejects_unknown_material_before_writing_marker(self):
+        self.run_shell(self.cleanup_source() + '''
+printf '%s\\n' 'private ledger' >"$STATE_DIR/window.json"
+before="$(sha256sum "$STATE_FILE")"
+if remove_managed_state; then exit 1; fi
+[ "$(sha256sum "$STATE_FILE")" = "$before" ]
+[ -f "$QDISC_STATE_FILE" ]
+grep -qx 'private ledger' "$STATE_DIR/window.json"
+''')
+
+    def test_missing_snapshot_without_strict_cleanup_marker_is_not_success(self):
+        self.run_shell(self.cleanup_source() + '''
+command rm "$QDISC_STATE_FILE"
+for marker in false '"true"'; do
+  jq --argjson marker "$marker" '.state="ROLLBACK_PENDING" | .rollback_cleanup_ready=$marker' "$STATE_FILE" >"$STATE_FILE.next"
+  command mv "$STATE_FILE.next" "$STATE_FILE"
+  if rollback_internal 1; then exit 1; fi
+  jq -e '.state=="DEGRADED"' "$STATE_FILE" >/dev/null
+  [ -f "$STATE_FILE" ]
+done
+grep -qx 'qdisc-restore' "$trace"
+''')
+
     def test_ledger_rejects_cleanup_tree_before_directory_creation(self):
         validate = function('dvt-traffic-budget.sh', 'validate_ledger_path')
         self.run_shell('''set -euo pipefail

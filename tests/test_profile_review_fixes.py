@@ -1,4 +1,4 @@
-"""评审缺陷回归，执行生成脚本函数并隔离 systemd、proc 和 root 元数据。"""
+"""评审缺陷回归，执行正式模板函数并隔离 systemd、proc 和 root 元数据。"""
 from pathlib import Path
 import re
 import shutil
@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def functions(*names):
-    source = (ROOT / 'ubuntu2404-adaptive-vps-tuning.sh').read_text(encoding='utf-8')
+    source = (ROOT / 'tools/profile-template.sh.in').read_text(encoding='utf-8')
     return '\n'.join(re.search(r'^' + name + r'\(\) \{.*?^\}', source,
                                re.M | re.S).group() for name in names) + '\n'
 
@@ -59,6 +59,11 @@ children=222
 if verify_proxy_services; then exit 1; fi
 fixture_executable=/usr/local/x-ui/bin/xray-linux-amd64
 verify_proxy_services
+fixture_executable='/usr/local/x-ui/bin/xray (deleted)'
+verify_proxy_services
+readlink() { return 1; }
+if verify_proxy_services; then exit 1; fi
+readlink() { printf '%s\n' "$fixture_executable"; }
 main=0
 if verify_proxy_services; then exit 1; fi
 main=111
@@ -125,9 +130,46 @@ if printf '%s\n' "$MANAGED_MARKER" | write_managed_file "$target" 0644; then exi
 [ ! -e "$target" ]
 ''')
 
+    def test_publish_refuses_unreadable_phase_and_preserves_reconfigure_order(self):
+        self.run_shell(functions('write_managed_file', 'atomic_json_commit'), r'''
+STATE_FILE="$tmp/state.json"; target="$tmp/config"
+chown() { :; }
+printf '{"state":"RECONFIGURING","managed_files":[]}\n' >"$STATE_FILE"
+cp "$STATE_FILE" "$tmp/state.before"
+printf 'original\n' >"$target"
+state_get() { return 1; }
+if printf 'candidate\n' | write_managed_file "$target" 0644; then exit 1; fi
+grep -qx original "$target"
+cmp "$STATE_FILE" "$tmp/state.before"
+[ -z "$(find "$tmp" -name 'config.tmp.*' -print)" ]
+state_get() { jq -r "$1" "$STATE_FILE"; }
+printf 'replacement\n' | write_managed_file "$target" 0644
+grep -qx replacement "$target"
+cmp "$STATE_FILE" "$tmp/state.before"
+''')
+
+    def test_apply_rejects_service_syntax_before_starting_transaction(self):
+        self.run_shell(functions('apply_settings', 'profile_service_units'), r'''
+EXIT_USAGE=2; EXIT_CONFLICT=4; APPLY_ACTIVE=0
+DEFAULT_PROXY_SERVICE_UNITS=(x-ui.service)
+run_preflight() { :; }
+state_exists() { return 1; }
+write_initial_state() { printf 'write started\n' >"$tmp/write-started"; return 1; }
+apply_failure_handler() { :; }
+for PROXY_SERVICE_UNITS_INPUT in invalid-unit 'x-ui.service invalid-unit' '   ' $'x-ui.service\ninvalid-unit'; do
+  if (apply_settings); then exit 1; else [ $? = 2 ]; fi
+  [ ! -e "$tmp/write-started" ]
+  [ "$APPLY_ACTIVE" = 0 ]
+done
+PROXY_SERVICE_UNITS_INPUT=x-ui.service
+if (apply_settings); then exit 1; else [ $? = 4 ]; fi
+grep -qx 'write started' "$tmp/write-started"
+''')
+
     def test_cleanup_preserves_ledger_and_state_until_moved(self):
         self.run_shell(functions('remove_managed_state'), r'''
 STATE_DIR="$tmp/state"; STATE_FILE="$STATE_DIR/state.json"
+prepare_rollback_cleanup() { :; }
 mkdir -p "$STATE_DIR/traffic-ledgers"
 printf 'state\n' >"$STATE_FILE"
 printf 'reserved budget\n' >"$STATE_DIR/traffic-ledgers/window.json"
@@ -144,6 +186,7 @@ grep -qx 'reserved budget' "$tmp/traffic-ledgers/window.json"
     def test_cleanup_does_not_remove_a_file_created_during_deletion(self):
         self.run_shell(functions('remove_managed_state'), r'''
 STATE_DIR="$tmp/state"; STATE_FILE="$STATE_DIR/state.json"
+prepare_rollback_cleanup() { :; }
 mkdir "$STATE_DIR"
 printf 'state\n' >"$STATE_FILE"
 printf 'snapshot\n' >"$STATE_DIR/qdisc-original.json"
@@ -182,6 +225,7 @@ grep -q '未达到' "$tmp/warning"
 SCRIPT_VERSION=0.2.0-rc.5; EXIT_CONFLICT=4
 PORT_SPEED_MBPS=2000; BUFFER_TARGET_RTT_MS=200; BUF_MAX=67108864
 BUFFER_TARGET_RTT_MS_INPUT=''; BUF_MAX_ENV_WAS_SET=''
+BUF_MAX_INPUT=auto; fixture_mode=auto
 run_preflight() { :; }
 state_exists() { return 0; }
 state_get() {
@@ -189,16 +233,62 @@ state_get() {
   .state) echo VERIFIED;; .script_version) echo "$SCRIPT_VERSION";;
   .network.port_speed_mbps) echo 500;; .network.target_rtt_ms) echo 250;;
   .network.buffer_max_bytes) echo 33554432;;
+  .network.buffer_mode) echo "$fixture_mode";;
  esac
 }
 if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
 grep -q 'dvt reconfigure --port 2000' "$tmp/message"
 ! grep -q 'PURGE_CREATED_SWAP' "$tmp/message"
 BUFFER_TARGET_RTT_MS_INPUT=250; BUFFER_TARGET_RTT_MS=250
-BUF_MAX_ENV_WAS_SET=x; BUF_MAX=33554432
+BUF_MAX_ENV_WAS_SET=x; BUF_MAX_INPUT=33554432; BUF_MAX=33554432; fixture_mode=explicit
 if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
 grep -q 'dvt reconfigure --port 2000' "$tmp/message"
 grep -q '清除 BUFFER_TARGET_RTT_MS 和 BUF_MAX' "$tmp/message"
+''')
+
+    def test_port_only_guidance_compares_saved_and_requested_buffer_policy(self):
+        self.run_shell(functions('apply_settings'), r'''
+SCRIPT_VERSION=0.2.0-rc.5; EXIT_CONFLICT=4
+PORT_SPEED_MBPS=1000; BUFFER_TARGET_RTT_MS=200; BUFFER_TARGET_RTT_MS_INPUT=200
+BUF_MAX_ENV_WAS_SET=x; fixture_mode=auto; fixture_buf=16777216
+run_preflight() { :; }
+state_exists() { return 0; }
+state_get() {
+ case "$1" in
+  .state) echo VERIFIED;; .script_version) echo "$SCRIPT_VERSION";;
+  .network.port_speed_mbps) echo 200;; .network.target_rtt_ms) echo 200;;
+  .network.buffer_max_bytes) echo "$fixture_buf";; .network.buffer_mode) echo "$fixture_mode";;
+ esac
+}
+# 自动变为显式，即使旧字节数相同也不能提示清除这个新显式上限。
+BUF_MAX_INPUT=16777216; BUF_MAX=16777216
+if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
+! grep -q 'dvt reconfigure --port' "$tmp/message"
+grep -q PURGE_CREATED_SWAP "$tmp/message"
+# 重复自动策略时，计算字节随带宽变化仍属于仅带宽变更。
+BUF_MAX_INPUT=auto; BUF_MAX=67108864
+for fixture_mode in auto auto-clamped; do
+  if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
+  grep -q 'dvt reconfigure --port 1000' "$tmp/message"
+done
+# 保存的显式上限相同才可沿用；变更显式数值应走完整改参流程。
+fixture_mode=explicit; BUF_MAX_INPUT=16777216; BUF_MAX=16777216
+if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
+grep -q 'dvt reconfigure --port 1000' "$tmp/message"
+grep -q '显式' "$tmp/message"
+BUF_MAX_INPUT=33554432; BUF_MAX=33554432
+if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
+! grep -q 'dvt reconfigure --port' "$tmp/message"
+# 带宽与字节相同也不能把策略切换静默当作已安装成功。
+PORT_SPEED_MBPS=200; BUF_MAX=16777216
+verify_settings() { printf 'verified\n' >"$tmp/verified"; }
+fixture_mode=auto; BUF_MAX_INPUT=16777216
+if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
+[ ! -e "$tmp/verified" ]
+grep -q PURGE_CREATED_SWAP "$tmp/message"
+fixture_mode=explicit; BUF_MAX_INPUT=auto
+if (apply_settings) 2>"$tmp/message"; then exit 1; else [ $? = 4 ]; fi
+[ ! -e "$tmp/verified" ]
 ''')
 
 

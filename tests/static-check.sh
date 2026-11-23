@@ -1400,6 +1400,8 @@ benchmark_persistence_test="$tmp_dir/benchmark-persistence-test.sh"
 {
   printf '%s\n' '#!/usr/bin/env bash' 'set -Eeuo pipefail'
   awk '/^benchmark_traffic_estimate_json\(\)/,/^}/' "${scripts[0]}"
+  awk '/^benchmark_settle_on_exit\(\)/,/^}/' "${scripts[0]}"
+  awk '/^benchmark_known_payload_bytes\(\)/,/^}/' "${scripts[0]}"
   awk '/^run_network_benchmark\(\)/,/^}/' "${scripts[0]}"
   cat <<'EOF_BENCHMARK_PERSISTENCE_TEST'
 test_root="$(mktemp -d)"

@@ -350,6 +350,7 @@ state_file_path_is_valid() {
       (.swap | type == "object") and
       (.managed_files | type == "array") and
       (.timestamps | type == "object") and
+      ((has("rollback_cleanup_ready") | not) or (.rollback_cleanup_ready | type == "boolean")) and
       (if .schema_version == $schema then
         (.script_version == $version or
           ($update_preflight == 1 and
@@ -1109,7 +1110,7 @@ write_managed_file() {
   local path="$1" mode="$2" dir
   dir="$(dirname "$path")"
   mkdir -p "$dir" || return 1
-  local tmp hash state_tmp
+  local tmp hash state_tmp phase
   tmp="$(mktemp "${path}.tmp.XXXXXX")"
   if ! cat >"$tmp" || ! chmod "$mode" "$tmp" || ! chown root:root "$tmp"; then
     rm -f -- "$tmp"
@@ -1117,7 +1118,8 @@ write_managed_file() {
   fi
   # 首次发布前登记预期内容，使发布后中断仍可按哈希确认所有权。
   # 重配置已有独立的前镜像与恢复事务，继续使用其原有提交顺序。
-  if [ "$(state_get '.state')" = 'APPLYING' ]; then
+  phase="$(state_get '.state')" || { rm -f -- "$tmp"; return 1; }
+  if [ "$phase" = 'APPLYING' ]; then
     hash="$(sha256sum "$tmp" | awk '{print $1}')" || { rm -f -- "$tmp"; return 1; }
     state_tmp="$(mktemp "${STATE_FILE}.tmp.XXXXXX")" || { rm -f -- "$tmp"; return 1; }
     if ! jq --arg path "$path" --arg hash "$hash" \
@@ -1488,6 +1490,7 @@ profile_service_units() {
   if [ -n "$PROXY_SERVICE_UNITS_INPUT" ]; then
     [[ "$PROXY_SERVICE_UNITS_INPUT" != *$'\n'* ]] || die "$EXIT_USAGE" 'PROXY_SERVICE_UNITS 必须是单行、空格分隔的 unit 列表。'
     IFS=' ' read -r -a units <<<"$PROXY_SERVICE_UNITS_INPUT"
+    [ "${#units[@]}" -gt 0 ] || die "$EXIT_USAGE" '显式代理服务列表不能为空白。'
     for unit in "${units[@]}"; do
       [[ "$unit" =~ ^[A-Za-z0-9_.@-]+\.service$ ]] || die "$EXIT_USAGE" "非法 systemd unit：${unit}"
       printf '%s\n' "$unit"
@@ -1561,6 +1564,7 @@ verify_proxy_services() {
         fi
         verify_runtime_nofile "$unit" "child=${child}" "/proc/${child}/limits" "$runtime_strict" || failures=$((failures + 1))
         executable="$(readlink "/proc/${child}/exe" 2>/dev/null || true)"
+        executable="${executable% (deleted)}"
         case "${executable##*/}" in xray | xray-* ) core_count=$((core_count + 1)) ;; esac
       done < <(pgrep -P "$main_pid" 2>/dev/null || true)
     elif [ "$runtime_strict" -eq 1 ]; then
@@ -2417,6 +2421,18 @@ recover_empty_legacy_state() {
   info 'State: UNMANAGED。现在可重新执行 preflight。'
 }
 
+prepare_rollback_cleanup() {
+  local tmp
+  jq -e '.state == "ROLLBACK_PENDING" and .rollback_cleanup_ready == true' "$STATE_FILE" >/dev/null 2>&1 && return 0
+  tmp="$(mktemp "${STATE_FILE}.tmp.XXXXXX")" || return 1
+  if ! jq --arg now "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+    '.state="ROLLBACK_PENDING" | .rollback_cleanup_ready=true | .timestamps.last_update=$now' \
+    "$STATE_FILE" >"$tmp" || ! atomic_json_commit "$STATE_FILE" "$tmp"; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+}
+
 remove_managed_state() {
   local path
   local -a owned_paths=()
@@ -2433,6 +2449,7 @@ remove_managed_state() {
     error "状态目录含未归属内容，已保留全部状态。请先迁出并确认账本或其他数据，再重试 rollback：${path}"
     return 1
   done
+  prepare_rollback_cleanup || { error '无法记录已恢复且可清理的状态；尚未删除事务材料。'; return 1; }
   for path in "${owned_paths[@]}"; do
     [ "$path" = "$STATE_FILE" ] || rm -f -- "$path" || return 1
   done
@@ -2450,6 +2467,11 @@ rollback_internal() {
   if [ "$phase" = 'RECONFIGURING' ] || jq -e '.reconfigure | type == "object"' "$STATE_FILE" >/dev/null 2>&1; then
     error '检测到未完成的带宽重配置事务；普通 rollback 不会越过该事务，请先执行 recover。'
     return 1
+  fi
+  if [ "$phase" = 'ROLLBACK_PENDING' ] && jq -e '.rollback_cleanup_ready == true' "$STATE_FILE" >/dev/null 2>&1; then
+    remove_managed_state || return 1
+    info '已确认恢复完成的清理任务已接续，管理状态已删除。'
+    return 0
   fi
   if [ "$phase" = 'SWAP_RETAINED' ]; then
     if [ "$force_purge" = '1' ] || [ "$PURGE_CREATED_SWAP" = '1' ]; then
@@ -2678,24 +2700,34 @@ apply_failure_handler() {
 apply_settings() {
   run_preflight apply
   if state_exists; then
-    local state saved_version saved_port saved_rtt saved_buf
+    local state saved_version saved_port saved_rtt saved_buf saved_mode buffer_policy_matches=0
     state="$(state_get '.state')"
     saved_version="$(state_get '.script_version')"
     if [ "$saved_version" != "$SCRIPT_VERSION" ]; then
       die "$EXIT_CONFLICT" "已安装状态属于 ${saved_version}，当前脚本为 ${SCRIPT_VERSION}；verify 可继续只读核验，升级配置必须先 rollback。"
     fi
     saved_port="$(state_get '.network.port_speed_mbps')"; saved_rtt="$(state_get '.network.target_rtt_ms')"; saved_buf="$(state_get '.network.buffer_max_bytes')"
-    if [ "$saved_port" != "$PORT_SPEED_MBPS" ] || [ "$saved_rtt" != "$BUFFER_TARGET_RTT_MS" ] || [ "$saved_buf" != "$BUF_MAX" ]; then
+    saved_mode="$(state_get '.network.buffer_mode')" || die "$EXIT_CONFLICT" '无法读取已安装缓冲策略；保留状态。'
+    if [ -z "$BUF_MAX_ENV_WAS_SET" ]; then
+      buffer_policy_matches=1
+    elif [ "$BUF_MAX_INPUT" = 'auto' ]; then
+      case "$saved_mode" in auto | auto-clamped) buffer_policy_matches=1 ;; esac
+    elif [ "$saved_mode" = 'explicit' ] && [ "$saved_buf" = "$BUF_MAX" ]; then
+      buffer_policy_matches=1
+    fi
+    if [ "$saved_port" != "$PORT_SPEED_MBPS" ] || [ "$saved_rtt" != "$BUFFER_TARGET_RTT_MS" ] ||
+      [ "$saved_buf" != "$BUF_MAX" ] || [ "$buffer_policy_matches" -ne 1 ]; then
       if [ "$state" = 'VERIFIED' ] && [ "$saved_port" != "$PORT_SPEED_MBPS" ] &&
         { [ -z "$BUFFER_TARGET_RTT_MS_INPUT" ] || [ "$saved_rtt" = "$BUFFER_TARGET_RTT_MS" ]; } &&
-        { [ -z "$BUF_MAX_ENV_WAS_SET" ] || [ "$saved_buf" = "$BUF_MAX" ]; }; then
-        die "$EXIT_CONFLICT" "仅改套餐带宽请先清除 BUFFER_TARGET_RTT_MS 和 BUF_MAX 环境变量，再执行 dvt reconfigure --port ${PORT_SPEED_MBPS}；此入口保留已安装 RTT 与显式缓冲。本次 apply 尚未写入配置。"
+        [ "$buffer_policy_matches" -eq 1 ]; then
+        die "$EXIT_CONFLICT" "仅改套餐带宽请先清除 BUFFER_TARGET_RTT_MS 和 BUF_MAX 环境变量，再执行 dvt reconfigure --port ${PORT_SPEED_MBPS}；此入口保留已安装 RTT 与缓冲策略（包括已保存的显式缓冲上限）。本次 apply 尚未写入配置。"
       fi
       die "$EXIT_CONFLICT" "已安装参数与当前参数不同：saved(port=${saved_port},rtt=${saved_rtt},buf=${saved_buf}) current(port=${PORT_SPEED_MBPS},rtt=${BUFFER_TARGET_RTT_MS},buf=${BUF_MAX})。本次 apply 尚未写入配置；若只是输入错误，请按已安装参数重试或直接执行 verify。确需改参时，请用 PURGE_CREATED_SWAP=1 执行 rollback，重启后再用新参数执行 preflight/apply。"
     fi
     if [ "$state" = 'VERIFIED' ]; then verify_settings || die "$EXIT_VERIFY" '已安装配置验证失败。'; info '配置已存在且验证通过，无需重复写入。'; return 0; fi
     die "$EXIT_CONFLICT" "存在状态 ${state}；重新应用前请先完成 rollback，保留 swap 时需显式 purge 后再 apply。"
   fi
+  profile_service_units >/dev/null || die "$EXIT_USAGE" '代理服务列表无效；尚未开始写入配置。'
   APPLY_ACTIVE=1
   trap 'rc=$?; [ "$rc" -eq 0 ] || apply_failure_handler "$rc"' EXIT
   trap 'exit 130' INT
@@ -2991,6 +3023,18 @@ benchmark_traffic_estimate_json() {
       protocol_overhead_included:false}'
 }
 
+benchmark_settle_on_exit() {
+  [ "$budget_reserved" -eq 1 ] || return 0
+  actual_payload="$(benchmark_known_payload_bytes "$tmp_dir")" || { warn '无法读取中断测量的已知流量；reservation 保持占用。'; return 0; }
+  if bash "$budget_tool" fail --ledger "$budget_ledger" --reservation-id "$budget_reservation" \
+    --known-bytes "$actual_payload" >/dev/null 2>&1; then
+    budget_reserved=0
+  else
+    warn 'benchmark 中断且预算保守结算失败；reservation 保持占用。'
+  fi
+  return 0
+}
+
 run_network_benchmark() {
   local host="${BENCHMARK_HOST:-}" port="${BENCHMARK_PORT:-5201}"
   local seconds="${BENCHMARK_SECONDS:-10}" parallel="${BENCHMARK_PARALLEL:-1}"
@@ -3116,12 +3160,12 @@ run_network_benchmark() {
     persistent_output=1
     printf 'status=INCOMPLETE\nstage=%s\nrun_id=%s\nutc=%s\n' \
       "$benchmark_failure_stage" "$run_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"${tmp_dir}/INCOMPLETE"
-    trap 'trap_rc=$?; benchmark_reap_active_child; if [ -d "$tmp_dir" ] && [ ! -f "${tmp_dir}/COMPLETED" ]; then printf "status=INCOMPLETE\nstage=%s\nrun_id=%s\nexit_code=%s\nutc=%s\n" "$benchmark_failure_stage" "$run_id" "$trap_rc" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"${tmp_dir}/INCOMPLETE.tmp" 2>/dev/null && mv -f "${tmp_dir}/INCOMPLETE.tmp" "${tmp_dir}/INCOMPLETE" 2>/dev/null || true; fi; exit "$trap_rc"' EXIT
+    trap 'trap_rc=$?; benchmark_reap_active_child; benchmark_settle_on_exit; if [ -d "$tmp_dir" ] && [ ! -f "${tmp_dir}/COMPLETED" ]; then printf "status=INCOMPLETE\nstage=%s\nrun_id=%s\nexit_code=%s\nutc=%s\n" "$benchmark_failure_stage" "$run_id" "$trap_rc" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"${tmp_dir}/INCOMPLETE.tmp" 2>/dev/null && mv -f "${tmp_dir}/INCOMPLETE.tmp" "${tmp_dir}/INCOMPLETE" 2>/dev/null || true; fi; exit "$trap_rc"' EXIT
     trap 'benchmark_handle_signal INT 130' INT
     trap 'benchmark_handle_signal TERM 143' TERM
   else
     tmp_dir="$(mktemp -d)" || die "$EXIT_UNSUPPORTED" '无法创建 benchmark 临时目录。'
-    trap 'trap_rc=$?; benchmark_reap_active_child; rm -rf -- "$tmp_dir"; exit "$trap_rc"' EXIT
+    trap 'trap_rc=$?; benchmark_reap_active_child; benchmark_settle_on_exit; rm -rf -- "$tmp_dir"; exit "$trap_rc"' EXIT
     trap 'benchmark_handle_signal INT 130' INT
     trap 'benchmark_handle_signal TERM 143' TERM
   fi

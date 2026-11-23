@@ -16,6 +16,8 @@ TEMPLATE = (ROOT / 'tools/profile-template.sh.in').read_text(encoding='utf-8')
 PROBE = (ROOT / 'dvt-probe.sh').read_text(encoding='utf-8')
 RUNNER = (ROOT / 'experiments/htb-aggregate/rate-sweep-run.sh').read_text(encoding='utf-8')
 TCPQUALITY = (ROOT / 'tcpquality-evidence.sh').read_text(encoding='utf-8')
+COUNTERS = (ROOT / 'tools/measurement_counters.sh.in').read_text(encoding='utf-8')
+PHASE = (ROOT / 'tools/measurement_phase.sh.in').read_text(encoding='utf-8')
 
 
 def function(source, name):
@@ -77,7 +79,9 @@ done
         self.assertGreater(parent, sum((200, 150, 100)) * 125000 * 13)
 
     def benchmark_source(self):
-        return self.estimator + function(TEMPLATE, 'run_network_benchmark') + '''
+        return (self.estimator + function(COUNTERS, 'benchmark_known_payload_bytes') + '\n' +
+                function(TEMPLATE, 'benchmark_settle_on_exit') + '\n' +
+                function(TEMPLATE, 'run_network_benchmark') + '''
 EXIT_USAGE=2
 EXIT_UNSUPPORTED=3
 EXIT_CONFLICT=4
@@ -109,7 +113,65 @@ run_benchmark_phase() {
  printf '{"end":{"sum_sent":{"bytes":1000}}}\\n' >"$directory/$phase.iperf3.json"
  printf '{"sender":{"bytes":1000}}\\n' >"$directory/$phase.summary.json"
 }
-'''
+''')
+
+    def test_signal_settlement_precedes_persistent_and_temporary_evidence_cleanup(self):
+        # 使用正式 benchmark、信号处理、退出结算及账本代码；采集与 root 元数据用替身。
+        self.probe_source()
+        failing_tool = self.directory / 'failing-budget.sh'
+        failing_tool.write_text('''#!/usr/bin/env bash
+if [ "$1" = fail ]; then exit 73; fi
+exec bash "$(dirname "$0")/budget.sh" "$@"
+''', encoding='utf-8', newline='\n')
+        for persistent in (False, True):
+            for signal, exit_code in (('INT', 130), ('TERM', 143)):
+                for settlement_fails in (False, True):
+                    tag = f'{int(persistent)}-{signal}-{int(settlement_fails)}'
+                    with self.subTest(persistent=persistent, signal=signal,
+                                      settlement_fails=settlement_fails):
+                        tool = 'failing-budget.sh' if settlement_fails else 'budget.sh'
+                        code = (self.benchmark_source() +
+                                function(PHASE, 'benchmark_handle_signal') + f'''
+DVT_TRAFFIC_BUDGET_BYPASS=0
+DVT_TRAFFIC_BUDGET_TOOL="$PWD/{tool}"
+DVT_TRAFFIC_LEDGER="$PWD/ledger-{tag}.json"
+DVT_TRAFFIC_WINDOW_ID=fixture
+DVT_TRAFFIC_BUDGET_BYTES=3000000000
+BENCHMARK_OUTPUT_DIR=''
+''' + (f'BENCHMARK_OUTPUT_DIR="$PWD/output-{tag}"\n' if persistent else '') + f'''
+run_benchmark_phase() {{
+ local label="$1" directory="$3"
+ printf '%s\\n' "$directory" >"output-location-{tag}"
+ if [ "$label" = upload ]; then
+  printf '{{"end":{{"sum_sent":{{"bytes":2000000000}}}}}}\\n' >"$directory/upload.iperf3.json"
+  printf '{{"sender":{{"bytes":2000000000}}}}\\n' >"$directory/upload.summary.json"
+ else
+  kill -{signal} $$
+ fi
+}}
+BENCHMARK_HOST=fixture.invalid BENCHMARK_RATE_CAP_MBPS=100 BENCHMARK_OMIT_SECONDS=0 \\
+ BENCHMARK_DIRECTION=both run_network_benchmark >/dev/null
+''')
+                        self.shell(code, expected=exit_code)
+                        ledger = json.loads((self.directory / f'ledger-{tag}.json').read_text())
+                        entry = ledger['entries'][0]
+                        if settlement_fails:
+                            self.assertEqual(entry['status'], 'RESERVED')
+                            self.assertEqual(ledger['reserved_bytes'], entry['planned_bytes'])
+                            self.assertEqual(ledger['accounted_bytes'], 0)
+                        else:
+                            self.assertEqual(entry['status'], 'FAILED_CONSERVATIVE')
+                            self.assertEqual(ledger['reserved_bytes'], 0)
+                            self.assertEqual(ledger['accounted_bytes'], 2000000000)
+                            self.assertGreater(entry['accounted_bytes'], entry['planned_bytes'])
+                        if persistent:
+                            evidence = self.directory / f'output-{tag}'
+                            self.assertTrue((evidence / 'INCOMPLETE').exists())
+                            self.assertIn(f'exit_code={exit_code}',
+                                          (evidence / 'INCOMPLETE').read_text())
+                            self.assertFalse((evidence / 'COMPLETED').exists())
+                        else:
+                            self.shell(f'test ! -e "$(cat output-location-{tag})"\n')
 
     def test_old_sweep_records_verified_child_rate_cap_and_rejects_inconsistent_metadata(self):
         benchmark = self.directory / 'stage' / 'benchmark'

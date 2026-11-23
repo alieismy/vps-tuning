@@ -315,6 +315,7 @@ class BaselineRecoveryTest(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('bash') and shutil.which('jq'), 'requires Bash and jq')
     def test_migrator_archive_version_matches_approved_target(self):
+        self.archive = self.archive.with_name('archive with spaces')
         self.prepare()
         receipt = self.archive / 'receipt.json'
         source = (ROOT / 'dvt-migrate.sh').read_text(encoding='utf-8')
@@ -322,7 +323,7 @@ class BaselineRecoveryTest(unittest.TestCase):
                              re.M | re.S).group()
         # 权限由 Linux root 生命周期单独验证。这里执行正式归档校验与摘要读取。
         archive = subprocess.check_output(['bash', '-c', 'cygpath -u "$1" 2>/dev/null || printf "%s" "$1"',
-                                           '--', str(self.archive)]).decode()
+                                           '--', str(self.archive)]).decode().rstrip('\r\n')
         script = '''set -euo pipefail
 die() { printf '%s\\n' "$*" >&2; exit 2; }
 validate_file() { :; }
