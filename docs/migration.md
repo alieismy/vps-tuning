@@ -22,7 +22,7 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 
 rc.5 迁移器在调用旧来源 rollback 前检查来源状态目录。遇到账本、未知目录或文件时，先保留并核验它们，再迁到状态树之外。checkpoint 本身也必须在状态树之外。
 
-若目标 apply 被不可捕获中断并留下 APPLIED，rc.5 会停在 APPLY_RUNNING。先保存 state、checkpoint 和当时日志，核对目标固定脚本的版本与摘要。按目标脚本的 rollback 流程恢复原始配置和队列，确认回滚完成并按需清理项目 swap，再重启后用同一 checkpoint 继续。发生原值、所有权或队列恢复失败时，保留现场处理该错误。普通 verify 只读，无法把 APPLIED 写成 VERIFIED。
+若目标 apply 被不可捕获中断并留下 APPLIED，rc.5 会停在 APPLY_RUNNING。先保存 state、checkpoint 和当时日志，核对目标固定脚本的版本与摘要。按目标脚本的 rollback 流程恢复原始配置和队列，确认回滚完成并按需清理项目 swap，再重启后用同一 checkpoint 继续。若本次迁移使用 TCP 基线恢复归档（`migration.json` 的 `baseline_recovery` 非空），重试 `continue` 前先用 `sysctl -n net.ipv4.tcp_rmem` 和 `sysctl -n net.ipv4.tcp_wmem` 读取当前值，按三个整数比较 checkpoint 中 `post_reboot_tcp` 的对应值；任一不同或记录缺失时停止并保留现场，不执行 `continue`，也不修改 checkpoint 或调整系统值来迎合比较。`APPLY_RUNNING` 重试不会重新记录该基线。发生原值、所有权或队列恢复失败时，保留现场处理该错误。普通 verify 只读，无法把 APPLIED 写成 VERIFIED。
 
 ## 先判断能否迁移
 
