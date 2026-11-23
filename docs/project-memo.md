@@ -2,11 +2,18 @@
 
 文档性质：资料性状态与延期事项记录
 当前阶段：主程序 `0.2.0-rc.4` 已公开预发行，菜单版本兼容引导修正、Linux PTY、必要 CI、七组平台归档及 26 项公开资产回验闭合；五台既有主机保持 rc.2，真实终端视觉、真实 VPS 菜单和 rc.2/rc.3 → rc.4 实机迁移未验收；离线解释工具 0.1.1 已公开为独立 Pre-release 并完成资产回验，不自动启动迁移、性能 campaign 或正式版阶段
-更新日期：2026-10-31（Asia/Singapore）
+更新日期：2026-11-22（Asia/Singapore）
 
 本文件是 `AGENTS.md` 指定的唯一项目阶段备忘入口，用于记录每轮对话工作的闭环状态，以及当前阶段不主动展开的后续候选事项。它不构成需求批准、生产变更授权、发布授权或下一阶段启动决定；控制规则以 [项目级 AGENTS.md](../AGENTS.md) 为准，具体验证事实以 [验证矩阵](validation.md) 和对应发布说明为准。
 
 阅读说明：各轮记录按新到旧排列，同日记录也按此顺序接续；“尚未迁移”“待验收”“未提交”等表述描述该轮结束时的状态。当前状态以顶部阶段说明及最新相关记录为准，后继完成记录补充历史结果，不改写原始执行证据。
+
+## 本轮记录：2026-11-22（README 默认英文与结构重排）
+
+- **授权与范围。** 用户要求按 vps-hardening 本次 README 修改方案修改本仓库，并选定：在独立工作树中修改，不触碰另一会话的未提交文件；`README.md` 改为英文默认版，中文版改名为 `README.zh-CN.md`，删除 `README.en-US.md`，仓库内指向 README 的链接（含三份历史发布说明）改指 `README.zh-CN.md`；建分支、开 PR，并按 AGENTS.md 补记本备忘。分支 `claude/readme-restructure-20261122` 以主线 `c4e68b8` 为基线；只改 README、README 断言和文档链接，不改运行代码、发布资产或已公开 Release。
+- **修改内容。** 两份 README 顶部只保留标题、语言切换、徽章（预发行版本、shell-static-checks、许可证）、简介和当前预发行版一行，去掉手写目录。原顶部的 rc.4 变更说明交由发布说明和 CHANGELOG；迁移前提移入“升级与回滚”；Pre-release 状态、仓库改名和旧仓库常量说明移入“验证状态与已知限制”。新增“配套仓库与执行顺序”：vps-hardening → vps-tuning → vps-proxy-setup，依据 vps-hardening 需求 D27、D41、D42。英文版注明译自中文版，两者不一致时以中文版为准。`tests/static-check.sh` 的四条 README 断言随文件名改指。旧版章节锚点：`README.zh-CN.md` 保留原列表；`README.md` 另保留原中文版的全部章节锚点和旧版锚点，分别指向中文版或对应指南，使已发布 Release 正文和外部旧链接仍可到达。
+- **验证。** 按 GitHub 规则生成标题锚点并计入 `<a id>` 的本地相对链接检查，覆盖两份 README、SECURITY.md 和 7 份改动文档，167 个片段 0 问题，无重复 id。两份 README 的 bash 代码块逐字一致，且与改前相同；四条 README 断言本地执行通过，`bash -n tests/static-check.sh` 通过，无 CR。发布徽章用 `include_prereleases&filter=v*`，实际渲染为 `v0.2.0-rc.4`，不加 filter 会显示 measurement-explanation-v0.1.1；platform-lifecycle 徽章在 master 上渲染为 failing（最近两次 master 运行为 cancelled），未放入。完整 static-check 由 PR CI 执行，结果以 PR 为准。
+- **未完成门禁与延期。** PR 的 CI、评审和合并待完成。`docs/` 下的指南和 `SECURITY.md` 仍只有中文，不在本轮范围。合并后，外部指向 `README.en-US.md` 的链接失效（用户选择删除该文件）。无新增延期事项。成熟度不变：rc.4 仍为已公开 Pre-release，本轮只改文档入口，没有 VPS、SSH、公网测速或业务验收。
 
 ## 本轮记录：2026-10-31（离线解释工具 0.1.1 公开与文档闭环）
 
@@ -541,7 +548,7 @@
   - `vps-network-tuning` 能准确表达网络核心，但有两个问题：GitHub 上已有同领域的同名仓库，而且名字不覆盖系统调优。
   - 现有系统项只有 swap、journald、NOFILE 和 `vm.swappiness`；[操作指南](usage.md#脚本不会修改什么)列出的大量主机调优项不在范围内。所以描述应写明以网络为主。
 - **证据。**
-  - [README](../README.md) 与[平台支持](platform-support.md)的支持范围。
+  - [README](../README.zh-CN.md) 与[平台支持](platform-support.md)的支持范围。
   - GitHub 名称检索（2026-10-10）：`CG-spring/vps-network-tuning` 与候选名完全同名，描述含 routing，另有 `akadorkin/vps-network-tuning-script`；`vps-tuning` 未检出完全同名仓库。
   - GitHub 官方改名文档：web 流量与 git 操作会重定向；Actions 调用不会重定向；复用旧名会使重定向失效。
   - 本轮实测：`rust-lang/rustup.rs` 改名后，API、release 页和 archive 均返回 301；`charliermarsh/ruff` 转移后 release 下载返回 301；`ry/deno` 旧名被重新占用后 release 下载返回 404。

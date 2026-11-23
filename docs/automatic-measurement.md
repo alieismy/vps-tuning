@@ -20,7 +20,7 @@
 bash debian-vps-tuning.sh measure --rate-cap 20 --plan-only
 ```
 
-安装本版本后也可用 `dvt measure`；固定版本联网入口见 [README](../README.md#安装)，旧 rc.19 安装不含新入口。完整本地 bundle 的安装入口为 `bash install.sh --source-dir "$PWD" --no-launch`。安装会更新 `dvt` 指向，但不迁移受管状态；已有状态的 verify/rollback 继续使用对应原版本脚本，迁移前须检查[原始快照完整性](platform-support.md#旧状态与迁移)。旧 profile 增量诊断与 `DIAG_*` 参数见[操作指南](usage.md#诊断与故障定位)。
+安装本版本后也可用 `dvt measure`；固定版本联网入口见 [README](../README.zh-CN.md#安装)，旧 rc.19 安装不含新入口。完整本地 bundle 的安装入口为 `bash install.sh --source-dir "$PWD" --no-launch`。安装会更新 `dvt` 指向，但不迁移受管状态；已有状态的 verify/rollback 继续使用对应原版本脚本，迁移前须检查[原始快照完整性](platform-support.md#旧状态与迁移)。旧 profile 增量诊断与 `DIAG_*` 参数见[操作指南](usage.md#诊断与故障定位)。
 
 确认所在机器可访问目录中的公开服务，并选择一个**新的、私有且父目录已存在的**证据目录。执行资产须由 root 所有且不可被 group/world 写入；安装器会设置这些权限，直接运行源码时也会核验摘要及文件权限。以下是显式启动流量的命令示例，本地开发验证没有执行它：
 
