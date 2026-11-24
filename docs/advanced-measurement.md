@@ -101,6 +101,10 @@ env BENCHMARK_HOST='iperf.example.com' \
 
 该测试只测量 VPS 与 iperf3 服务端之间的直连 TCP，不经过 VLESS + REALITY + TCP 客户端链路。公共测试点的单次结果不能直接代表代理体验。`BENCHMARK_PARALLEL` 范围为 1–4；1C1G 和 1C2G 基线应先使用 1。iperf3 参数语义见 [ESnet 官方文档](https://software.es.net/iperf/invoking.html)。
 
+只有在[选择入口](#选择入口)所述的研究条件和授权下，才使用该能力进行单流/多流对照；设置预算不使其成为业务 VPS 的日常验收步骤。对照应固定端点、地址族、方向、总 cap、时长、预热及工具版本，改变并行流数，并保存各次独立证据目录；所有轮次共同计入批准的窗口预算，不为完成重复次数另开窗口绕过额度。
+
+总 cap 会等分到各流，因此改变并行流数也会改变每流目标速率。结果只能解释该受控负载下的差异，不能直接证明不限速单流上限；若都达到 cap，只能说明达到本次目标，不能据此判定线路已到上限。重复样本需结合离散程度和资源证据解释，不以“多流更快”唯一归因于缓冲不足，也不因本入口可运行多流而放宽单流 probe/measure 或离线校准器的输入契约。
+
 ## 固定 TcpQuality 证据采集
 
 `tcpquality-evidence.sh` 独立于系统调优生命周期，不自动下载“最新”脚本或 rootfs，也不执行 `apply`。当前资产沿用 rc.13 固定的 TcpQuality release `v1.00013`、commit `73606e2460bde21bb2e253842971f8ca8c9eb51c`、三个脚本、`rootfs-manifest.json` 和 amd64 rootfs。固定目录还必须包含记录 rootfs 内 TCP_INFO helper 与两份 eBPF 脚本审计值的 `PINNED-METADATA.txt`，以及覆盖五个下载资产的 `SHA256SUMS`。
