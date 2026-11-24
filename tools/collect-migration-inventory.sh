@@ -19,7 +19,7 @@ if command -v dvt >/dev/null; then dvt --version; else printf 'not-installed\n';
 printf 'kernel: '; uname -r
 printf 'boot_id: '; cat /proc/sys/kernel/random/boot_id
 printf '\nfq service:\n'
-systemctl show proxy-vps-tuning-fq.service -p LoadState -p UnitFileState -p ActiveState -p Result -p ExecMainStatus
+systemctl show proxy-vps-fq.service -p LoadState -p UnitFileState -p ActiveState -p Result -p ExecMainStatus
 printf '\nx-ui service (absence is not a failure):\n'
 systemctl show x-ui.service -p LoadState -p ActiveState -p LimitNOFILE
 printf '\nqdisc topology (no addresses):\n'
