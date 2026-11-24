@@ -30,4 +30,4 @@ PREPARED → ROLLBACK_RUNNING → ROLLED_BACK_REBOOT_REQUIRED → APPLY_RUNNING 
 
 本地实际函数测试覆盖版本、参数冻结、环境、快照校验与状态接续；Linux root 测试覆盖登记/并发和完整事务。扩展现有 QEMU runner，以公开 rc.4/rc.5 固定 tag 资产作为来源，真实安装、重启、迁移、重启并验证目标；只在隔离环境执行，不连接 VPS。
 
-W0 盘点仅输出非敏感状态摘要与版本/能力，不输出地址、完整代理配置或凭据。本机无 WSL/Docker/QEMU，因此真实 Linux/七平台运行结果必须由获授权 Linux 环境补齐，不以入口存在计为通过。
+W0 盘点仅输出非敏感状态摘要与版本/能力，不输出地址、完整代理配置或凭据。本机无 WSL/Docker/QEMU；本轮已在获授权的 CI 环境完成七组新装及三组固定 profile 真实来源迁移，覆盖与限制见[验证说明](validation.md#rc6-开发候选验证2026-11-25)。实机只读结果不替代迁移或业务验收。

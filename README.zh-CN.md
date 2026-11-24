@@ -1,6 +1,6 @@
 # VPS Tuning
 
-开发状态：首次正式版方案已进入 [rc.6 本地候选实施](docs/releases/v0.2.0-rc.6.md)。下方公开安装入口仍固定 rc.5；rc.6 尚未发布、未完成 Linux/实机验收。
+开发状态：首次正式版方案已进入 [rc.6 本地候选实施](docs/releases/v0.2.0-rc.6.md)。下方公开安装入口仍固定 rc.5；rc.6 尚未发布；Linux 隔离验证已通过，现网迁移与业务验收待完成。
 
 [English](README.md) | 简体中文
 

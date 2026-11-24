@@ -1,23 +1,24 @@
 # 项目阶段备忘
 
 文档性质：资料性状态与延期事项记录
-当前阶段：主程序 `0.2.0-rc.5` 已公开 Pre-release，工程与制品交付完成；现网重装 rc.4 的用户确认及首次正式版验收修订见[验证说明](validation.md#current-fleet-baseline)。修订方案已获本地实施授权，rc.6 开发候选已落地并通过本地检查，Linux/真实迁移与现网门禁尚未闭合；生产迁移和公开发布仍单独授权；离线解释工具 0.1.1 保持独立发布。
-更新日期：2026-11-24（Asia/Singapore）
+当前阶段：主程序 `0.2.0-rc.5` 已公开 Pre-release，工程与制品交付完成；现网重装 rc.4 的用户确认及首次正式版验收修订见[验证说明](validation.md#current-fleet-baseline)。修订方案已获本地实施授权，rc.6 开发候选已落地并通过本地检查，Linux 主检查、七组新装和三组固定 profile 真实迁移已通过，现网迁移与业务门禁尚未闭合；生产迁移和公开发布仍单独授权；离线解释工具 0.1.1 保持独立发布。
+更新日期：2026-11-25（Asia/Singapore）
 
 本文件是 `AGENTS.md` 指定的唯一项目阶段备忘入口，用于记录每轮对话工作的闭环状态，以及当前阶段不主动展开的后续候选事项。它不构成需求批准、生产变更授权、发布授权或下一阶段启动决定；控制规则以 [项目级 AGENTS.md](../AGENTS.md) 为准，具体验证事实以 [验证矩阵](validation.md) 和对应发布说明为准。
 
 阅读说明：各轮记录按新到旧排列，同日记录也按此顺序接续；“尚未迁移”“待验收”“未提交”等表述描述该轮结束时的状态。当前状态以顶部阶段说明及最新相关记录为准，后继完成记录补充历史结果，不改写原始执行证据。
 
-## 本轮记录：2026-11-24（rc.6 分支提交与 Linux CI）
+## 本轮记录：2026-11-25（rc.6 分支提交、Linux CI 与额外实机只读盘点）
 
 - **授权与计划。** 用户明确授权将已验证改动提交并推送到新的 `codex/` 分支，运行 Linux CI；本轮使用 `codex/first-stable-migration`。保留公开旧资产及主线，范围不包含合并、tag/Release 或生产 VPS 变更。用户可提供真实 VPS，待隔离验证结果明确后再提出具体主机及操作范围。
-- **当前进度。** 已核对起点 `aeeb0d5`、工作树改动和既有本地验证，认证及新分支预检通过。准备提交 W0/W1 与 W2 入口；推送后跟踪准确提交的静态/root/PTY/tc/ShellCheck 和七组新装、三组真实来源迁移，范围内失败修复后复验。最终运行号与结果在本节补记。
-- **首轮 CI 发现与修复。** `e49c2f7` 已推送。平台运行 `45427171009` 中 rc.4 真实迁移通过；Debian12/13 的 rc.5 来源均在来源回滚前被目标只读预检拒绝。原因是 profile 的只读旧状态白名单遗漏 rc.5，并非测试所用 explicit buffer 导致；补齐 rc.5 与候选 rc.6 的只读识别，迁移白名单及普通写操作版本边界不变，扩充实际入口回归并刷新生成资产/摘要。修复以 `bb42344a3951fe1ac01a0bc50bebe9b4bb98f93d` 推送。其[Linux 主检查](https://github.com/alieismy/vps-tuning/actions/runs/45428196095)全部通过：202 项主回归（非 root 阶段跳过 2 项）、22 项 root 恢复、9 项迁移专项、安装/原生 tc/ShellCheck；[平台工作流](https://github.com/alieismy/vps-tuning/actions/runs/45428196235)中三组真实迁移及四组 amd64 新装通过，三组 ARM64 新装仍在运行。
+- **当前进度。** 已核对起点 `aeeb0d5`、工作树改动和既有本地验证，认证及新分支预检通过。已提交并推送 W0/W1 与 W2 入口，完成范围内修复及 CI 复验；最终结果见下述记录。
+- **首轮 CI 发现与修复。** `e49c2f7` 已推送。平台运行 `45427171009` 中 rc.4 真实迁移通过；Debian12/13 的 rc.5 来源均在来源回滚前被目标只读预检拒绝。原因是 profile 的只读旧状态白名单遗漏 rc.5，并非测试所用 explicit buffer 导致；补齐 rc.5 与候选 rc.6 的只读识别，迁移白名单及普通写操作版本边界不变，扩充实际入口回归并刷新生成资产/摘要。修复以 `bb42344a3951fe1ac01a0bc50bebe9b4bb98f93d` 推送。其[Linux 主检查](https://github.com/alieismy/vps-tuning/actions/runs/45428196095)全部通过：202 项主回归（非 root 阶段跳过 2 项）、22 项 root 恢复、9 项迁移专项、安装/原生 tc/ShellCheck；[平台工作流](https://github.com/alieismy/vps-tuning/actions/runs/45428196235)10/10 项全部通过（七组新装、三组真实迁移）。旧运行 `45427171009` 的两个 rc.5 失败保留，未完成的旧 ARM64 作业在修复提交运行后取消，不记为通过。
 - **迁移归档复核。** 从修复提交的平台运行下载三组 `migration-*` 归档至 `.tmp/local/rc6-ci-bb42344/`，独立读取 source/target state 与 complete checkpoint。三组均 COMPLETE/VERIFIED，5000 Mbps、100 ms RTT、原 buffer 意图/值和 1024 MiB 项目 swap 保持，17 项来源原值、第一次迁移重启后的基线及目标原值规范化后完全一致；对应 guest 步骤完成来源启动重启、两次迁移重启和目标自身 rollback。未据此宣称代理业务验收。
 - **实机安排与边界。** 用户选择提供现有 rc.4、业务稳定的低负载 VPS，先做只读盘点；用户随后提供 MobaXterm 所用密钥路径。默认密钥未通过认证；指定密钥因 Windows ACL 过宽被 OpenSSH 拒绝，使用仅当前用户可访问的临时副本完成认证，随后清除副本，原文件及权限未改。此选择不授权 apply、rollback 或重启，只读采集已完成，结果如下。
+- **最终 CI 与归档。** 后继 `dc7369034aacae5db2c6ec90bfc61bc2d8b2e9c2` 只修改采集脚本与本备忘，其[主 CI](https://github.com/alieismy/vps-tuning/actions/runs/45431380963)通过；24 项运行文件及安装器/清单与 `bb42344` 相同，平台功能证据明确绑定该实现提交。七组 lifecycle 归档已下载至 `.tmp/local/rc6-platform-bb42344/`，复核 rc.6/schema4/VERIFIED、实际架构、两次 boot ID 变化和 17 项原值恢复；qdisc 恢复由各客体断言验证。Ubuntu ARM64 约 27 分钟完成，准备约 5 分钟、首次 apply 约 7 分钟，其余时间包括真实重启和回滚，未放宽期限或断言。最后的文档同步不改变运行资产，提交后再检查主 CI。
 - **额外实机只读证据。** 主机读回 Amazon EC2/t3.micro，Debian13/x86_64、2 vCPU、约 939 MiB RAM；用户本轮明确指定，作为原九台之外的 AWS 只读样本。入口/状态 rc.4、schema4/VERIFIED、debian13-adaptive、1000 Mbps/200 ms、auto-clamped 30769152 bytes，无项目或外部 swap。17 项原值齐全，TCP 三元组完整，无旧恢复审批或重配置；qdisc 快照及五项受管文件摘要一致，状态目录仅 state 和 qdisc 快照；实际 mq 根及两个 fq 子队列，fq 服务 enabled/active/success，x-ui active，x-ui/Xray 运行时 NOFILE 均 65536。盘点前后 state 摘要一致。只采集状态/文件摘要/运行字段，未执行 profile verify、prepare、apply、rollback、重启、公网测速或客户端业务测试；VERIFIED 为现有状态记录，不升级为本轮完整业务验收。私有原始证据在 `.tmp/local/rc6-host-inventory.txt` 与 `.tmp/local/rc6-host-readonly-extra.txt`，公开材料不写连接地址或密钥路径。
 - **采集修复。** 首轮盘点脚本错误查询 `proxy-vps-tuning-fq.service`；产品真实 unit 为 `proxy-vps-fq.service`。已修正仓库采集脚本，并通过实际主机只读复核消除误报，未修改服务器服务。该工具不在安装资产清单中，运行制品摘要保持 `bb42344`。
-- **延期与成熟度。** 无新增延期。Linux 主检查及三组真实隔离迁移通过，七组新装矩阵尚待 ARM64 结果。新增实机只读发现的 adaptive/无 swap 与已有固定 1C1G 迁移样本有差异；在拟批准该机迁移时补相应隔离用例并明确 swap 意图、恢复入口和业务基线，不能直接宣布灰度通过。生产写入、业务和正式发布门禁仍未完成。
+- **延期与成熟度。** 无新增延期。Linux 主检查、七组新装及三组固定 profile 真实隔离迁移全部通过。新增实机只读发现的 adaptive/无 swap 与已有固定 1C1G 迁移样本有差异；在拟批准该机迁移时补相应隔离用例并明确 swap 意图、恢复入口和业务基线，不能直接宣布灰度通过。生产写入、业务和正式发布门禁仍未完成。
 
 ## 本轮记录：2026-11-24（按修订方案实施 rc.6 本地候选）
 
