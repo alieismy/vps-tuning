@@ -8,6 +8,20 @@
 
 阅读说明：各轮记录按新到旧排列，同日记录也按此顺序接续；“尚未迁移”“待验收”“未提交”等表述描述该轮结束时的状态。当前状态以顶部阶段说明及最新相关记录为准，后继完成记录补充历史结果，不改写原始执行证据。
 
+## 本轮记录：2026-11-24（PR #46 主线冲突解决）
+
+- **授权与范围。** 用户要求解决 [PR #46](https://github.com/alieismy/vps-tuning/pull/46) 不能合入主线的问题。GitHub 显示 `CONFLICTING`/`DIRTY`：该分支以 `c4e68b8` 为基线，此后主线合入 #47、#48、#49。在既有 README 工作树中把 origin/master `6691d16` merge 入 PR 分支（不 rebase、不强推），只处理冲突及由此产生的一致性更新；不合并 PR，不改运行代码、tag 或 Release。
+- **冲突处理。** 五处冲突：`README.en-US.md` 保持删除；两份 README 在 PR 新结构内同步 rc.5 当前预发行行（2026-11-23 UTC）、安装器 URL 与 SHA-256、验证状态及发布说明链接，“升级与回滚”中的 rc.4 迁移前提改为主线 rc.5 表述；`docs/migration.md`、`docs/usage.md` 取 rc.5 正文并保留指向 `README.zh-CN.md` 的链接；本备忘取主线页头，README 记录排在 2026-11-22 记录首位。另将主线新增的三处中文 README 链接（[代理 VPS 评审](proxy-vps-fit-review-2026-11-22.md)两处、[rc.5 发布说明](releases/v0.2.0-rc.5.md)一处）改指 `README.zh-CN.md`。
+- **验证。** 无冲突标记和 CR，`git diff --check` 通过；`install.sh` 的 SHA-256 与两份 README 及 rc.5 发布说明一致；两份 README 的 bash 代码块逐字一致，且与主线英文 README 相同。按 GitHub 锚点规则检查两份 README、SECURITY.md 与 8 份相关文档的 297 个相对链接及本备忘的 101 个链接，0 问题；四条 README 断言与 `bash -n tests/static-check.sh` 通过。本地缺 python3、shellcheck 和 WSL，完整 static-check 以推送后的 PR CI 为准。
+- **未完成门禁与延期。** PR #46 推送后的 CI、可合并状态、评审与合并待完成，最终状态以 GitHub 记录为准。两份 README 中“五台仍为 rc.2”一句沿用主线原文。无新增延期事项；rc.5 阶段判断不变，无 VPS、公网测速或业务验收。
+
+## 本轮记录：2026-11-24（诊断说明分支代码评审）
+
+- **范围与基线。** 用户调用代码评审且未指定目标，按当前分支相对 master 评审：HEAD `871e55ea1c61d36ce160d2850f697313ca094974`（PR #49，开放），origin/master `51d6d62f0131425fea4606e01981b74a5f38f859`，差异仅三份 Markdown。只读评审；除本记录外未修改被评文档，未提交、推送或连接 VPS。
+- **核验。** `ss -tinp` 在等待前单次执行，与 profile 源码一致；benchmark 拒绝关闭 cap、总 cap 按并行数等分及预热参数，与 `tools/profile-template.sh.in` 一致；新增锚点存在；`platform-lifecycle` 路径过滤不含 docs，“不触发七平台矩阵”成立。PR #49 的两次 `validate` 与 CodeRabbit 检查通过。对照 iproute2 主线 `misc/ss.c`：`rwnd_limited`/`sndbuf_limited` 仅在 `busy_time` 与自身均非零时打印，百分比分母为 busy；目标机 iproute2 版本未核验。
+- **发现（未修改，待用户决定）。** Minor：[诊断说明](usage.md#诊断与故障定位)“缺少字段也不能当作零受限”过宽；输出含 `busy:` 而无该字段时，表示截至快照累计为 0，仅当 `busy:` 也缺失时不可判定，且快照早于等待窗口。Nit：[benchmark 对照条件](advanced-measurement.md#研究专用-benchmark)未列时段或交替顺序，与同页“时段一致”的比较要求未对齐；本备忘“顶部自检记录”已不在顶部，“前两轮”与随后列出的三类记录不符。
+- **延期与成熟度。** 无新增延期事项；rc.5 阶段判断不变，无新增运行、业务或性能证据。
+
 ## 本轮记录：2026-11-24（诊断说明文档提交与 PR 交付）
 
 - **授权与范围。** 用户要求本地提交、推送 GitHub 并查看主线合并路径。使用 `codex/clarify-network-diagnostics-docs` 分支交付本轮三份 Markdown，包含前两轮研究、自检和实施记录；不直接推送 master，不修改运行代码、公开 tag 或 Release。
