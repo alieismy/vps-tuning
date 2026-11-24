@@ -354,7 +354,7 @@ state_file_path_is_valid() {
       (if .schema_version == $schema then
         (.script_version == $version or
           ($update_preflight == 1 and
-            (.script_version | test("^(0\\.1\\.0-rc\\.([1-9]|1[0-9])|0\\.2\\.0-rc\\.[234])$")))) and
+            (.script_version | test("^(0\\.1\\.0-rc\\.([1-9]|1[0-9])|0\\.2\\.0-rc\\.[23456])$")))) and
         (.provider_sysctl_transfer | type == "object") and
         (.provider_sysctl_transfer.required | type == "boolean") and
         (.provider_sysctl_transfer.source_path == $provider_file) and

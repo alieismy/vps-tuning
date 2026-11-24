@@ -131,8 +131,8 @@ run_network_benchmark() { die 98 UNEXPECTED_OTHER_ACTION; }
         result = self.run_profile(state_fixture(version=TARGET_VERSION), action='validate-state', update=0)
         self.assertEqual(result.returncode, 0, result.stderr.decode())
 
-    def test_rc2_and_rc3_sources_are_read_only_preflight_compatible(self):
-        for version in ('0.2.0-rc.2', '0.2.0-rc.3'):
+    def test_rc2_through_rc5_sources_are_read_only_preflight_compatible(self):
+        for version in ('0.2.0-rc.2', '0.2.0-rc.3', '0.2.0-rc.4', '0.2.0-rc.5'):
             with self.subTest(version=version):
                 state = state_fixture(version=version)
                 result = self.run_profile(state)
