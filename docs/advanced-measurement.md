@@ -1,6 +1,6 @@
 # 高级测量与历史 HTB 研究入口
 
-适用：`v0.2.0-rc.1` 的旧 `probe`/`benchmark`/TcpQuality 接口及明确标记版本的历史研究资料。本页不属于默认安装、迁移或日常验收步骤。无需自建对端的新版入口优先见 [自动测量](automatic-measurement.md)；通用临时整形见 [htb-sweep](temporary-htb.md)。
+本页当前命令示例和预算、结算说明适用于 `v0.2.0-rc.5` 预发行版中的 legacy `probe`/`benchmark`/TcpQuality 接口。历史 HTB 附录继续按其明确指定的旧版 bundle 执行，已发布 rc.1 的预算和默认限速行为见对应固定版本。本页不属于默认安装、迁移或日常验收步骤。无需自建对端的新版入口优先见 [自动测量](automatic-measurement.md)；通用临时整形见 [htb-sweep](temporary-htb.md)。
 
 当前工具的 `./...` 示例从完整且已校验的同版本 bundle 根目录执行；历史 HTB 附录则使用它明确指定的旧版 bundle，不能在当前源码目录直接照抄历史相对路径。
 
@@ -18,29 +18,28 @@
 
 ## 显式对端的 dvt probe
 
-`dvt probe` 只用于真实业务症状触发后的有预算诊断，不是日常、升级或发布默认门禁。它要求显式提供你控制或明确获准使用的 iperf3 服务端；默认从 `VERIFIED` 管理状态读取 100–1000 Mbps 套餐端口上限，也可用 `--rate-cap` 明确指定。每个方向固定单流，并把该值通过 `iperf3 --bitrate` 实际应用到测试流量，而不只是写入估算。必须先用 `--plan-only` 查看 payload 上界，再显式设置不超过已批准窗口的 `--budget-mib`；计划和工具预算均不含协议开销，也不能替代服务商面板的剩余额度检查：
+`dvt probe` 只用于真实业务症状触发后的有预算诊断，不是日常、升级或发布默认门禁。它要求显式提供你控制或明确获准使用的 iperf3 服务端；默认从 `VERIFIED` 管理状态读取 100–1000 Mbps 套餐端口上限，也可用 `--rate-cap` 明确指定。每个方向固定单流，并把该值通过 `iperf3 --bitrate` 实际应用到测试流量，而不只是写入估算。必须先用 `--plan-only` 查看包含硬超时和终止宽限的保守预留，再显式设置不超过已批准窗口的 `--budget-mib`；计划和工具预算均不含协议开销，也不能替代服务商面板的剩余额度检查：
 
 ```bash
 dvt probe --host iperf.example.com --server-port 5201 --plan-only
 ```
 
-确认 endpoint 授权和预算后，执行两个单向短样本；200 Mbps 下计划 payload 上界为
-250,000,000 字节，低于单样本 300 MB 和单窗口 600 MB 的设计上限：
+确认 endpoint 授权和预算后，执行两个单向短样本。下例为 100 Mbps、每样本有效 5 秒、零预热，名义 payload 合计 125,000,000 字节。按每样本 20 秒硬超时、5 秒终止宽限和 1 MiB 发送余量，保守预留共 627,097,152 字节，低于本例的 600 MiB 窗口预算。
 
 ```bash
 dvt probe \
   --host iperf.example.com \
   --server-port 5201 \
-  --rate-cap 200 \
+  --rate-cap 100 \
   --samples 2 \
   --seconds 5 \
   --omit 0 \
   --direction upload \
   --family 4 \
   --budget-mib 600 \
-  --ledger /var/lib/proxy-vps-tuning/traffic-ledgers/change-20260829.json \
+  --ledger /root/dvt-traffic/change-20260829.json \
   --window-id change-20260829 \
-  --output-dir /root/dvt-probe-200m-a1 \
+  --output-dir /root/dvt-probe-100m-a1 \
   --yes
 ```
 
@@ -55,16 +54,17 @@ dvt probe \
 ```bash
 env BENCHMARK_HOST='iperf.example.com' \
   BENCHMARK_PORT=5201 \
-  BENCHMARK_SECONDS=10 \
+  BENCHMARK_SECONDS=5 \
   BENCHMARK_OMIT_SECONDS=3 \
-  BENCHMARK_PHASE_TIMEOUT_SECONDS=28 \
+  BENCHMARK_PHASE_TIMEOUT_SECONDS=23 \
   BENCHMARK_PARALLEL=1 \
   BENCHMARK_IP_FAMILY=4 \
   BENCHMARK_DIRECTION=both \
-  BENCHMARK_RATE_CAP_MBPS=200 \
+  BENCHMARK_RATE_CAP_MBPS=50 \
+  BENCHMARK_ENFORCE_RATE_CAP=1 \
   BENCHMARK_RUN_ID='case-1c1g-ipv4-a1' \
   BENCHMARK_OUTPUT_DIR='/root/dvt-benchmark-case-1c1g-ipv4-a1' \
-  DVT_TRAFFIC_LEDGER='/var/lib/proxy-vps-tuning/traffic-ledgers/change-20260829.json' \
+  DVT_TRAFFIC_LEDGER='/root/dvt-traffic/change-20260829.json' \
   DVT_TRAFFIC_WINDOW_ID='change-20260829' \
   DVT_TRAFFIC_BUDGET_BYTES=629145600 \
   bash ./debian-vps-tuning.sh benchmark
@@ -74,7 +74,13 @@ env BENCHMARK_HOST='iperf.example.com' \
 
 摘要中的 `sender.retransmits` 是对应方向的 iperf3 sender 统计，`host.tcp_delta` 是测试窗口内的整机全局计数，`qdisc_delta` 是本地 qdisc 统计。三者不可互换：背景连接会计入整机统计，本地 qdisc drop 也不等于远端路径丢包。
 
-开始产生测试流量前，脚本会按 `带宽上限 × (有效时间 + omit) × 方向数` 计算 iperf payload 估算上界。`BENCHMARK_RATE_CAP_MBPS` 显式值优先；未提供时只接受合法管理状态中的 `network.port_speed_mbps`，否则 当前实现 fail-closed，不再运行无法量化的测试。直接 benchmark、probe、TcpQuality 和 HTB runner 必须共享一个 root-only ledger；每次先原子保留计划上界，成功后提交可得的实际 sender bytes，失败、超时或信号中断按计划上界保守计入，未能结算的 reservation 继续占用额度。账本只覆盖应用 payload，不包含协议、重传和服务商计费差异。`BENCHMARK_ENFORCE_RATE_CAP=1` 才会向 iperf3 传递 `--bitrate`；多流时脚本将总 cap 等分为每流 bps，推荐优先使用固定单流的 `dvt probe`。
+本次源码修订要求 benchmark 实际传入 iperf3 `--bitrate`。`BENCHMARK_RATE_CAP_MBPS` 显式值优先，缺省时读取合法管理状态中的 `network.port_speed_mbps`。多流时将总 cap 等分为每流 bps。`BENCHMARK_ENFORCE_RATE_CAP=0` 会在网络测试前被拒绝。已发布旧 bundle 仍保留其原行为，使用时需核对版本。
+
+名义窗口估算为 `cap × 125000 × (seconds + omit) × 方向数`。实际保守预留为 `(cap × 125000 × (phase_timeout + 5) + parallel × 1048576) × 方向数` 字节，覆盖硬超时、TERM→KILL 宽限和每流发送余量。上例每方向硬超时 23 秒，双方向预留 352,097,152 字节，可在 600 MiB 空窗口内启动。probe 对每个样本使用相同公式，固定硬超时为有效窗口加预热加 15 秒。旧 HTB runner 从各阶段的 cap 计算同样的保守预留，可能高于历史计划文件所列的名义窗口值，并在会话元数据中记录实际预留。 该 runner 的软件 cap 与 HTB class rate 相同，软件节拍可能使 HTB overlimits 不足。分析器继续要求每个样本有正 overlimits 和足够的速率暴露，缺少这些证据时结果为 REVIEW_BLOCKED。若要改变 offered rate 以验证整形机制，需要另行确定实验输入和预算。
+
+候选 runner 会从通过完整性与版本绑定核验的 benchmark 元数据提取实际记录的软件限速方法、范围和每流 bps，写入 stage-result 及完成后的 session-meta。未完成会话的已完成阶段仍可单独查看。软件节拍还可能影响突发、CPU 和重传，因此即使 overlimits 为正，也不能把这些样本与旧无软件节拍归档直接用于 HTB 因果比较。现有分析器继续读取旧归档；其输出不会完整展示新增限速记录，复审时须连同 stage-result/session-meta 核对。
+
+软件节拍及这些余量用于限制负载和保守记账，无法保证物理网络字节绝对上界。预算不含协议、重传及服务商计费差异。直接 benchmark、probe、TcpQuality 和 HTB runner 共享相应 root-only ledger。零预热成功时提交可得的实际 sender bytes。非零预热的有效窗口统计不含预热，成功时按计划预留与已知有效字节两者的较大值保守结算。失败时同样保留已知有效字节下界。未能结算的 reservation 继续占用额度。TcpQuality 的手工计划金额无法证明动态上游负载的流量上界，需使用已独立批准的研究额度。
 
 `sender.retransmits_per_gib` 按 iperf3 sender bytes 归一化。schema 3 分别保存 `qdisc_root_totals` 和 `qdisc_leaf_totals`；`qdisc_health` 对两层的 drop/requeue 独立判定，根与叶的 bytes 不相加。`mq` 拓扑的 `qdisc_active_totals` 仍使用叶子作为流量汇总，普通根 qdisc 和 HTB 使用 root；HTB root `overlimits` 是整形暴露证据，FQ 叶子 drop/requeue 不会再被 root 零值掩盖。缺少预期 HTB→FQ 叶子时摘要生成失败。这些指标只适合比较服务端、方向、时段和参数一致的重复测试，不能单独用于性能排名。
 
@@ -94,6 +100,10 @@ env BENCHMARK_HOST='iperf.example.com' \
 `BENCHMARK_IP_FAMILY=4` 或 `6` 用于固定地址族；`auto` 由系统解析和连接过程选择。比较 IPv4 与 IPv6 时，应分别运行并保存各自的默认路由。`BENCHMARK_OMIT_SECONDS=0` 用于观察包含 slow start 的短连接；非零值用于比较稳态吞吐，两类结果不能混入同一序列。
 
 该测试只测量 VPS 与 iperf3 服务端之间的直连 TCP，不经过 VLESS + REALITY + TCP 客户端链路。公共测试点的单次结果不能直接代表代理体验。`BENCHMARK_PARALLEL` 范围为 1–4；1C1G 和 1C2G 基线应先使用 1。iperf3 参数语义见 [ESnet 官方文档](https://software.es.net/iperf/invoking.html)。
+
+只有在[选择入口](#选择入口)所述的研究条件和授权下，才使用该能力进行单流/多流对照；设置预算不使其成为业务 VPS 的日常验收步骤。对照应固定端点、地址族、方向、总 cap、时长、预热及工具版本，改变并行流数，并保存各次独立证据目录；所有轮次共同计入批准的窗口预算，不为完成重复次数另开窗口绕过额度。
+
+总 cap 会等分到各流，因此改变并行流数也会改变每流目标速率。结果只能解释该受控负载下的差异，不能直接证明不限速单流上限；若都达到 cap，只能说明达到本次目标，不能据此判定线路已到上限。重复样本需结合离散程度和资源证据解释，不以“多流更快”唯一归因于缓冲不足，也不因本入口可运行多流而放宽单流 probe/measure 或离线校准器的输入契约。
 
 ## 固定 TcpQuality 证据采集
 
@@ -137,7 +147,7 @@ env \
   TCPQUALITY_PARALLEL=16 \
   TCPQUALITY_PLANNED_PAYLOAD_BYTES=629145600 \
   DVT_TRAFFIC_BUDGET_TOOL='/usr/local/lib/debian-vps-tuning/current/dvt-traffic-budget.sh' \
-  DVT_TRAFFIC_LEDGER='/var/lib/proxy-vps-tuning/traffic-ledgers/research-20260829.json' \
+  DVT_TRAFFIC_LEDGER='/root/dvt-traffic/research-20260829.json' \
   DVT_TRAFFIC_WINDOW_ID='research-20260829' \
   DVT_TRAFFIC_BUDGET_BYTES=2147483648 \
   bash ./tcpquality-evidence.sh
@@ -160,12 +170,12 @@ env \
 | `BENCHMARK_PARALLEL` | `1` | `1–4` |
 | `BENCHMARK_IP_FAMILY` | `auto` | `auto`、`4` 或 `6` |
 | `BENCHMARK_DIRECTION` | `both` | `upload`、`download` 或 `both` |
-| `BENCHMARK_RATE_CAP_MBPS` | 合法管理状态的端口带宽，否则不可估算 | 可选 `1–100000`；默认只用于流量预算；`BENCHMARK_ENFORCE_RATE_CAP=1` 时必须显式设置，总 cap 等分后传给各 iperf3 流的 `--bitrate`，不改系统配置 |
+| `BENCHMARK_RATE_CAP_MBPS` | 合法管理状态的端口带宽，否则拒绝执行 | 可选 `1–100000`；总 cap 等分后传给各 iperf3 流的 `--bitrate` |
 | `BENCHMARK_RUN_ID` | 自动生成 | 可选的 1–96 字符运行标签；仅限字母、数字、点、下划线、冒号和连字符 |
 | `BENCHMARK_OUTPUT_DIR` | 临时目录 | 可选的持久化证据目录；必须是父目录已存在、目标尚不存在的绝对路径 |
 | `TCPQUALITY_MODE` | 无 | 证据工具必填；`local-evidence` 禁止报告/debug 上传，`public-report` 明确允许报告及附属 debug bundle 上传 |
 | `TCPQUALITY_ACK_TRANSIENT_FIREWALL` | `0` | 必须显式为 `1`；确认固定上游会临时创建/删除目标流量计数链，且维护窗口与恢复边界可接受 |
-| `BENCHMARK_ENFORCE_RATE_CAP` | `0` | `1` 才把总 cap 等分为每流 iperf3 `--bitrate`；probe 自动启用 |
+| `BENCHMARK_ENFORCE_RATE_CAP` | `1` | 必须为 `1`；probe 和旧 HTB runner 显式启用 |
 | `BENCHMARK_PHASE_TIMEOUT_SECONDS` | 有效秒数 + omit + 15 | `1–300`；小于测量窗口会使样本失败 |
 
 ## 历史 HTB reference 与 A/B/A
@@ -206,7 +216,7 @@ bash "$DVT_ROOT/debian-vps-tuning.sh" htb smoke --rate 190 --hold-seconds 10
 
 bash "$DVT_ROOT/debian-vps-tuning.sh" htb reference \
   --host iperf.example.com --server-port 5201 \
-  --ledger /var/lib/proxy-vps-tuning/traffic-ledgers/htb-research-20260829.json \
+  --ledger /root/dvt-traffic/htb-research-20260829.json \
   --window-id htb-research-20260829 --budget-mib 8192 \
   --output-dir /root/htb200-reference-a1
 
@@ -216,7 +226,7 @@ bash "$DVT_ROOT/debian-vps-tuning.sh" htb sweep \
   --reference-evidence /root/htb200-reference-a1 \
   --ack-reference-reviewed \
   --rates 180,190,195 \
-  --ledger /var/lib/proxy-vps-tuning/traffic-ledgers/htb-research-20260829.json \
+  --ledger /root/dvt-traffic/htb-research-20260829.json \
   --window-id htb-research-20260829 --budget-mib 8192 \
   --output-dir /root/htb-candidate-sweep-a1
 ```

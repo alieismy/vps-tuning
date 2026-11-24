@@ -37,6 +37,37 @@ def row(role, rate, retrans=0, eligible=True):
 
 
 class TemporaryHTBTests(unittest.TestCase):
+    def test_watch_restores_if_owner_exits_before_term(self):
+        state = dict(phase='ACTIVE', owner_pid=42, owner_token='owner', deadline_monotonic=0)
+        with tempfile.TemporaryDirectory() as temp, patch.object(h, 'load', return_value=(state, {})), \
+                patch.object(h, 'owner_token', return_value='owner'), \
+                patch.object(h.os, 'kill', side_effect=ProcessLookupError), \
+                patch.object(h, 'restore') as restore:
+            checkpoint = Path(temp)
+            h.watch(checkpoint)
+            restore.assert_called_once_with(checkpoint)
+
+    def test_watch_restores_if_owner_exits_before_kill(self):
+        state = dict(phase='ACTIVE', owner_pid=42, owner_token='owner', deadline_monotonic=0)
+        with tempfile.TemporaryDirectory() as temp, patch.object(h, 'load', return_value=(state, {})), \
+                patch.object(h, 'owner_token', return_value='owner'), \
+                patch.object(h.time, 'monotonic', side_effect=[1, 1, 10]), \
+                patch.object(h.signal, 'SIGKILL', 9, create=True), \
+                patch.object(h.os, 'kill', side_effect=[None, ProcessLookupError]), \
+                patch.object(h, 'restore') as restore:
+            checkpoint = Path(temp)
+            h.watch(checkpoint)
+            restore.assert_called_once_with(checkpoint)
+
+    def test_watch_preserves_other_signal_errors(self):
+        state = dict(phase='ACTIVE', owner_pid=42, owner_token='owner', deadline_monotonic=0)
+        with tempfile.TemporaryDirectory() as temp, patch.object(h, 'load', return_value=(state, {})), \
+                patch.object(h, 'owner_token', return_value='owner'), \
+                patch.object(h.os, 'kill', side_effect=PermissionError), \
+                patch.object(h, 'restore') as restore, self.assertRaises(PermissionError):
+            h.watch(Path(temp))
+        restore.assert_not_called()
+
     def test_fq_restore_units_flags_and_bands(self):
         options = dict(OPTIONS, bands=3, **{'priomap ': [1] * 16, 'weights ': [589824, 196608, 65536]}, maxrate=125000)
         normalized, argv = h.fq_options(options)

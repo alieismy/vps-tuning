@@ -149,14 +149,20 @@ qdisc_counter_snapshot() {
           kind=$2
           handle=$3
           scope="other"
+          parent=""
           for (header_index=4; header_index<=NF; header_index++) {
             if ($header_index == "root") scope="root"
             else if ($header_index == "parent" &&
-                     ($(header_index+1) ~ /^:[0-9]+$/ ||
-                      $(header_index+1) ~ /^[0-9]+:[0-9]+$/) &&
-                     kind != "ingress" && kind != "clsact") scope="leaf"
+                     ($(header_index+1) ~ /^:[0-9a-fA-F]+$/ ||
+                      $(header_index+1) ~ /^[0-9a-fA-F]+:[0-9a-fA-F]+$/) &&
+                     kind != "ingress" && kind != "clsact") {
+              scope="leaf"
+              parent=$(header_index+1)
+            }
           }
           key=iface "." scope "." kind "." handle
+          # mq 的多个叶子可以共用 handle 0:；保留 parent 区分计数身份及拓扑变化。
+          if (scope == "leaf") key=key "." parent
           active=1
           next
         }
@@ -185,6 +191,14 @@ qdisc_counter_snapshot() {
         END {if (emitted == 0) exit 47}
       '
   done <"$ifaces_file"
+}
+
+benchmark_known_payload_bytes() {
+  local directory="$1" file
+  for file in "${directory}/upload.iperf3.json" "${directory}/download.iperf3.json"; do
+    [ -f "$file" ] || continue
+    jq -er '.end.sum_sent.bytes | select(type == "number" and . >= 0 and floor == .)' "$file" 2>/dev/null || true
+  done | awk '{total += $1} END {printf "%.0f\n", total}'
 }
 
 build_benchmark_phase_summary() {

@@ -8,7 +8,7 @@
 
 为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
 
-**当前预发行版：[`v0.2.0-rc.4`](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4)（2026-10-13 UTC），尚无正式版。** 已有 DVT 受管状态的主机须先完成跨版本迁移，才能在新版本下执行受管动作，见[升级与回滚](#升级与回滚)。
+**当前预发行版：[`v0.2.0-rc.5`](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.5)（2026-11-23 UTC），尚无正式版。** 已有 DVT 受管状态的主机须先完成跨版本迁移，才能在新版本下执行受管动作，见[升级与回滚](#升级与回滚)。
 
 ## 功能与边界
 
@@ -48,7 +48,7 @@
 
 ### 安装
 
-在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.4` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
+在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.5` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
 
 ```bash
 (
@@ -59,9 +59,9 @@
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.5/install.sh
   printf '%s  %s\n' \
-    '06c8b235ce0538d6e5247b3b50fa568e6c71f9ee9f28b4cc999f031b5e9978ec' \
+    'de7967a738fb28d0da24ff70b7928f32aee6d0ad7965d938d4152e2903f0ada0' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -158,7 +158,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 ## 升级与回滚
 
-**更新文件入口、迁移 managed state 和业务验收是不同步骤。** 已受管主机要在新版本下执行受管动作，须先完成跨版本迁移：由**旧版固定 Release**按自身状态核验和恢复，再按 checkpoint 完成两次人工重启及目标版本 apply/verify。预检通过不证明原始 TCP 快照完整，迁移仍须通过 `migrate prepare`。不建议稳定 rc.2 主机仅为交互界面迁移。当前操作及历史版本附录见[迁移指南](docs/migration.md)。
+**更新文件入口、迁移 managed state 和业务验收是不同步骤。** 已受管主机要在新版本下执行受管动作，须先通过跨版本迁移及原值完整性门禁：由**旧版固定 Release**按自身状态核验和恢复，再按 checkpoint 完成两次人工重启及目标版本 apply/verify。Ubuntu 和超过 1000 Mbps 的端口仍不在迁移器范围内，新安装支持不扩大迁移支持。当前操作及历史版本附录见[迁移指南](docs/migration.md)。
 
 只有恢复条件完整、入口版本与状态相符时才执行 `dvt rollback`。普通回滚默认保留项目创建的 swap；确需清理时，先确认内存余量，再按[回滚说明](docs/usage.md#回滚)显式 purge。失败保留 state、checkpoint、备份和 ledger；不手工删状态、猜原值或用新版覆盖旧状态。
 
@@ -186,7 +186,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 
 ## 验证状态与已知限制
 
-- `v0.2.0-rc.4` 为 Pre-release，固定资产已完成公开下载回验。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。
+- `v0.2.0-rc.5` 为 Pre-release，固定资产已完成公开下载回验。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。
 - 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性；五台仍为 rc.2，rc.3/rc.4 尚未在这些主机上迁移或验证。
 - 七组隔离客体生命周期覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 adaptive，以及 Debian 13 x86_64 legacy；包括真实客体重启、幂等、重配置与恢复。ARM64 使用 ARM runner 上的 QEMU/TCG，不能替代特定云厂商硬件验收。
 - 公共 IPv4 自动测量、临时 HTB 正常与信号中断恢复有有限 VPS 证据。完整低速扫描曾获得 15 个样本、11 个有效，整轮仍为 `INSUFFICIENT_EVIDENCE`，尚未证明可靠 policer（流量监管）拐点或代理收益。
@@ -194,7 +194,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 - 1–10000 Mbps 是参数范围；更广泛公网平台、IPv6、高速、特定大资源硬件及业务性能仍有未验收项。
 - 仓库原名 `debian-vps-tuning`，2026-10-10 改为现名，旧链接会自动跳转到本仓库；`dvt` 命令、发布资产文件名、安装路径和受管状态路径均保持不变。本版运行资产保留已验证的旧仓库常量，安装器和总控通过 GitHub 重定向访问新仓库；不要在同一账户下重新创建旧名仓库，以免使这些重定向失效。
 
-各版本的变化见 [Releases](https://github.com/alieismy/vps-tuning/releases) 和 [CHANGELOG](CHANGELOG.md)。固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.4.md)。
+各版本的变化见 [Releases](https://github.com/alieismy/vps-tuning/releases) 和 [CHANGELOG](CHANGELOG.md)。固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.5.md)。
 
 ## 文档导航
 

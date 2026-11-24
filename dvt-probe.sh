@@ -67,7 +67,8 @@ Options:
   --yes                    accept the displayed traffic budget non-interactively
 
 The host must be an iperf3 service you control or are explicitly authorized to
-use. Every sample applies iperf3 --bitrate at the declared cap. Results are
+use. Every sample applies iperf3 --bitrate at the declared cap. Reservations include
+the hard-timeout and termination windows plus a send-block allowance. Results are
 advisory: they do not discover a provider plan cap, tune sysctl, change qdisc,
 recommend persistent shaping, or measure the 3X-UI/Xray/client path.
 EOF
@@ -94,7 +95,8 @@ read_rate_from_state() {
 planned_payload_bytes() {
   local direction_count=1
   [ "$direction" != both ] || direction_count=2
-  printf '%s\n' "$((rate_cap * 125000 * (seconds + omit) * direction_count * samples))"
+  # 与子 benchmark 的固定硬超时、TERM→KILL 宽限及单流发送余量一致。
+  printf '%s\n' "$(((rate_cap * 125000 * (seconds + omit + 15 + 5) + 1048576) * direction_count * samples))"
 }
 
 confirm_traffic() {
@@ -106,10 +108,18 @@ confirm_traffic() {
   case "$answer" in y | Y | yes | YES) ;; *) die '用户取消；没有产生 probe 流量。' ;; esac
 }
 
+known_payload_bytes() {
+  local file
+  for file in "${output_dir}"/sample-*/*.iperf3.json; do
+    [ -f "$file" ] || continue
+    jq -er '.end.sum_sent.bytes | select(type == "number" and . >= 0 and floor == .)' "$file" 2>/dev/null || true
+  done | awk '{total += $1} END {printf "%.0f\n", total}'
+}
+
 mark_incomplete() {
   local rc=$?
   if [ "$budget_reserved" -eq 1 ]; then
-    bash "$budget_tool" fail --ledger "$ledger" --reservation-id "$reservation_id" >/dev/null 2>&1 || true
+    bash "$budget_tool" fail --ledger "$ledger" --reservation-id "$reservation_id" --known-bytes "$(known_payload_bytes)" >/dev/null 2>&1 || true
     budget_reserved=0
   fi
   if [ "$probe_created" -eq 1 ] && [ ! -f "${output_dir}/COMPLETED" ]; then
@@ -189,7 +199,7 @@ main() {
   printf '  profile: %s\n' "$profile_id"
   printf '  rate cap: %s Mbps (iperf3 --bitrate, every direction)\n' "$rate_cap"
   printf '  samples/direction: %s; directions: %s; measured+omit: %s+%s s\n' "$samples" "$direction_count" "$seconds" "$omit"
-  printf '  planned payload: %s bytes (%.2f MiB; protocol overhead excluded)\n' \
+  printf '  conservative reservation: %s bytes (%.2f MiB; protocol overhead excluded)\n' \
     "$payload_bytes" "$(awk -v b="$payload_bytes" 'BEGIN {printf "%.2f", b/1048576}')"
   printf '  boundary: advisory-only; no sysctl/qdisc/provider-cap/persistent-HTB change\n\n'
   [ "$plan_only" -eq 0 ] || { info 'plan-only 完成；没有创建证据目录，也没有产生流量。'; return 0; }
@@ -197,13 +207,6 @@ main() {
     die '缺少经总控校验的 --budget-tool。'
   [ -n "$ledger" ] && [ -n "$window_id" ] || die '执行 probe 必须显式设置 --ledger 和 --window-id。'
   confirm_traffic
-
-  reservation_id="probe-$(date -u +%Y%m%dT%H%M%SZ)-$$"
-  bash "$budget_tool" reserve --ledger "$ledger" --window-id "$window_id" \
-    --budget-bytes "$budget_bytes" --tool probe --run-id "$reservation_id" \
-    --reservation-id "$reservation_id" --planned-bytes "$payload_bytes" >/dev/null ||
-    die '共享窗口剩余额度不足或 ledger 无效；没有开始 probe。'
-  budget_reserved=1
 
   if [ -z "$output_dir" ]; then output_dir="/root/dvt-probe-$(date -u +%Y%m%dT%H%M%SZ)"; fi
   [[ "$output_dir" = /* ]] || die 'output-dir 必须是绝对路径。'
@@ -218,6 +221,13 @@ main() {
   trap 'stage=signal-INT; exit 130' INT
   trap 'stage=signal-TERM; exit 143' TERM
   printf 'status=INCOMPLETE\nstage=initialization\nutc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"${output_dir}/INCOMPLETE"
+  reservation_id="probe-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  bash "$budget_tool" reserve --ledger "$ledger" --window-id "$window_id" \
+    --budget-bytes "$budget_bytes" --tool probe --run-id "$reservation_id" \
+    --reservation-id "$reservation_id" --planned-bytes "$payload_bytes" >/dev/null ||
+    die '共享窗口剩余额度不足或 ledger 无效；没有开始 probe。'
+  budget_reserved=1
+
   rows_file="${output_dir}/samples.ndjson"
   : >"$rows_file"
 
@@ -228,6 +238,7 @@ main() {
     env BENCHMARK_HOST="$host" BENCHMARK_PORT="$port" \
       BENCHMARK_RATE_CAP_MBPS="$rate_cap" BENCHMARK_ENFORCE_RATE_CAP=1 \
       BENCHMARK_SECONDS="$seconds" BENCHMARK_OMIT_SECONDS="$omit" \
+      BENCHMARK_PHASE_TIMEOUT_SECONDS="$((seconds + omit + 15))" \
       BENCHMARK_PARALLEL="$parallel" BENCHMARK_IP_FAMILY="$family" \
       BENCHMARK_DIRECTION="$direction" BENCHMARK_RUN_ID="dvt-probe-${sample}" \
       BENCHMARK_OUTPUT_DIR="$sample_dir" DVT_TRAFFIC_BUDGET_BYPASS=1 \
@@ -277,8 +288,13 @@ main() {
   chmod 0600 "${result_file}.tmp"; mv -f "${result_file}.tmp" "$result_file"
   actual_bytes="$(jq -s '[.[].sender_bytes] | add // 0' "$rows_file")"
   stage='budget-commit'
-  bash "$budget_tool" commit --ledger "$ledger" --reservation-id "$reservation_id" \
-    --actual-bytes "$actual_bytes" >/dev/null || die 'probe 完成，但共享预算提交失败；reservation 保持占用。'
+  if [ "$omit" -gt 0 ]; then
+    bash "$budget_tool" commit-unknown --ledger "$ledger" --reservation-id "$reservation_id" \
+      --known-bytes "$actual_bytes" >/dev/null || die 'probe 完成，但共享预算保守提交失败；reservation 保持占用。'
+  else
+    bash "$budget_tool" commit --ledger "$ledger" --reservation-id "$reservation_id" \
+      --actual-bytes "$actual_bytes" >/dev/null || die 'probe 完成，但共享预算提交失败；reservation 保持占用。'
+  fi
   budget_reserved=0
   stage='manifest'
   (cd "$output_dir" && find . -type f ! -name SHA256SUMS ! -name 'SHA256SUMS.tmp' ! -name COMPLETED ! -name INCOMPLETE -print0 |

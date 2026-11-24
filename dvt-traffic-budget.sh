@@ -18,6 +18,7 @@ run_id=''
 reservation_id=''
 planned_bytes=''
 actual_bytes=''
+known_bytes=''
 
 die() { printf '[dvt-traffic-budget][FAIL] %s\n' "$*" >&2; exit 2; }
 need_command() { command -v "$1" >/dev/null 2>&1 || die "缺少命令：$1"; }
@@ -30,8 +31,8 @@ Usage:
                                 --tool NAME --run-id ID --reservation-id ID
                                 --planned-bytes N
   dvt-traffic-budget.sh commit  --ledger PATH --reservation-id ID --actual-bytes N
-  dvt-traffic-budget.sh commit-unknown --ledger PATH --reservation-id ID
-  dvt-traffic-budget.sh fail    --ledger PATH --reservation-id ID
+  dvt-traffic-budget.sh commit-unknown --ledger PATH --reservation-id ID [--known-bytes N]
+  dvt-traffic-budget.sh fail    --ledger PATH --reservation-id ID [--known-bytes N]
   dvt-traffic-budget.sh status  --ledger PATH
 
 The ledger accounts application payload only. Protocol, retransmission and ISP
@@ -62,6 +63,7 @@ parse_args() {
       --run-id) [ "$#" -ge 2 ] || die '--run-id 缺少参数。'; run_id="$2"; shift 2 ;;
       --reservation-id) [ "$#" -ge 2 ] || die '--reservation-id 缺少参数。'; reservation_id="$2"; shift 2 ;;
       --planned-bytes) [ "$#" -ge 2 ] || die '--planned-bytes 缺少参数。'; planned_bytes="$2"; shift 2 ;;
+      --known-bytes) [ "$#" -ge 2 ] || die '--known-bytes 缺少参数。'; known_bytes="$2"; shift 2 ;;
       --actual-bytes) [ "$#" -ge 2 ] || die '--actual-bytes 缺少参数。'; actual_bytes="$2"; shift 2 ;;
       -h | --help | help) usage; exit 0 ;;
       *) die "未知参数：$1" ;;
@@ -70,9 +72,18 @@ parse_args() {
 }
 
 validate_ledger_path() {
-  local parent uid mode
+  local parent uid mode canonical managed
   [ -n "$ledger" ] && [[ "$ledger" = /* ]] || die '--ledger 必须是绝对路径。'
   [ ! -L "$ledger" ] || die 'ledger 不能是符号链接。'
+  if [ "$action" = init ] || [ "$action" = reserve ]; then
+    canonical="$(readlink -m -- "$ledger")" || die '无法规范化 ledger 路径。'
+    managed="$(readlink -m -- /var/lib/proxy-vps-tuning)" || die '无法规范化受管状态路径。'
+    case "$canonical" in
+      "$managed" | "$managed"/*)
+        die 'ledger 必须放在受管状态目录树之外；先保留并外移既有账本。'
+        ;;
+    esac
+  fi
   parent="$(dirname -- "$ledger")"
   if [ ! -d "$parent" ]; then
     [ "$action" = init ] || [ "$action" = reserve ] || die 'ledger 父目录不存在。'
@@ -167,6 +178,10 @@ settle() {
     actual_bytes="$(uint actual-bytes "$actual_bytes")"; accounted="$actual_bytes"; actual_json="$actual_bytes"
   else
     accounted="$planned"; actual_json='null'
+    if [ -n "$known_bytes" ]; then
+      known_bytes="$(uint known-bytes "$known_bytes")"
+      [ "$known_bytes" -le "$accounted" ] || accounted="$known_bytes"
+    fi
   fi
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; temp="${ledger}.settle.$$"
   jq --arg id "$reservation_id" --arg status "$outcome" --arg utc "$now" \
@@ -182,7 +197,7 @@ settle() {
 main() {
   parse_args "$@"
   [ "$(id -u)" -eq 0 ] || die '必须以 root 运行。'
-  for command in date dirname flock install jq mv stat; do need_command "$command"; done
+  for command in date dirname flock install jq mv readlink stat; do need_command "$command"; done
   validate_ledger_path
   exec 9>"${ledger}.lock"
   flock -x 9

@@ -509,6 +509,11 @@ main() {
     sha256sum -c -
   (cd "$PIN_DIR" && sha256sum -c SHA256SUMS)
 
+  mkdir -m 0700 -- "$EVIDENCE_DIR"
+  printf 'status=INCOMPLETE\nstage=initialization\nutc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"${EVIDENCE_DIR}/INCOMPLETE"
+  trap 'write_incomplete_marker ERR' ERR
+  trap 'write_incomplete_marker INT; exit 130' INT
+  trap 'write_incomplete_marker TERM; exit 143' TERM
   TRAFFIC_RESERVATION_ID="tcpquality-$(date -u +%Y%m%dT%H%M%SZ)-$$"
   bash "$DVT_TRAFFIC_BUDGET_TOOL" reserve --ledger "$DVT_TRAFFIC_LEDGER" \
     --window-id "$DVT_TRAFFIC_WINDOW_ID" --budget-bytes "$DVT_TRAFFIC_BUDGET_BYTES" \
@@ -518,11 +523,6 @@ main() {
     fail 'TcpQuality 未能保留共享流量预算；没有开始网络测试。'
   TRAFFIC_RESERVED=1
 
-  mkdir -m 0700 -- "$EVIDENCE_DIR"
-  printf 'status=INCOMPLETE\nstage=initialization\nutc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"${EVIDENCE_DIR}/INCOMPLETE"
-  trap 'write_incomplete_marker ERR' ERR
-  trap 'write_incomplete_marker INT; exit 130' INT
-  trap 'write_incomplete_marker TERM; exit 143' TERM
   printf 'run\tcsv\tsha256\n' >"${EVIDENCE_DIR}/csv-inventory.tsv"
   printf 'run\tdebug_archive\tsha256\n' >"${EVIDENCE_DIR}/debug-inventory.tsv"
   printf 'run\tscope\tphase\tfile\tsha256\n' >"${EVIDENCE_DIR}/node-inventory.tsv"

@@ -10,7 +10,7 @@ Host network diagnostics, budgeted automatic measurement with public iperf3 endp
 
 > This README is translated from the [Chinese README](README.zh-CN.md). The guides under `docs/` are in Chinese. Where the two READMEs differ, the Chinese README prevails.
 
-**Current pre-release: [`v0.2.0-rc.4`](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4) (2026-10-13 UTC); there is no stable release yet.** A host with existing DVT managed state must complete a cross-version migration before running managed actions under the new version; see [Upgrades and rollback](#upgrades-and-rollback).
+**Current pre-release: [`v0.2.0-rc.5`](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.5) (2026-11-23 UTC); there is no stable release yet.** A host with existing DVT managed state must complete a cross-version migration before running managed actions under the new version; see [Upgrades and rollback](#upgrades-and-rollback).
 
 ## Capabilities and effects
 
@@ -48,7 +48,7 @@ Original Debian resource tiers keep their policies; other supported combinations
 
 ### Installation
 
-Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.4` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
+Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.5` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
 
 ```bash
 (
@@ -59,9 +59,9 @@ Run in a root shell (`id -u` must return `0`). This downloads the complete fixed
     --proto '=https' --proto-redir '=https' \
     --connect-timeout 15 --max-time 120 \
     -o "$dvt_i" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/install.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.5/install.sh
   printf '%s  %s\n' \
-    '06c8b235ce0538d6e5247b3b50fa568e6c71f9ee9f28b4cc999f031b5e9978ec' \
+    'de7967a738fb28d0da24ff70b7928f32aee6d0ad7965d938d4152e2903f0ada0' \
     "$dvt_i" | sha256sum -c -
   bash "$dvt_i" --no-launch
 )
@@ -158,7 +158,7 @@ Persistent installation and migration use fixed-asset verification, preflight, a
 
 ## Upgrades and rollback
 
-**Updating executable files, migrating managed state and business acceptance are separate steps.** Before a managed host can run managed actions under a new version, it must complete a cross-version migration: the **fixed old Release** verifies and restores the source from its own state, followed by a checkpoint, two manual reboot gates and target apply/verify. Successful preflight does not establish complete original TCP snapshots; migration must still pass `migrate prepare`. Stable rc.2 hosts should not migrate solely for the interactive interface. See the [current migration procedure and historical appendix (Chinese)](docs/migration.md).
+**Updating executable files, migrating managed state and business acceptance are separate steps.** Before a managed host can run managed actions under a new version, it must pass the cross-version migration and original-state checks: the **fixed old Release** verifies and restores the source from its own state, followed by a checkpoint, two manual reboot gates and target apply/verify. Ubuntu and port speeds above 1000 Mbps remain outside the migrator scope; new-install support does not expand migration support. See the [current migration procedure and historical appendix (Chinese)](docs/migration.md).
 
 Run `dvt rollback` only when restoration conditions are complete and the entrypoint matches the state version. Normal rollback keeps project-created swap; confirm memory headroom before an explicit purge as described in the [rollback guide (Chinese)](docs/usage.md#回滚). On failure, retain state, checkpoints, backups and the ledger. Never delete state, guess original values or overwrite old state with new apply.
 
@@ -186,7 +186,7 @@ Apply and reboot for tuning only after the hardening is confirmed: a reboot befo
 
 ## Validation status and limitations
 
-- `v0.2.0-rc.4` is a Pre-release; its pinned assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities.
+- `v0.2.0-rc.5` is a Pre-release; its pinned assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities.
 - As of 2026-10-11, five Debian 13 VPS hosts have completed rc.2 migration and entrypoint installation, with `COMPLETE / VERIFIED` state and zero warnings from strict x-ui verification. The user confirmed panel access, real proxy traffic and reconnection for each host. Four use replacement recovery baselines and one uses historical evidence from the same deployment; see the [five-host acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance). This does not establish quantitative performance gains or long-term stability. All five remain on rc.2; rc.3/rc.4 have not been migrated to or verified on these hosts.
 - Seven isolated guest lifecycle jobs cover Debian 12/13 and Ubuntu 24.04 x86_64/ARM64 adaptive profiles, plus Debian 13 x86_64 legacy. They include real guest reboots, idempotency, reconfiguration and restoration. ARM64 uses QEMU/TCG on ARM runners; it is not vendor-specific hardware acceptance.
 - Public IPv4 measurement and temporary HTB normal/signal-interrupted restoration have bounded VPS evidence. One complete low-rate sweep had 15 samples, 11 eligible, and still returned `INSUFFICIENT_EVIDENCE`. Reliable policer (traffic policing) detection and proxy benefits remain unproven.
@@ -194,7 +194,7 @@ Apply and reboot for tuning only after the hardening is confirmed: a reboot befo
 - 1–10000 Mbps is an input range. Broader public-path platform coverage, IPv6, high rates, specific large-resource hardware and business performance still have unvalidated areas.
 - The repository was renamed from `debian-vps-tuning` on 2026-10-10, and old links redirect here automatically. The `dvt` command, release asset file names, installation paths and managed-state paths are unchanged. These verified runtime assets retain the old repository constant; the installer and controller reach the renamed repository through GitHub redirects. Do not recreate the old repository name in the same account, as that would disable those redirects.
 
-Changes in each version are listed under [Releases](https://github.com/alieismy/vps-tuning/releases) and in the [CHANGELOG](CHANGELOG.md). Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.4.md), currently in Chinese.
+Changes in each version are listed under [Releases](https://github.com/alieismy/vps-tuning/releases) and in the [CHANGELOG](CHANGELOG.md). Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.5.md), currently in Chinese.
 
 ## Documentation
 

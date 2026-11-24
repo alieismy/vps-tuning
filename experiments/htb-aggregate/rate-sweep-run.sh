@@ -266,6 +266,14 @@ finish_incomplete() {
   mv -f -- "${output_dir}/INCOMPLETE.tmp" "${output_dir}/INCOMPLETE" 2>/dev/null || true
 }
 
+known_payload_bytes() {
+  local file
+  for file in "${output_dir}"/stages/*/benchmark/*.iperf3.json; do
+    [ -f "$file" ] || continue
+    jq -er '.end.sum_sent.bytes | select(type == "number" and . >= 0 and floor == .)' "$file" 2>/dev/null || true
+  done | awk '{total += $1} END {printf "%.0f\n", total}'
+}
+
 on_exit() {
   local rc=$?
   trap - EXIT INT TERM
@@ -278,7 +286,7 @@ on_exit() {
     [ "$rc" -ne 0 ] || rc=1
   fi
   if [ "$traffic_reserved" -eq 1 ]; then
-    bash "$budget_tool" fail --ledger "$traffic_ledger" --reservation-id "$traffic_reservation_id" >/dev/null 2>&1 || true
+    bash "$budget_tool" fail --ledger "$traffic_ledger" --reservation-id "$traffic_reservation_id" --known-bytes "$(known_payload_bytes)" >/dev/null 2>&1 || true
     traffic_reserved=0
   fi
   finish_incomplete "$rc"
@@ -295,13 +303,22 @@ write_stage_result() {
   local benchmark_sha
   benchmark_sha="$(sha256sum "${stage_dir}/benchmark/benchmark-result.json" | awk '{print $1}')"
   jq -n --argjson plan_stage "$stage_json" \
+    --slurpfile plan "$plan_file" \
+    --slurpfile metadata "${stage_dir}/benchmark/benchmark-meta.json" \
     --arg started_utc "$started_utc" --arg completed_utc "$completed_utc" \
     --arg benchmark_result_sha256 "$benchmark_sha" \
     --arg managed_profile_id "$managed_profile_id" \
     --arg managed_script_version "$managed_script_version" \
     --arg managed_state_sha256 "$managed_state_sha256_frozen" \
     --arg tuning_script_sha256 "$tuning_script_sha256" \
-    '{schema_version:3,status:"PASS",plan_stage:$plan_stage,
+    '($metadata[0].benchmark) as $benchmark |
+      if $benchmark.rate_cap_enforced != true or
+         $benchmark.rate_cap_method != "iperf3-bitrate" or
+         $benchmark.rate_cap_scope != "aggregate-target-divided-across-streams" or
+         $benchmark.rate_cap_per_stream_bps !=
+           (($plan_stage.rate_cap_mbit * 1000000 / $plan[0].benchmark.parallel) | floor)
+      then error("benchmark software rate-cap metadata does not match the stage")
+      else {schema_version:3,status:"PASS",plan_stage:$plan_stage,
       started_utc:$started_utc,completed_utc:$completed_utc,
       benchmark_result_sha256:$benchmark_result_sha256,
       managed_binding:{profile_id:$managed_profile_id,
@@ -311,8 +328,11 @@ write_stage_result() {
       benchmark_binding_valid:true,
       qdisc_rate_mbit:$plan_stage.rate_mbit,
       traffic_cap_enforced_by_htb:true,
-      qdisc_restored_to_root_fq:true,persistent_shaping_created:false}' \
-    >"${stage_dir}/stage-result.json"
+      software_rate_cap:($benchmark | {
+        rate_cap_enforced,rate_cap_method,rate_cap_scope,rate_cap_per_stream_bps}),
+      qdisc_restored_to_root_fq:true,persistent_shaping_created:false} end' \
+    >"${stage_dir}/stage-result.json.tmp" || die 'benchmark 软件限速记录与阶段请求不一致。'
+  mv -f -- "${stage_dir}/stage-result.json.tmp" "${stage_dir}/stage-result.json"
   chmod 0600 "${stage_dir}/stage-result.json"
 }
 
@@ -411,6 +431,8 @@ run_stage() {
     BENCHMARK_PORT="$benchmark_port" \
     BENCHMARK_SECONDS="$(jq -r '.benchmark.seconds' "$plan_file")" \
     BENCHMARK_OMIT_SECONDS="$(jq -r '.benchmark.omit_seconds' "$plan_file")" \
+    BENCHMARK_PHASE_TIMEOUT_SECONDS="$(jq -r '.benchmark.seconds + .benchmark.omit_seconds + 15' "$plan_file")" \
+    BENCHMARK_ENFORCE_RATE_CAP=1 \
     BENCHMARK_PARALLEL="$(jq -r '.benchmark.parallel' "$plan_file")" \
     BENCHMARK_IP_FAMILY="$(jq -r '.benchmark.family' "$plan_file")" \
     BENCHMARK_DIRECTION='upload' \
@@ -452,7 +474,7 @@ run_stage() {
 
 main() {
   local parent output_name plan_sha runner_sha htb_sha analyzer_sha
-  local generated_utc stage_json analysis_sha manifest_sha planned_payload actual_payload
+  local generated_utc stage_json analysis_sha manifest_sha planned_payload actual_payload software_rate_caps
 
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -516,7 +538,17 @@ main() {
   "$htb_tool" preflight >/dev/null
   capture_managed_binding
   tuning_script_sha256="$(sha256sum "$tuning_script" | awk '{print $1}')"
-  planned_payload="$(jq -r '.traffic_budget.payload_upper_bound_bytes' "$plan_file")"
+  # 历史计划只含有效窗口和预热；执行预留还覆盖硬超时、终止宽限及每流发送余量。
+  planned_payload="$(jq -r '
+    ([.stages[].rate_cap_mbit] | add) * 125000 *
+      (.benchmark.seconds + .benchmark.omit_seconds + 15 + 5) +
+      (.stages | length) * .benchmark.parallel * 1048576
+  ' "$plan_file")"
+  install -d -o root -g root -m 0700 "$output_dir" "${output_dir}/stages"
+  session_created=1
+  trap on_exit EXIT
+  trap 'on_signal INT' INT
+  trap 'on_signal TERM' TERM
   traffic_reservation_id="htb-$(date -u +%Y%m%dT%H%M%SZ)-$$"
   bash "$budget_tool" reserve --ledger "$traffic_ledger" --window-id "$traffic_window_id" \
     --budget-bytes "$traffic_budget_bytes" --tool htb --run-id "$traffic_reservation_id" \
@@ -524,11 +556,6 @@ main() {
     die 'HTB runner 未能保留完整计划的共享流量预算；没有开始扫描。'
   traffic_reserved=1
 
-  install -d -o root -g root -m 0700 "$output_dir" "${output_dir}/stages"
-  session_created=1
-  trap on_exit EXIT
-  trap 'on_signal INT' INT
-  trap 'on_signal TERM' TERM
   generated_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   cp -a -- "$plan_file" "${output_dir}/plan.json"
   plan_file="${output_dir}/plan.json"
@@ -557,6 +584,7 @@ main() {
         profile_id:$managed_profile_id,script_version:$managed_script_version,
         state:"VERIFIED",port_speed_mbps:200,state_sha256:$managed_state_sha256},
        benchmark_endpoint:{host:$host,port:$port,explicitly_supplied:true},
+       software_rate_caps:[],
        traffic_budget:{window_id:$budget_window,reservation_id:$budget_reservation,budget_bytes:$budget_bytes,planned_payload_bytes:$planned_payload,protocol_overhead_included:false},
        persistent_shaping_authorized:false}' >"${output_dir}/session-meta.json"
   chmod 0600 "${output_dir}/plan.json" "${output_dir}/session-meta.json"
@@ -569,10 +597,23 @@ main() {
     run_stage "$stage_json"
   done < <(jq -c '.stages[]' "$plan_file")
 
+  software_rate_caps="$(jq -s 'map({sequence:.plan_stage.sequence,
+    label:.plan_stage.label,software_rate_cap})' "${output_dir}"/stages/*/stage-result.json)"
+  jq --argjson software_rate_caps "$software_rate_caps" \
+    '.software_rate_caps=$software_rate_caps' "${output_dir}/session-meta.json" \
+    >"${output_dir}/session-meta.json.tmp"
+  chmod 0600 "${output_dir}/session-meta.json.tmp"
+  mv -f -- "${output_dir}/session-meta.json.tmp" "${output_dir}/session-meta.json"
+
   current_stage='budget-commit'
   actual_payload="$(jq -s '[.[].phases.upload.sender.bytes?] | map(select(type=="number")) | add // 0' "${output_dir}"/stages/*/benchmark/benchmark-result.json)"
-  bash "$budget_tool" commit --ledger "$traffic_ledger" --reservation-id "$traffic_reservation_id" \
-    --actual-bytes "$actual_payload" >/dev/null || die 'HTB runner 无法提交共享预算；reservation 保持占用。'
+  if [ "$(jq -r '.benchmark.omit_seconds' "$plan_file")" -gt 0 ]; then
+    bash "$budget_tool" commit-unknown --ledger "$traffic_ledger" --reservation-id "$traffic_reservation_id" \
+      --known-bytes "$actual_payload" >/dev/null || die 'HTB runner 无法保守提交共享预算；reservation 保持占用。'
+  else
+    bash "$budget_tool" commit --ledger "$traffic_ledger" --reservation-id "$traffic_reservation_id" \
+      --actual-bytes "$actual_payload" >/dev/null || die 'HTB runner 无法提交共享预算；reservation 保持占用。'
+  fi
   traffic_reserved=0
 
   current_stage='analysis'

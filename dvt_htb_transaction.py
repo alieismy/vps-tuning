@@ -441,7 +441,11 @@ def watch(checkpoint):
         alive = owner_token(state['owner_pid']) == state['owner_token']
         if not alive or time.monotonic() >= state['deadline_monotonic']:
             if alive:
-                os.kill(state['owner_pid'], signal.SIGTERM)
+                try:
+                    os.kill(state['owner_pid'], signal.SIGTERM)
+                except ProcessLookupError:
+                    restore(checkpoint)
+                    return
                 # 先让采集器回收其隔离进程组；仍未恢复则由本进程接手。
                 grace = time.monotonic() + 8
                 while time.monotonic() < grace:
@@ -450,7 +454,10 @@ def watch(checkpoint):
                         return
                     time.sleep(.2)
                 if owner_token(state['owner_pid']) == state['owner_token']:
-                    os.kill(state['owner_pid'], signal.SIGKILL)
+                    try:
+                        os.kill(state['owner_pid'], signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
             restore(checkpoint)
             return
         time.sleep(0.2)

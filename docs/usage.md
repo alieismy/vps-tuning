@@ -1,6 +1,6 @@
 # 安装、持久配置与日常操作
 
-适用版本：`v0.2.0-rc.4` 预发行版，固定资产已完成公开下载回验。本页承接 [README](../README.zh-CN.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
+适用版本：`v0.2.0-rc.5` 预发行版，固定资产已完成公开下载回验。本页承接 [README](../README.zh-CN.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
 
 ## 执行前准备
 
@@ -17,7 +17,7 @@ apt install ca-certificates curl jq iproute2 procps kmod util-linux
 
 ## 安装与文件布局
 
-首次安装使用 [README 的固定版本与摘要](../README.zh-CN.md#安装)。安装器先核对内置固定的 `SHA256SUMS` 摘要，再核对全部运行资产，安装到 `/usr/local/lib/debian-vps-tuning/0.2.0-rc.4`，原子更新 `current`，创建 `/usr/local/bin/dvt`。已有同版本目录只有在全部文件重新校验通过时才复用，内容不一致时拒绝覆盖。
+首次安装使用 [README 的固定版本与摘要](../README.zh-CN.md#安装)。安装器先核对内置固定的 `SHA256SUMS` 摘要，再核对全部运行资产，安装到 `/usr/local/lib/debian-vps-tuning/0.2.0-rc.5`，原子更新 `current`，创建 `/usr/local/bin/dvt`。已有同版本目录只有在全部文件重新校验通过时才复用，内容不一致时拒绝覆盖。
 
 `--no-launch` 只安装；省略该参数且有交互终端时，安装完成后打开 `dvt` 菜单。安装本身不执行 apply、测速或 managed state 迁移。下载不回退到 `main`、`master`、`latest`、HTTP 或第三方镜像。
 
@@ -125,7 +125,7 @@ env REQUIRE_PROXY_SERVICE=1 \
   bash ./debian13-1c1g-vps-tuning.sh verify
 ```
 
-脚本检查 `x-ui.service` 的 systemd 配置值，以及主进程和直接子进程的 `/proc/<PID>/limits`。严格验证要求配置值与运行时 soft/hard limit 均不低于 65536。
+脚本检查 `x-ui.service` 的 systemd 配置值，以及主进程和直接子进程的 `/proc/<PID>/limits`。严格验证要求配置值与运行时 soft/hard limit 均不低于 65536。rc.5 候选中，显式指定的每个 unit 都须加载并运行，无法读取运行时限额会失败。`REQUIRE_PROXY_SERVICE=1` 对 x-ui 还要求直接子进程的可执行文件名为 `xray` 或 `xray-*`，适用于已启用代理业务的节点。仅安装面板时使用普通 verify。进程核验仍需结合真实客户端连接验收。
 
 ## 诊断与故障定位
 
@@ -158,6 +158,14 @@ env DIAG_INTERVAL_SECONDS=15 \
 env DIAG_INCLUDE_SOCKET_DETAILS=1 \
   dvt diagnose --managed
 ```
+
+这里的 `ss -tinp` 在增量采样等待前执行一次，不随 `DIAG_INTERVAL_SECONDS` 连续采样。需要查看某条业务连接时，应先建立并保持该连接，再启动诊断；只在后续等待期间建立的短连接可能不会出现在详情中。该输出不会自动关联客户端—VPS 与 VPS—目标服务两段连接，解释结果时须分别确认方向和发送端，不能用直连测速结果代替代理业务证据。
+
+连接详情仅作为诊断线索，字段是否出现取决于目标内核、iproute2 和连接状态：
+
+- `rwnd_limited`、`sndbuf_limited` 分别表示发送方受对端接收窗口、本地发送缓冲限制的累计时间；显示的百分比以 `busy` 时间为分母，不是当前诊断窗口占比。单次快照不能直接说明本轮受限程度，缺少字段也不能当作零受限。
+- `app_limited` 是交付速率样本的应用受限标记，正常请求/响应也可能出现，不单独证明应用故障。`cwnd`、RTT、重传和速率同样须结合连接方向、业务负载及 CPU/队列证据解释。
+- 多流快于单流只说明测试条件下的吞吐差异，不能直接判定缓冲不足。没有明确受限证据时保持现有参数；需要研究对照时复用[已有 benchmark](advanced-measurement.md#研究专用-benchmark)，遵守其场景与预算边界。
 
 以上 `DIAG_*` 环境变量仅适用于 managed 增量诊断，不控制默认 Python 快照。需要主动采样时按 [独立测量指南](automatic-measurement.md) 设置预算。
 
@@ -233,7 +241,7 @@ jq '.. | objects | select(has("tcpFastOpen")) | .tcpFastOpen' \
   /usr/local/x-ui/bin/config.json
 ```
 
-`verify` 和 `diagnose --managed` 只读报告该字段是否存在，不修改代理配置。`/usr/local/x-ui/bin/config.json` 由 3X-UI 生成，面板重建配置时可能覆盖，不能直接编辑。只有当前 3X-UI 版本提供对应的入站/出站 sockopt 或高级配置入口，并已完成客户端兼容性测试时，才可通过面板配置。配置后应复查生成的 JSON 和实际连接。TFO 主要影响握手阶段，不能替代 BBR、fq 或线路质量，也不保证适用于所有中间设备。
+`verify` 和 `diagnose --managed` 只读报告默认路径中该字段是否存在，输出 `active_config=unverified`。自定义 `XUI_BIN_FOLDER` 时需另行核对活动配置来源。`/usr/local/x-ui/bin/config.json` 由 3X-UI 生成，面板重建配置时可能覆盖，不能直接编辑。只有当前 3X-UI 版本提供对应的入站/出站 sockopt 或高级配置入口，并已完成客户端兼容性测试时，才可通过面板配置。配置后应复查生成的 JSON 和实际连接。TFO 主要影响握手阶段，不能替代 BBR、fq 或线路质量，也不保证适用于所有中间设备。
 
 主机的 `tcp_keepalive_time/intvl/probes` 只影响已经启用 `SO_KEEPALIVE`、且未被应用覆盖的 socket。Xray 入站 Keep-Alive 默认关闭，设置 `tcpKeepAliveIdle` 或 `tcpKeepAliveInterval` 后才启用；出站使用自身的默认值。主机 sysctl 不能单独证明 Xray 连接采用了这些 keepalive 参数。参见 [Linux IP sysctl](https://docs.kernel.org/networking/ip-sysctl.html) 和 [Xray Sockopt](https://xtls.github.io/en/config/transports/sockopt.html)。
 
@@ -314,7 +322,7 @@ env PORT_SPEED_MBPS=1000 \
 | `SWAP_MB` | `1024` | 512M/1G 脚本最高 2048，2G/adaptive 最高 4096 |
 | `PURGE_CREATED_SWAP` | `0` | 回滚时是否清理脚本创建的 swap |
 | `PROXY_SERVICE_UNITS` | 自动识别 | 空格分隔的 systemd service |
-| `REQUIRE_PROXY_SERVICE` | `0` | 为 `1` 时没有目标代理服务即验证失败 |
+| `REQUIRE_PROXY_SERVICE` | `0` | 为 `1` 时要求活动目标代理服务；对 x-ui 另要求可识别的直接 Xray 子进程 |
 | `DIAG_INTERVAL_SECONDS` | `5` | `1–60`，仅 `diagnose --managed` 的增量窗口 |
 | `DIAG_INCLUDE_SOCKET_DETAILS` | `0` | `diagnose --managed` 中为 `1` 时输出可能包含对端地址的 `ss -tinp` |
 | `UPDATE_TAG` | 自动发现 | `update` 的目标 Release；等价命令行参数为 `--target` |
@@ -331,6 +339,10 @@ env PORT_SPEED_MBPS=1000 \
 
 `tc` 的显示格式与命令输入格式并不完全相同。例如，状态可显示 `limit 10240p`，恢复命令仍使用 `limit 10240`。脚本通过 `tc -j` 保存数值，并按命令输入语法重建。比较 `target`、`interval` 和 `ce_threshold` 时，只容忍内核或工具回显造成的 ±1 微秒量化差异；其他受支持参数必须一致。
 
+rc.5 在清理前发现状态目录含账本、子目录或其他未知内容时，会返回失败并完整保留状态。先把相关内容迁到独立目录并核验其字节与预算窗口，再重试 rollback。新账本与 checkpoint 应放在 `/var/lib/proxy-vps-tuning` 之外。若清理已开始后，旧版工具或其他 root 进程又向目录写入，新内容会保留，但部分事务文件可能已经删除，最后的目录删除会失败。该情况应先停止相关写入、保全剩余内容并核对恢复结果，不能假定原状态仍支持直接重试。
+
+普通清理中断通过状态中的 `rollback_cleanup_ready=true` 接续：该标记只在系统恢复验证完成后、删除恢复材料之前原子建立，重试仅完成清理，不把缺少快照当作恢复成功。若发现 `state.json.tmp.*`，先保存并核对其内容，再迁到状态目录之外；文件名不能证明事务归属，脚本不会自动删除它。
+
 执行 qdisc 恢复命令后，rollback 会重新读取实际状态。只有恢复结果与原始快照语义一致，才删除状态和快照。原快照中的 `handle 0:` 表示未指定，允许内核为 classless qdisc 自动分配运行时 handle；显式非零 handle 会尝试恢复并严格比较。后置验证失败时，状态保留为 `DEGRADED`，回滚不得报告成功。
 
 ## Docker 边界
@@ -339,11 +351,11 @@ env PORT_SPEED_MBPS=1000 \
 
 ## 手动获取与离线运行
 
-以下方法适用于离线、审计或安装入口不可用时的恢复。必须先验证 manifest 的可信固定摘要，不能只依赖与脚本同时下载但未固定的校验文件；当前值见 [发布说明](releases/v0.2.0-rc.4.md)。不同版本不得放在同一目录。
+以下方法适用于离线、审计或安装入口不可用时的恢复。必须先验证 manifest 的可信固定摘要，不能只依赖与脚本同时下载但未固定的校验文件；当前值见 [发布说明](releases/v0.2.0-rc.5.md)。不同版本不得放在同一目录。
 
 ### 下载与校验
 
-准备离线 bundle 时，将固定 `v0.2.0-rc.4` Release 的 26 项上传资产（24 项运行文件、`SHA256SUMS` 和 `install.sh`）下载到一个新建的独立目录，并在该目录内执行以下步骤。每步成功后才继续；不要混入其他版本文件。
+准备离线 bundle 时，将固定 `v0.2.0-rc.5` Release 的 26 项上传资产（24 项运行文件、`SHA256SUMS` 和 `install.sh`）下载到一个新建的独立目录，并在该目录内执行以下步骤。每步成功后才继续；不要混入其他版本文件。
 
 先核验清单和安装器本身的固定摘要，之后才能用清单校验运行文件：
 
@@ -351,10 +363,10 @@ env PORT_SPEED_MBPS=1000 \
 (
   set -Eeuo pipefail
   printf '%s  %s\n' \
-    'a704a9323b5bb9d9b0d1efe9c1b63825fef6b72aa29b075f43c151d502a2de4b' \
+    '72ebf9f7d95ce4a94561d8330ba6509c8d4ebba8192332cf24b33d263e1e6a9b' \
     SHA256SUMS | sha256sum -c -
   printf '%s  %s\n' \
-    '06c8b235ce0538d6e5247b3b50fa568e6c71f9ee9f28b4cc999f031b5e9978ec' \
+    'de7967a738fb28d0da24ff70b7928f32aee6d0ad7965d938d4152e2903f0ada0' \
     install.sh | sha256sum -c -
 )
 ```
@@ -421,7 +433,7 @@ bash ./debian-vps-tuning.sh diagnose
 bash ./debian-vps-tuning.sh benchmark
 bash ./debian-vps-tuning.sh update
 # 仅在仍有旧版本管理状态时，检查新目标版本
-bash ./debian-vps-tuning.sh update --target v0.2.0-rc.4
+bash ./debian-vps-tuning.sh update --target v0.2.0-rc.5
 bash ./debian-vps-tuning.sh rollback
 ```
 
@@ -450,7 +462,7 @@ bash install.sh --source-dir "$PWD" --no-launch
 
 ### 入口不可用时的联网验证
 
-以下保留固定版本下载总控的备用验证方法。只适用于受管状态已经是 `0.2.0-rc.4`；旧状态必须使用对应旧版或迁移检查。受管状态仍为 `0.2.0-rc.2` 时，改用 rc.2 总控 `https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/debian-vps-tuning.sh`，SHA-256 为 `7d8769a8cd09e562b2f074034e7a1a6f71c71bb2fddc1302ebd28fb9794b95bd`，其余命令相同。受管状态为 `0.2.0-rc.3` 时，使用 rc.3 总控 `https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/debian-vps-tuning.sh`，SHA-256 为 `2c7b0eba904a8490df0da042e39f525d6bd3cf40bcd06f5c72fe2a1254c421a9`。日常验证优先使用与状态同版本的已安装入口。
+以下保留固定版本下载总控的备用验证方法。只适用于受管状态已经是 `0.2.0-rc.5`；旧状态必须使用对应旧版或迁移检查。受管状态仍为 `0.2.0-rc.2` 时，改用 rc.2 总控 `https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.2/debian-vps-tuning.sh`，SHA-256 为 `7d8769a8cd09e562b2f074034e7a1a6f71c71bb2fddc1302ebd28fb9794b95bd`，其余命令相同。受管状态为 `0.2.0-rc.3` 时，使用 rc.3 总控 `https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.3/debian-vps-tuning.sh`，SHA-256 为 `2c7b0eba904a8490df0da042e39f525d6bd3cf40bcd06f5c72fe2a1254c421a9`。受管状态为 `0.2.0-rc.4` 时，使用 rc.4 总控 `https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/debian-vps-tuning.sh`，SHA-256 为 `1e5e7e3065d67aa483b94e2ca7a61cad75611f14c7cf46a36937fb395a428e84`。日常验证优先使用与状态同版本的已安装入口。
 
 重启并重新登录 VPS 后执行。`verify` 只读检查当前状态，不会再次运行 `apply`，也不要求重新输入状态中已保存的端口带宽：
 
@@ -467,10 +479,10 @@ bash install.sh --source-dir "$PWD" --no-launch
     --connect-timeout 15 \
     --max-time 120 \
     -o "$dvt_tmp/debian-vps-tuning.sh" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/debian-vps-tuning.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.5/debian-vps-tuning.sh
 
   printf '%s  %s\n' \
-    '1e5e7e3065d67aa483b94e2ca7a61cad75611f14c7cf46a36937fb395a428e84' \
+    '1f3340172cf4bbb043dca2d3bc6f9d7eb68bd95f2601b691ddfd18871aa586a1' \
     "$dvt_tmp/debian-vps-tuning.sh" | sha256sum -c -
 
   bash "$dvt_tmp/debian-vps-tuning.sh" verify
@@ -498,10 +510,10 @@ printf 'verify_after_reboot_exit=%s\n' "$?"
     --connect-timeout 15 \
     --max-time 120 \
     -o "$dvt_tmp/debian-vps-tuning.sh" \
-    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.4/debian-vps-tuning.sh
+    https://github.com/alieismy/vps-tuning/releases/download/v0.2.0-rc.5/debian-vps-tuning.sh
 
   printf '%s  %s\n' \
-    '1e5e7e3065d67aa483b94e2ca7a61cad75611f14c7cf46a36937fb395a428e84' \
+    '1f3340172cf4bbb043dca2d3bc6f9d7eb68bd95f2601b691ddfd18871aa586a1' \
     "$dvt_tmp/debian-vps-tuning.sh" | sha256sum -c -
 
   env \
