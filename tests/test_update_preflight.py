@@ -215,7 +215,8 @@ run_update
         self.assertNotIn(b'ROOT_GATE_REACHED', result.stderr)
 
     def test_migration_rejects_all_five_incomplete_originals_before_checkpoint(self):
-        migrator = (ROOT / 'dvt-migrate.sh').read_text(encoding='utf-8')
+        TARGET_VERSION = '0.2.0-rc.5'  # 历史来源只由固定旧目标工具核验。
+        migrator = (ROOT / 'tests/fixtures/migration-rc5.sh').read_text(encoding='utf-8')
         for schema, version, profile, port in HOSTS:
             with self.subTest(version=version, profile=profile, port=port):
                 self.write('state.json', json.dumps(state_fixture(schema, version, profile, port)))

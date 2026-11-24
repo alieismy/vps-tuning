@@ -363,7 +363,7 @@ main measure --rate-cap 20 --plan-only
     def test_migration_version_gate_accepts_rc19_to_new_line(self):
         if not m.shutil.which("bash"):
             self.skipTest("Bash unavailable")
-        source = (ROOT / "dvt-migrate.sh").read_text(encoding="utf-8")
+        source = (ROOT / "tests/fixtures/migration-rc5.sh").read_text(encoding="utf-8")
         prepare = re.search(r"^prepare\(\) \{.*?^\}", source, re.M | re.S).group()
         location = re.search(r"^validate_checkpoint_location\(\) \{.*?^\}", source, re.M | re.S).group()
         for version, expected in (("0.1.0-rc.19", "当前 managed state"),

@@ -7,7 +7,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-SCRIPT_VERSION='0.2.0-rc.5'
+SCRIPT_VERSION='0.2.0-rc.6'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
 NAMESPACE='proxy-vps'
@@ -1667,6 +1667,16 @@ verify_provider_sysctl_transfer() {
   [ "$failures" -eq 0 ]
 }
 
+verify_fq_service() {
+  if [ "$(systemctl is-enabled "$FQ_SERVICE_NAME" 2>/dev/null || true)" != enabled ] ||
+     ! systemctl is-active --quiet "$FQ_SERVICE_NAME" ||
+     [ "$(systemctl show -p Result --value "$FQ_SERVICE_NAME")" != success ] ||
+     [ "$(systemctl show -p ExecMainStatus --value "$FQ_SERVICE_NAME")" != 0 ]; then
+    error 'fq 启动服务未启用、未运行或执行失败。'
+    return 1
+  fi
+}
+
 verify_settings_common() {
   local failures=0 key expected actual qhash unit_path
   verify_provider_sysctl_transfer || failures=$((failures + 1))
@@ -1687,6 +1697,7 @@ verify_settings_common() {
   unit_path="$(systemctl show -p FragmentPath --value "$FQ_SERVICE_NAME" 2>/dev/null || true)"
   [ "$(readlink -f "$unit_path" 2>/dev/null || true)" = "$(readlink -f "$FQ_SERVICE")" ] || {
     error 'fq helper 的 systemd FragmentPath 不匹配。'; failures=$((failures + 1)); }
+  verify_fq_service || failures=$((failures + 1))
   verify_current_qdiscs || failures=$((failures + 1))
   if state_get '.swap.created_by_script' | grep -qx true; then
     [ "$(stat -c '%d' "$SWAP_FILE" 2>/dev/null || true)" = "$(state_get '.swap.device')" ] || { error 'swap 设备号与所有权状态不匹配。'; failures=$((failures + 1)); }

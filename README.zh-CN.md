@@ -1,5 +1,7 @@
 # VPS Tuning
 
+开发状态：首次正式版方案已进入 [rc.6 本地候选实施](docs/releases/v0.2.0-rc.6.md)。下方公开安装入口仍固定 rc.5；rc.6 尚未发布、未完成 Linux/实机验收。
+
 [English](README.md) | 简体中文
 
 [![Pre-release](https://img.shields.io/github/v/release/alieismy/vps-tuning?include_prereleases&filter=v*)](https://github.com/alieismy/vps-tuning/releases)
@@ -187,7 +189,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 ## 验证状态与已知限制
 
 - `v0.2.0-rc.5` 为 Pre-release，固定资产已完成公开下载回验。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。
-- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性；五台仍为 rc.2，rc.3/rc.4 尚未在这些主机上迁移或验证。
+- 2026-11-24，用户确认除 Oracle、AWS 外的现网 VPS 已重新安装 rc.4，包含 apply 与重启后 verify；按手册清点为九台，详见[当前部署基线](docs/validation.md#current-fleet-baseline)。这是用户确认的运行状态，本轮未取得逐台新部署归档，不等于 rc.5 或正式候选验收。2026-10-11 的[五台 rc.2 验收](docs/validation.md#rc2-fleet-acceptance)保留为历史部署证据，不外推到重装后的恢复基线、量化性能或长期稳定性。首次正式版按[能力验收门禁](docs/validation.md#stable-release-gates)收敛，旧 T1–T10 实机发布要求已撤销。
 - 七组隔离客体生命周期覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 adaptive，以及 Debian 13 x86_64 legacy；包括真实客体重启、幂等、重配置与恢复。ARM64 使用 ARM runner 上的 QEMU/TCG，不能替代特定云厂商硬件验收。
 - 公共 IPv4 自动测量、临时 HTB 正常与信号中断恢复有有限 VPS 证据。完整低速扫描曾获得 15 个样本、11 个有效，整轮仍为 `INSUFFICIENT_EVIDENCE`，尚未证明可靠 policer（流量监管）拐点或代理收益。
 - 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。

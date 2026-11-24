@@ -22,7 +22,10 @@ def main():
     parser.add_argument('--platform', choices=['debian12', 'debian13', 'ubuntu2404'], required=True)
     parser.add_argument('--arch', choices=['amd64', 'arm64'], required=True)
     parser.add_argument('--resource-profile', choices=['adaptive', 'legacy'], default='adaptive')
+    parser.add_argument('--migration-source', choices=['0.2.0-rc.4', '0.2.0-rc.5'])
     args = parser.parse_args()
+    if args.migration_source and (args.platform not in ('debian12', 'debian13') or args.arch != 'amd64' or args.resource_profile != 'legacy'):
+        parser.error('migration fixture requires Debian amd64 legacy resources')
     work = ROOT / '.tmp/platform-vm'
     work.mkdir(parents=True, exist_ok=False)
     evidence = work / 'evidence'
@@ -134,7 +137,7 @@ touch /root/dvt-cloud-ready''']]
         path = evidence / (name + '.log')
         try:
             with path.open('wb') as log:
-                run(ssh + ['bash /root/dvt-bundle/tests/platform-guest.sh ' + name], stdout=log, stderr=subprocess.STDOUT, timeout=600)
+                run(ssh + ['bash /root/dvt-bundle/tests/' + ('migration-guest.sh' if args.migration_source else 'platform-guest.sh') + ' ' + name], stdout=log, stderr=subprocess.STDOUT, timeout=600)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             print(path.read_text(errors='replace'), flush=True)
             raise
@@ -153,15 +156,47 @@ touch /root/dvt-cloud-ready''']]
         names = [line.split('  ', 1)[1] for line in (ROOT / 'SHA256SUMS').read_text().splitlines()]
         bundle = work / 'bundle.tar'
         run(['tar', '-cf', str(bundle), 'install.sh', 'SHA256SUMS', 'tests/platform-guest.sh',
-             'tests/platform-htb-native.py', *names], cwd=ROOT)
+             'tests/platform-htb-native.py', 'tests/migration-guest.sh', *names], cwd=ROOT)
         with bundle.open('rb') as f:
             run(ssh + ['mkdir /root/dvt-bundle && tar --no-same-owner -xf - -C /root/dvt-bundle'], stdin=f)
-        phase('apply')
-        reboot()
-        phase('after-reboot')
-        reboot()
-        phase('after-rollback-reboot')
-        (evidence / 'COMPLETED').write_text('PASS native guest lifecycle\n')
+        if args.migration_source:
+            source_dir = work / 'source'
+            source_dir.mkdir()
+            pins = json.loads((ROOT / 'tests/migration-sources.json').read_text())[args.migration_source]
+            base_url = 'https://github.com/alieismy/vps-tuning/releases/download/v' + args.migration_source + '/'
+            def download(name, expected):
+                target = source_dir / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                urllib.request.urlretrieve(base_url + Path(name).name, target)
+                assert hashlib.sha256(target.read_bytes()).hexdigest() == expected, ('source checksum', name)
+            for name, digest in pins.items():
+                download(name, digest)
+            for line in (source_dir / 'SHA256SUMS').read_text().splitlines():
+                digest, name = line.split('  ', 1)
+                assert not Path(name).is_absolute() and '..' not in Path(name).parts
+                download(name, digest)
+            (source_dir / 'VERSION').write_text(args.migration_source)
+            (evidence / 'source-pins.json').write_text(json.dumps(pins, indent=2))
+            source_bundle = work / 'source.tar'
+            run(['tar', '-cf', str(source_bundle), '-C', str(source_dir), '.'])
+            with source_bundle.open('rb') as f:
+                run(ssh + ['mkdir /root/dvt-source && tar --no-same-owner -xf - -C /root/dvt-source'], stdin=f)
+            phase('source-apply')
+            reboot()
+            phase('source-verified')
+            reboot()
+            phase('target-apply')
+            reboot()
+            phase('target-verified')
+            result_label = 'fixed-source migration, three real guest reboots and target rollback'
+        else:
+            phase('apply')
+            reboot()
+            phase('after-reboot')
+            reboot()
+            phase('after-rollback-reboot')
+            result_label = 'native lifecycle, two real guest reboots'
+        (evidence / 'COMPLETED').write_text('PASS ' + result_label + '\n')
     finally:
         try:
             with (evidence / 'guest-evidence.tar').open('wb') as f:
@@ -174,7 +209,7 @@ touch /root/dvt-cloud-ready''']]
                 vm.kill()
                 vm.wait()
             serial.close()
-    print('PASS', args.platform, args.arch, 'two real guest reboots', flush=True)
+    print('PASS', args.platform, args.arch, result_label, flush=True)
 
 
 if __name__ == '__main__':

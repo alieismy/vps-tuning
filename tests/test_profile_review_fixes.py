@@ -222,7 +222,7 @@ grep -q '未达到' "$tmp/warning"
 
     def test_apply_port_change_points_to_reconfigure(self):
         self.run_shell(functions('apply_settings'), r'''
-SCRIPT_VERSION=0.2.0-rc.5; EXIT_CONFLICT=4
+SCRIPT_VERSION=0.2.0-rc.6; EXIT_CONFLICT=4
 PORT_SPEED_MBPS=2000; BUFFER_TARGET_RTT_MS=200; BUF_MAX=67108864
 BUFFER_TARGET_RTT_MS_INPUT=''; BUF_MAX_ENV_WAS_SET=''
 BUF_MAX_INPUT=auto; fixture_mode=auto
@@ -248,7 +248,7 @@ grep -q '清除 BUFFER_TARGET_RTT_MS 和 BUF_MAX' "$tmp/message"
 
     def test_port_only_guidance_compares_saved_and_requested_buffer_policy(self):
         self.run_shell(functions('apply_settings'), r'''
-SCRIPT_VERSION=0.2.0-rc.5; EXIT_CONFLICT=4
+SCRIPT_VERSION=0.2.0-rc.6; EXIT_CONFLICT=4
 PORT_SPEED_MBPS=1000; BUFFER_TARGET_RTT_MS=200; BUFFER_TARGET_RTT_MS_INPUT=200
 BUF_MAX_ENV_WAS_SET=x; fixture_mode=auto; fixture_buf=16777216
 run_preflight() { :; }

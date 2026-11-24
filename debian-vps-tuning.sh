@@ -6,8 +6,8 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-CONTROLLER_VERSION='0.2.0-rc.5'
-RELEASE_TAG='v0.2.0-rc.5'
+CONTROLLER_VERSION='0.2.0-rc.6'
+RELEASE_TAG='v0.2.0-rc.6'
 REPOSITORY='alieismy/debian-vps-tuning'
 RELEASE_BASE_URL="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}"
 
@@ -127,7 +127,7 @@ Usage:
 Options:
   --port MBPS    provider port cap for guided/preflight/apply; default 200;
                  required explicitly by CLI reconfigure
-  --target TAG    update target, for example v0.2.0-rc.5; default is the
+  --target TAG    update target, for example v0.2.0-rc.6; default is the
                   highest non-draft Release in the installed major.minor line;
                   stable installations ignore prereleases automatically
   -h, --help     show this help
@@ -1405,17 +1405,15 @@ run_migrate() {
       if [ -z "$UPDATE_TEMP_DIR" ]; then UPDATE_TEMP_DIR="$(mktemp -d)" || die "$EXIT_DOWNLOAD" '无法创建迁移临时目录。'; fi
       resolve_installed_profile
       state_hash="$(sha256sum "$STATE_FILE" | awk '{print $1}')"
-      bash "$SOURCE_PROFILE_PATH" verify
-      env UPDATE_PREFLIGHT=1 PORT_SPEED_MBPS="$STATE_PORT_SPEED_MBPS" bash "$PROFILE_PATH" preflight
       bash "$MIGRATION_PATH" prepare "${ACTION_ARGS[@]:1}" \
         --source-profile "$SOURCE_PROFILE_PATH" --target-profile "$PROFILE_PATH" \
         --source-version "$STATE_VERSION" --target-version "$CONTROLLER_VERSION" \
         --profile-id "$STATE_PROFILE" --port "$STATE_PORT_SPEED_MBPS" --state-sha256 "$state_hash"
       ;;
-    rollback | continue | status)
+    rollback | continue | status | cancel)
       bash "$MIGRATION_PATH" "${ACTION_ARGS[@]}"
       ;;
-    *) die "$EXIT_USAGE" 'migrate 需要 prepare、rollback、continue 或 status 子命令。' ;;
+    *) die "$EXIT_USAGE" 'migrate 需要 prepare、rollback、continue、status 或 cancel 子命令。' ;;
   esac
 }
 

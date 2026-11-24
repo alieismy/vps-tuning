@@ -1,5 +1,7 @@
 # VPS Tuning
 
+Development status: the [rc.6 local candidate](docs/releases/v0.2.0-rc.6.md) implements the approved first-stable migration plan. Public installation below remains pinned to rc.5; rc.6 is unpublished and Linux/host acceptance is pending.
+
 English | [简体中文](README.zh-CN.md)
 
 [![Pre-release](https://img.shields.io/github/v/release/alieismy/vps-tuning?include_prereleases&filter=v*)](https://github.com/alieismy/vps-tuning/releases)
@@ -187,7 +189,7 @@ Apply and reboot for tuning only after the hardening is confirmed: a reboot befo
 ## Validation status and limitations
 
 - `v0.2.0-rc.5` is a Pre-release; its pinned assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities.
-- As of 2026-10-11, five Debian 13 VPS hosts have completed rc.2 migration and entrypoint installation, with `COMPLETE / VERIFIED` state and zero warnings from strict x-ui verification. The user confirmed panel access, real proxy traffic and reconnection for each host. Four use replacement recovery baselines and one uses historical evidence from the same deployment; see the [five-host acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance). This does not establish quantitative performance gains or long-term stability. All five remain on rc.2; rc.3/rc.4 have not been migrated to or verified on these hosts.
+- On 2026-11-24, the user confirmed that the current VPS fleet excluding Oracle and AWS had been reinstalled with rc.4, including apply and post-reboot verify. The deployment manuals identify nine hosts; see the [current deployment baseline (Chinese)](docs/validation.md#current-fleet-baseline). This is user-confirmed runtime status without newly collected per-host deployment archives, and does not establish rc.5 or stable-candidate acceptance. The [five-host rc.2 acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance) from 2026-10-11 remains historical evidence and does not establish recovery baselines for the reinstalled hosts, performance gains or long-term stability. The first stable release now follows [capability-based acceptance gates (Chinese)](docs/validation.md#stable-release-gates); the old T1–T10 physical-host release requirements have been retired.
 - Seven isolated guest lifecycle jobs cover Debian 12/13 and Ubuntu 24.04 x86_64/ARM64 adaptive profiles, plus Debian 13 x86_64 legacy. They include real guest reboots, idempotency, reconfiguration and restoration. ARM64 uses QEMU/TCG on ARM runners; it is not vendor-specific hardware acceptance.
 - Public IPv4 measurement and temporary HTB normal/signal-interrupted restoration have bounded VPS evidence. One complete low-rate sweep had 15 samples, 11 eligible, and still returned `INSUFFICIENT_EVIDENCE`. Reliable policer (traffic policing) detection and proxy benefits remain unproven.
 - The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.

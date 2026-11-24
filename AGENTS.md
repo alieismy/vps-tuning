@@ -6,19 +6,19 @@
 
 本文件是项目控制面，只维护当前阶段、效力、路由、边界和完成规则。详细文档方法由对应 RD Skill 单一维护，代码实现和发布遵循仓库既有入口与全局实现纪律。
 
-## 当前项目阶段：v0.2.0-rc.5 代理 VPS 评审修复与预发行交付
+## 当前项目阶段：首次正式版收敛与 rc.6 本地候选实施
 
-本阶段交付经自检确认的服务核验、受管文件恢复、迁移接续和测量预算修复，范围与限制见[rc.5 发布说明](docs/releases/v0.2.0-rc.5.md)，评审依据见[代理 VPS 适配评审](docs/proxy-vps-fit-review-2026-11-22.md)。后续只完成该版本证据与文档闭环，不自动启动存量迁移或下一版本。界面契约见[交互界面详细设计](docs/interactive-cli-design.md)，菜单修订历史见[rc.4 说明](docs/releases/v0.2.0-rc.4.md)。五台现有主机继续保持 rc.2，迁移历史见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)；版本解耦仍待独立设计决策。涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.1.md)。安装与主程序升级遵循[平台支持及旧状态限制](docs/platform-support.md)。具体证据与待完成事项见[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)。
+本阶段按用户批准的[修订方案](docs/stable-release-plan.md)实施首次正式版收敛，本地候选与边界见[rc.6 说明](docs/releases/v0.2.0-rc.6.md)和[迁移实施契约](docs/stable-migration-design.md)。rc.5 已交付服务核验、受管文件恢复、迁移接续和测量预算修复，范围与限制见[rc.5 发布说明](docs/releases/v0.2.0-rc.5.md)，评审依据见[代理 VPS 适配评审](docs/proxy-vps-fit-review-2026-11-22.md)。当前授权覆盖本地实现和验证；不自动执行现网迁移或公开发布。界面契约见[交互界面详细设计](docs/interactive-cli-design.md)，菜单修订历史见[rc.4 说明](docs/releases/v0.2.0-rc.4.md)。评估部署或正式版时读取[当前部署与验收基线](docs/validation.md#current-fleet-baseline)，迁移历史见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)；版本解耦仍待独立设计决策。涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.1.md)。安装与主程序升级遵循[平台支持及旧状态限制](docs/platform-support.md)。具体证据与待完成事项见[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)。
 
 rc.5 保持 17 项受管 sysctl、资源感知 BDP 缓冲、默认 `BBR + fq`、非持久 HTB、managed-state schema 4、benchmark schema 3、预算 ledger 和迁移 checkpoint 边界，不改变 HTB rate/burst/cburst 或启用持久整形。修改 mq 寻址或回滚逻辑前，阅读[rc.18 技术记录](docs/releases/v0.1.0-rc.18.md)及相关源码/fixture，保留全 fq 无写入、混合拓扑写前拒绝、队列集合核对和限定 parent 规范化契约；该记录中的候选状态属于历史时间点。
 
-本阶段不得扩展为永久 HTB、通用 UDP 调参、网络安全专项、全面生产加固、安全扫描、渗透、攻击面分析或新的高流量性能 campaign。不得连接或修改真实 VPS、创建高额度测试资源或运行公网测速，除非用户另行明确授权。只有直接阻断 rc.5 交付且可用最小充分工作处理的事项才可纳入；其他事项（包括 rc.5 迁移器的平台与端口范围限制、旧仓库名常量）登记到[项目阶段备忘](docs/project-memo.md)。提交、推送、合并、tag、Release 与真实 VPS 操作按当前会话的明确授权执行，文档状态本身不授予这些权限。
+本阶段不得扩展为永久 HTB、通用 UDP 调参、网络安全专项、全面生产加固、安全扫描、渗透、攻击面分析或新的高流量性能 campaign。不得连接或修改真实 VPS、创建高额度测试资源或运行公网测速，除非用户另行明确授权。仅纳入首次正式版方案明确的迁移、恢复、验证和文档工作；其他事项（包括未承诺的平台迁移扩展、旧仓库名常量）登记到[项目阶段备忘](docs/project-memo.md)。提交、推送、合并、tag、Release 与真实 VPS 操作按当前会话的明确授权执行，文档状态本身不授予这些权限。
 
 所有已公开 tag、Release 和资产保持不可变；需要改变运行代码或已发布制品时进入新的版本决策。独立工具发布不升级主程序或 managed state。预算、迁移、benchmark、HTB 或策略路由证据功能不得通过兼容名义绕过所有权、完整性、流量、重启或恢复门禁。
 
 每次完成本项目的一轮对话工作、准备最终回复前，必须更新 [项目阶段备忘](docs/project-memo.md)，记录本轮完成内容及证据、未完成门禁、新增或变化的延期事项，以及当前阶段成熟度判断。没有新增延期事项时也应明确记录“无新增”，避免无法判断是否完成过检查。备忘是资料性状态记录，不替代 `AGENTS.md`、验证矩阵、发布说明或用户授权。
 
-本阶段完成条件是：rc.5 合入主线，必需 CI（静态、Linux PTY、root 生命周期与迁移、平台生命周期、ShellCheck）通过；固定 tag 和 Pre-release 的 26 项安装资产经公开下载回验；中英文入口、变更记录、当前状态及发布/验证指针一致，文档检查通过；已公开的旧 tag、Release 和资产未变，历史记录与授权边界保留。逐台迁移和业务验收以对应主机的运行证据及用户确认分别记录，CI、发布或平台功能证据不能替代这些结果，也不得扩大为可靠 policer 识别、全面公网性能或真实业务收益。后续判据实验、业务验证与恢复决策分别明确范围和授权，不因版本发布自动启动。
+本阶段完成条件以[验证说明 G1–G6](docs/validation.md#stable-release-gates)为准；本地候选就绪、Linux CI、真实隔离迁移、灰度业务与正式发布分别记录，不互相替代。已公开 rc.5 及更早 tag、Release 和资产保持不可变。七组新装生命周期继续保留；新增真实来源迁移按明确范围验证，不扩大为全来源×平台×资源排列。逐台生产变更、重启和发布仍须对应授权。
 
 ## 核心执行契约
 

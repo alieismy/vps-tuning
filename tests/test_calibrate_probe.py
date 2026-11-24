@@ -134,7 +134,7 @@ class CalibrationTest(unittest.TestCase):
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*") if p.is_file()})
 
     def test_supported_source_versions_preserve_report_and_evidence(self):
-        for version in ("0.1.0-rc.17", "0.1.0-rc.18", "0.1.0-rc.19", "0.2.0-rc.1", "0.2.0-rc.2", "0.2.0-rc.3", "0.2.0-rc.4", "0.2.0-rc.5"):
+        for version in ("0.1.0-rc.17", "0.1.0-rc.18", "0.1.0-rc.19", "0.2.0-rc.1", "0.2.0-rc.2", "0.2.0-rc.3", "0.2.0-rc.4", "0.2.0-rc.5", "0.2.0-rc.6"):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 fixture(root, profile="debian13-1c1g", port=200, direction="upload",
@@ -150,7 +150,7 @@ class CalibrationTest(unittest.TestCase):
                 self.assertEqual(before, {p: p.read_bytes() for p in root.rglob("*") if p.is_file()})
 
     def test_unreviewed_source_versions_remain_rejected(self):
-        for version in ("0.1.0-rc.16", "0.1.0-rc.20", "0.2.0-rc.6"):
+        for version in ("0.1.0-rc.16", "0.1.0-rc.20", "0.2.0-rc.7"):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 fixture(root, mutate=lambda d, m, p: m.update(script_version=version))

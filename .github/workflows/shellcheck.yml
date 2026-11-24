@@ -23,6 +23,7 @@ jobs:
           sudo bash tests/installer-check.sh
           sudo bash tests/rc18-check.sh
           sudo python3 -B -m unittest discover -s tests -p 'test_tcp_baseline_recovery.py'
+          sudo python3 -B -m unittest discover -s tests -p 'test_stable_migration.py'
 
       - name: Check temporary HTB with native tc and isolated traffic
         run: |
@@ -83,5 +84,7 @@ jobs:
             tests/rc18-check.sh \
             tests/temporary-htb-check.sh \
             tests/platform-guest.sh \
+            tests/migration-guest.sh \
+            tools/collect-migration-inventory.sh \
             experiments/htb-aggregate/tests/static-check.sh \
             .tmp/ci-helpers/*.helper

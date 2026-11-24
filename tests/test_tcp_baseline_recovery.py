@@ -318,7 +318,7 @@ class BaselineRecoveryTest(unittest.TestCase):
         self.archive = self.archive.with_name('archive with spaces')
         self.prepare()
         receipt = self.archive / 'receipt.json'
-        source = (ROOT / 'dvt-migrate.sh').read_text(encoding='utf-8')
+        source = (ROOT / 'tests/fixtures/migration-rc5.sh').read_text(encoding='utf-8')
         validate = re.search(r'^validate_baseline_archive\(\) \{.*?^\}', source,
                              re.M | re.S).group()
         # 权限由 Linux root 生命周期单独验证。这里执行正式归档校验与摘要读取。
@@ -410,7 +410,7 @@ esac
                                             env=env, capture_output=True)
                     self.assertEqual(result.returncode == 0, success, result.stderr.decode())
                     return result
-                migrate(ROOT / 'dvt-migrate.sh', 'prepare', '--source-profile', str(source),
+                migrate(ROOT / 'tests/fixtures/migration-rc5.sh', 'prepare', '--source-profile', str(source),
                         '--target-profile', str(target), '--source-version', version,
                         '--target-version', '0.2.0-rc.5', '--profile-id', profile, '--port', '200',
                         '--state-sha256', r.sha(self.host.path(r.STATE).read_bytes()))

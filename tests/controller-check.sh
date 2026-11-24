@@ -299,7 +299,7 @@ assert_menu_exit $'3\n0' 0 '该项当前不可用' 'unavailable key explains the
 # Frame rows: 66 columns, frame character set only, in Unicode and ASCII modes.
 set_menu_facts 1 1 VERIFIED
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
-HOME_STATE_VERSION=0.2.0-rc.5 HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
+HOME_STATE_VERSION=0.2.0-rc.6 HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
 for ascii in '' 1; do
   DVT_ASCII="$ascii" TERM=xterm ui_init
   # shellcheck disable=SC2034  # Consumed by the sourced controller.
@@ -358,19 +358,19 @@ DETECTED_PRETTY_NAME='Test OS 13' DETECTED_ARCH=x86_64 DETECTED_CPUS=1 DETECTED_
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 DETECTED_RESOURCE_CLASS=1C1GB DETECTED_LABEL='Debian 13 / 1 vCPU / 1 GiB'
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
-STATE_PROFILE=debian13-1c1g STATE_VERSION=0.2.0-rc.5 STATE_PORT_SPEED_MBPS=200
+STATE_PROFILE=debian13-1c1g STATE_VERSION=0.2.0-rc.6 STATE_PORT_SPEED_MBPS=200
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 ACTION=preflight PROFILE_FILE=debian13-1c1g-vps-tuning.sh PROFILE_SOURCE=local PROFILE_SHA256=abc
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 PORT_SPEED_MBPS_SELECTED=200
-expected_plain=$'\nDebian VPS Tuning '"${CONTROLLER_VERSION}"$'\n\n检测结果：\n  系统：Test OS 13\n  架构：x86_64\n  CPU：1 vCPU\n  内存：1024 MiB\n  资源档：1C1GB\n  实现档位：Debian 13 / 1 vCPU / 1 GiB\n  已安装档位：debian13-1c1g\n  状态脚本版本：0.2.0-rc.5\n  已安装端口带宽：200 Mbps\n\n执行计划：\n  action：preflight\n  调用脚本：debian13-1c1g-vps-tuning.sh\n  脚本来源：local\n  SHA-256：abc\n  端口带宽：200 Mbps\n\nend'
+expected_plain=$'\nDebian VPS Tuning '"${CONTROLLER_VERSION}"$'\n\n检测结果：\n  系统：Test OS 13\n  架构：x86_64\n  CPU：1 vCPU\n  内存：1024 MiB\n  资源档：1C1GB\n  实现档位：Debian 13 / 1 vCPU / 1 GiB\n  已安装档位：debian13-1c1g\n  状态脚本版本：0.2.0-rc.6\n  已安装端口带宽：200 Mbps\n\n执行计划：\n  action：preflight\n  调用脚本：debian13-1c1g-vps-tuning.sh\n  脚本来源：local\n  SHA-256：abc\n  端口带宽：200 Mbps\n\nend'
 [ "$({ print_environment_summary; print_execution_plan; printf 'end'; })" = "$expected_plain" ] ||
   fail 'plain summary or plan output changed'
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
 UI_STYLED=1
 styled_plan="$({ print_environment_summary; print_execution_plan; })"
 for value in 'Test OS 13' x86_64 '1 vCPU' '1024 MiB' 1C1GB 'Debian 13 / 1 vCPU / 1 GiB' debian13-1c1g \
-  0.2.0-rc.5 '200 Mbps' preflight debian13-1c1g-vps-tuning.sh local abc; do
+  0.2.0-rc.6 '200 Mbps' preflight debian13-1c1g-vps-tuning.sh local abc; do
   grep -Fq -- "$value" <<<"$styled_plan" || fail "styled summary lacks ${value}"
 done
 

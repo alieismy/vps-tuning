@@ -70,7 +70,7 @@ chmod 0700 "$source_profile" "$target_profile"
 state_hash="$(sha256sum "$state_file" | awk '{print $1}')"
 for rejected_source in 0.2.0-rc.1 0.1.0-rc.20 0.2.0-rc.5; do
 if env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
-  bash "${repo_root}/dvt-migrate.sh" prepare --checkpoint "${checkpoint}-rejected" \
+  bash "${repo_root}/tests/fixtures/migration-rc5.sh" prepare --checkpoint "${checkpoint}-rejected" \
   --source-profile "$source_profile" --target-profile "$target_profile" \
   --source-version "$rejected_source" --target-version 0.2.0-rc.5 \
   --profile-id debian13-1c1g --port 200 --state-sha256 "$state_hash" >"${migration_root}/rejected.log" 2>&1; then
@@ -85,7 +85,7 @@ bad_state="${migration_root}/truncated-state.json"
 jq '.original_sysctls["net.ipv4.tcp_rmem"]="4096"' "$state_file" >"$bad_state"
 bad_hash="$(sha256sum "$bad_state" | awk '{print $1}')"
 if env DVT_STATE_FILE="$bad_state" DVT_BOOT_ID_FILE="$boot_file" \
-  bash "${repo_root}/dvt-migrate.sh" prepare --checkpoint "${checkpoint}-truncated" \
+  bash "${repo_root}/tests/fixtures/migration-rc5.sh" prepare --checkpoint "${checkpoint}-truncated" \
   --source-profile "$source_profile" --target-profile "$target_profile" \
   --source-version "$source_release" --target-version 0.2.0-rc.5 \
   --profile-id debian13-1c1g --port 200 --state-sha256 "$bad_hash" >"${migration_root}/truncated.log" 2>&1; then
@@ -96,7 +96,7 @@ grep -Fq '来源状态缺少完整 TCP buffer 三元组' "${migration_root}/trun
 [ ! -e "${checkpoint}-truncated" ]
 [ "$(sha256sum "$bad_state" | awk '{print $1}')" = "$bad_hash" ]
 env DVT_STATE_FILE="$state_file" DVT_BOOT_ID_FILE="$boot_file" \
-  bash "${repo_root}/dvt-migrate.sh" prepare --checkpoint "$checkpoint" \
+  bash "${repo_root}/tests/fixtures/migration-rc5.sh" prepare --checkpoint "$checkpoint" \
   --source-profile "$source_profile" --target-profile "$target_profile" \
   --source-version "$source_release" --target-version 0.2.0-rc.5 \
   --profile-id debian13-1c1g --port 200 --state-sha256 "$state_hash" >/dev/null
