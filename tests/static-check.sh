@@ -53,11 +53,11 @@ bash tests/controller-check.sh
 # Keep quota-heavy public-network experiments outside the default business-VPS
 # lifecycle even when the implementation remains available for explicit research.
 grep -Fq '状态：已批准；P0 控制文档已实施' "$strategy_doc"
-grep -Fq '## 默认低流量验收路径' README.md
-grep -Fq '## Default Low-Traffic Acceptance Path' README.en-US.md
+grep -Fq '## 默认低流量验收路径' README.zh-CN.md
+grep -Fq '## Default Low-Traffic Acceptance Path' README.md
 grep -Fq '## 默认验收路径与研究边界' "$validation_doc"
-grep -Fq '旧版固定 Release' README.md
-grep -Fq 'fixed old Release' README.en-US.md
+grep -Fq '旧版固定 Release' README.zh-CN.md
+grep -Fq 'fixed old Release' README.md
 # shellcheck disable=SC2016  # Match literal Markdown backticks and path text.
 grep -Fq '唯一例外是 root 所有的普通 `/etc/sysctl.conf`' docs/design-scope.md
 for research_doc in "${research_docs[@]}"; do

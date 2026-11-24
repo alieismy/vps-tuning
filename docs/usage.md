@@ -1,6 +1,6 @@
 # 安装、持久配置与日常操作
 
-适用版本：`v0.2.0-rc.5` 预发行版，固定资产已完成公开下载回验。本页承接 [README](../README.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
+适用版本：`v0.2.0-rc.5` 预发行版，固定资产已完成公开下载回验。本页承接 [README](../README.zh-CN.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
 
 ## 执行前准备
 
@@ -17,7 +17,7 @@ apt install ca-certificates curl jq iproute2 procps kmod util-linux
 
 ## 安装与文件布局
 
-首次安装使用 [首页的固定版本与摘要](../README.md#安装)。安装器先核对内置固定的 `SHA256SUMS` 摘要，再核对全部运行资产，安装到 `/usr/local/lib/debian-vps-tuning/0.2.0-rc.5`，原子更新 `current`，创建 `/usr/local/bin/dvt`。已有同版本目录只有在全部文件重新校验通过时才复用，内容不一致时拒绝覆盖。
+首次安装使用 [README 的固定版本与摘要](../README.zh-CN.md#安装)。安装器先核对内置固定的 `SHA256SUMS` 摘要，再核对全部运行资产，安装到 `/usr/local/lib/debian-vps-tuning/0.2.0-rc.5`，原子更新 `current`，创建 `/usr/local/bin/dvt`。已有同版本目录只有在全部文件重新校验通过时才复用，内容不一致时拒绝覆盖。
 
 `--no-launch` 只安装；省略该参数且有交互终端时，安装完成后打开 `dvt` 菜单。安装本身不执行 apply、测速或 managed state 迁移。下载不回退到 `main`、`master`、`latest`、HTTP 或第三方镜像。
 

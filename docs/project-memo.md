@@ -8,6 +8,20 @@
 
 阅读说明：各轮记录按新到旧排列，同日记录也按此顺序接续；“尚未迁移”“待验收”“未提交”等表述描述该轮结束时的状态。当前状态以顶部阶段说明及最新相关记录为准，后继完成记录补充历史结果，不改写原始执行证据。
 
+## 本轮记录：2026-11-24（PR #46 主线冲突解决）
+
+- **授权与范围。** 用户要求解决 [PR #46](https://github.com/alieismy/vps-tuning/pull/46) 不能合入主线的问题。GitHub 显示 `CONFLICTING`/`DIRTY`：该分支以 `c4e68b8` 为基线，此后主线合入 #47、#48、#49。在既有 README 工作树中把 origin/master `6691d16` merge 入 PR 分支（不 rebase、不强推），只处理冲突及由此产生的一致性更新；不合并 PR，不改运行代码、tag 或 Release。
+- **冲突处理。** 五处冲突：`README.en-US.md` 保持删除；两份 README 在 PR 新结构内同步 rc.5 当前预发行行（2026-11-23 UTC）、安装器 URL 与 SHA-256、验证状态及发布说明链接，“升级与回滚”中的 rc.4 迁移前提改为主线 rc.5 表述；`docs/migration.md`、`docs/usage.md` 取 rc.5 正文并保留指向 `README.zh-CN.md` 的链接；本备忘取主线页头，README 记录排在 2026-11-22 记录首位。另将主线新增的三处中文 README 链接（[代理 VPS 评审](proxy-vps-fit-review-2026-11-22.md)两处、[rc.5 发布说明](releases/v0.2.0-rc.5.md)一处）改指 `README.zh-CN.md`。
+- **验证。** 无冲突标记和 CR，`git diff --check` 通过；`install.sh` 的 SHA-256 与两份 README 及 rc.5 发布说明一致；两份 README 的 bash 代码块逐字一致，且与主线英文 README 相同。按 GitHub 锚点规则检查两份 README、SECURITY.md 与 8 份相关文档的 297 个相对链接及本备忘的 101 个链接，0 问题；四条 README 断言与 `bash -n tests/static-check.sh` 通过。本地缺 python3、shellcheck 和 WSL，完整 static-check 以推送后的 PR CI 为准。
+- **未完成门禁与延期。** PR #46 推送后的 CI、可合并状态、评审与合并待完成，最终状态以 GitHub 记录为准。两份 README 中“五台仍为 rc.2”一句沿用主线原文。无新增延期事项；rc.5 阶段判断不变，无 VPS、公网测速或业务验收。
+
+## 本轮记录：2026-11-24（诊断说明分支代码评审）
+
+- **范围与基线。** 用户调用代码评审且未指定目标，按当前分支相对 master 评审：HEAD `871e55ea1c61d36ce160d2850f697313ca094974`（PR #49，开放），origin/master `51d6d62f0131425fea4606e01981b74a5f38f859`，差异仅三份 Markdown。只读评审；除本记录外未修改被评文档，未提交、推送或连接 VPS。
+- **核验。** `ss -tinp` 在等待前单次执行，与 profile 源码一致；benchmark 拒绝关闭 cap、总 cap 按并行数等分及预热参数，与 `tools/profile-template.sh.in` 一致；新增锚点存在；`platform-lifecycle` 路径过滤不含 docs，“不触发七平台矩阵”成立。PR #49 的两次 `validate` 与 CodeRabbit 检查通过。对照 iproute2 主线 `misc/ss.c`：`rwnd_limited`/`sndbuf_limited` 仅在 `busy_time` 与自身均非零时打印，百分比分母为 busy；目标机 iproute2 版本未核验。
+- **发现（未修改，待用户决定）。** Minor：[诊断说明](usage.md#诊断与故障定位)“缺少字段也不能当作零受限”过宽；输出含 `busy:` 而无该字段时，表示截至快照累计为 0，仅当 `busy:` 也缺失时不可判定，且快照早于等待窗口。Nit：[benchmark 对照条件](advanced-measurement.md#研究专用-benchmark)未列时段或交替顺序，与同页“时段一致”的比较要求未对齐；本备忘“顶部自检记录”已不在顶部，“前两轮”与随后列出的三类记录不符。
+- **延期与成熟度。** 无新增延期事项；rc.5 阶段判断不变，无新增运行、业务或性能证据。
+
 ## 本轮记录：2026-11-24（诊断说明文档提交与 PR 交付）
 
 - **授权与范围。** 用户要求本地提交、推送 GitHub 并查看主线合并路径。使用 `codex/clarify-network-diagnostics-docs` 分支交付本轮三份 Markdown，包含前两轮研究、自检和实施记录；不直接推送 master，不修改运行代码、公开 tag 或 Release。
@@ -82,6 +96,14 @@
 - **验证。** 完整静态入口退出0，其中180项Python测试为168通过、12项平台跳过；总控与事务/队列fixture通过。历史HTB实验静态入口通过，ShellCheck 0.11.0的29个脚本与9个helper通过。生成一致性、24项运行摘要、安装器绑定、文档链接与diff检查通过。负例中的预期错误日志不计为实际门禁失败。最终证据及候选摘要见候选说明，本地日志保存在忽略目录 .tmp/local/review-fixes-20261123 及同级review-fixes日志。
 - **未完成门禁。** 本轮在Windows本地执行，WSL不可用。Linux root安装/迁移、原生符号链接、原生tc及重启/平台生命周期、目标面板客户端业务和2Gbps吞吐均未取得新运行证据。rc.5尚未提交、推送、运行远端CI或发布。
 - **延期事项变化与成熟度。** checkpoint并发互斥、fq开机持久性及真实业务性能继续按自检后的证据边界处理。新增旧HTB同速软件cap对整形暴露影响的运行核验项，现有分析门禁会在暴露不足时阻断；软件节拍预算仍不证明物理流量绝对上限。其余无新增。当前达到本地修复候选及适用本地门禁通过，发布与生产验收分别待证。
+
+## 本轮记录：2026-11-22（README 默认英文与结构重排）
+
+- **授权与范围。** 用户要求按 vps-hardening 本次 README 修改方案修改本仓库，并选定：在独立工作树中修改，不触碰另一会话的未提交文件；`README.md` 改为英文默认版，中文版改名为 `README.zh-CN.md`，删除 `README.en-US.md`，仓库内指向 README 的链接（含三份历史发布说明）改指 `README.zh-CN.md`；建分支、开 PR，并按 AGENTS.md 补记本备忘。分支 `claude/readme-restructure-20261122` 以主线 `c4e68b8` 为基线；只改 README、README 断言和文档链接，不改运行代码、发布资产或已公开 Release。
+- **修改内容。** 两份 README 顶部只保留标题、语言切换、徽章（预发行版本、shell-static-checks、许可证）、简介和当前预发行版一行，去掉手写目录。原顶部的 rc.4 变更说明交由发布说明和 CHANGELOG；迁移前提移入“升级与回滚”；Pre-release 状态、仓库改名和旧仓库常量说明移入“验证状态与已知限制”。新增“配套仓库与执行顺序”：vps-hardening → vps-tuning → vps-proxy-setup，依据 vps-hardening 需求 D27、D41、D42。英文版注明译自中文版，两者不一致时以中文版为准。`tests/static-check.sh` 的四条 README 断言随文件名改指。旧版章节锚点：`README.zh-CN.md` 保留原列表；`README.md` 另保留原中文版的全部章节锚点和旧版锚点，分别指向中文版或对应指南，使已发布 Release 正文和外部旧链接仍可到达。
+- **追加修改。** 用户随后指出三个仓库的 README 都写着另外两个仓库的版本状态，要求删除。两份 README 的配套仓库表格去掉“状态”一列，本仓库的状态只写在开头的当前预发行版一行和“验证状态与已知限制”中；vps-hardening 和 vps-proxy-setup 的 README 同步修改。
+- **验证。** 按 GitHub 规则生成标题锚点并计入 `<a id>` 的本地相对链接检查，覆盖两份 README、SECURITY.md 和 7 份改动文档，167 个片段 0 问题，无重复 id。两份 README 的 bash 代码块逐字一致，且与改前相同；四条 README 断言本地执行通过，`bash -n tests/static-check.sh` 通过，无 CR。发布徽章用 `include_prereleases&filter=v*`，实际渲染为 `v0.2.0-rc.4`，不加 filter 会显示 measurement-explanation-v0.1.1；platform-lifecycle 徽章在 master 上渲染为 failing（最近两次 master 运行为 cancelled），未放入。完整 static-check 由 PR CI 执行，结果以 PR 为准。
+- **未完成门禁与延期。** PR 的 CI、评审和合并待完成。`docs/` 下的指南和 `SECURITY.md` 仍只有中文，不在本轮范围。合并后，外部指向 `README.en-US.md` 的链接失效（用户选择删除该文件）。无新增延期事项。成熟度不变：rc.4 仍为已公开 Pre-release，本轮只改文档入口，没有 VPS、SSH、公网测速或业务验收。
 
 ## 本轮记录：2026-11-22（代理 VPS 适配评审自检）
 
@@ -629,7 +651,7 @@
   - `vps-network-tuning` 能准确表达网络核心，但有两个问题：GitHub 上已有同领域的同名仓库，而且名字不覆盖系统调优。
   - 现有系统项只有 swap、journald、NOFILE 和 `vm.swappiness`；[操作指南](usage.md#脚本不会修改什么)列出的大量主机调优项不在范围内。所以描述应写明以网络为主。
 - **证据。**
-  - [README](../README.md) 与[平台支持](platform-support.md)的支持范围。
+  - [README](../README.zh-CN.md) 与[平台支持](platform-support.md)的支持范围。
   - GitHub 名称检索（2026-10-10）：`CG-spring/vps-network-tuning` 与候选名完全同名，描述含 routing，另有 `akadorkin/vps-network-tuning-script`；`vps-tuning` 未检出完全同名仓库。
   - GitHub 官方改名文档：web 流量与 git 操作会重定向；Actions 调用不会重定向；复用旧名会使重定向失效。
   - 本轮实测：`rust-lang/rustup.rs` 改名后，API、release 页和 archive 均返回 301；`charliermarsh/ruff` 转移后 release 下载返回 301；`ry/deno` 旧名被重新占用后 release 下载返回 404。

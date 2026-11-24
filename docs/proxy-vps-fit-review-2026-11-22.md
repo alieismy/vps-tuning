@@ -46,7 +46,7 @@
 
 ### R6 · Major · 仅改套餐带宽时，错误提示会引导用户完整回滚
 
-已管理主机误用 `apply --port` 改套餐时，拒绝写入新的受管配置是正确行为。独立 preflight 会提示 reconfigure，apply 自身的参数不一致分支却统一提示 purge 项目 swap、rollback、重启并重新 apply。对于同版本、同 profile、状态为 `VERIFIED` 且只改变套餐带宽的情形，现有 `dvt reconfigure --port <Mbps>` 可以保留其他设置。照错误提示执行会引入一次不必要的回滚和重启，也可能触及 R3 的账本目录。建议只调整分情况提示，保留异版、损坏状态和其他参数的原有门禁；用 500→2000 Mbps 的同版样例检查退出码、无写入及推荐入口。[模板](../tools/profile-template.sh.in) 第 2492–2519、2617–2620 行 · [README 常用操作](../README.md#常用操作)
+已管理主机误用 `apply --port` 改套餐时，拒绝写入新的受管配置是正确行为。独立 preflight 会提示 reconfigure，apply 自身的参数不一致分支却统一提示 purge 项目 swap、rollback、重启并重新 apply。对于同版本、同 profile、状态为 `VERIFIED` 且只改变套餐带宽的情形，现有 `dvt reconfigure --port <Mbps>` 可以保留其他设置。照错误提示执行会引入一次不必要的回滚和重启，也可能触及 R3 的账本目录。建议只调整分情况提示，保留异版、损坏状态和其他参数的原有门禁；用 500→2000 Mbps 的同版样例检查退出码、无写入及推荐入口。[模板](../tools/profile-template.sh.in) 第 2492–2519、2617–2620 行 · [README 常用操作](../README.zh-CN.md#常用操作)
 
 ### 日常验证与诊断
 
@@ -72,7 +72,7 @@
 
 非默认配置还要区分两种操作。同版本 reconfigure 会保留原 RTT 和显式缓冲；跨版本迁移 checkpoint 固定带宽，目标 preflight/apply 显式传递带宽，未从来源状态固定重放自定义 RTT、显式缓冲或 swap 设置。在没有额外环境参数的正常调用下采用目标默认值。既有自定义值应在迁移前核对；尚无要求改造为通用参数迁移器的依据。[重配置](../tools/profile-template.sh.in) 第 2525–2556 行 · [迁移器](../dvt-migrate.sh) 第 214–222、268–278 行
 
-平台范围还要求至少一个可用逻辑 CPU、384 MiB 可识别内存、原生 systemd、可用 BBR/fq 与可恢复的常规队列拓扑。独立测量、只读诊断和受管安装的前提不同。判断依据见[平台契约](platform-support.md)、[五台验收](validation.md#rc2-fleet-acceptance)、[实际 VM 步骤](../tests/platform-guest.sh)、[迁移准入](migration.md#先判断能否迁移)、[主入口](../README.md)和[上游固定版本](https://github.com/MHSanaei/3x-ui/releases/tag/v3.11.0)。
+平台范围还要求至少一个可用逻辑 CPU、384 MiB 可识别内存、原生 systemd、可用 BBR/fq 与可恢复的常规队列拓扑。独立测量、只读诊断和受管安装的前提不同。判断依据见[平台契约](platform-support.md)、[五台验收](validation.md#rc2-fleet-acceptance)、[实际 VM 步骤](../tests/platform-guest.sh)、[迁移准入](migration.md#先判断能否迁移)、[主入口](../README.zh-CN.md)和[上游固定版本](https://github.com/MHSanaei/3x-ui/releases/tag/v3.11.0)。
 
 ## 2 Gbps 在低内存与长 RTT 下意味着什么
 

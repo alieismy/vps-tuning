@@ -1,6 +1,6 @@
 # 升级、旧状态与历史恢复
 
-当前目标：`v0.2.0-rc.5` 预发行版。本页用于已有 DVT 管理状态的主机；全新安装见 [README](../README.md#安装)。历史版本步骤保留在后面的附录，不能直接换版本号套用。
+当前目标：`v0.2.0-rc.5` 预发行版。本页用于已有 DVT 管理状态的主机；全新安装见 [README](../README.zh-CN.md#安装)。历史版本步骤保留在后面的附录，不能直接换版本号套用。
 
 **历史问题（2026-10-04）：** 已发布 rc.1 的目标 profile 会把旧 schema 4 的版本不一致报告为笼统状态错误；旧版 verify 成功不能解除此拒绝。[rc.2 预发行版](releases/v0.2.0-rc.2.md)修复只读预检，仍保留恢复完整性门禁。下方命令使用已发布并完成公开回验的 rc.5 固定资产。rc.4 及更早固定步骤保留在历史附录。
 
@@ -121,7 +121,7 @@ bash /var/lib/debian-vps-tuning-migrations/to-0.2.0-rc.5/dvt-migrate.sh status \
   jq -e 'select(.phase=="COMPLETE" and .target_version=="0.2.0-rc.5") | {phase,source_version,target_version,profile_id}'
 ```
 
-随后按 [README 固定版本安装块](../README.md#安装) 安装 `v0.2.0-rc.5` 入口（保留 `--no-launch`）；这一步不再 apply。若入口已是该版本，核对版本与完整性后可跳过重复安装。最后执行：
+随后按 [README 固定版本安装块](../README.zh-CN.md#安装) 安装 `v0.2.0-rc.5` 入口（保留 `--no-launch`）；这一步不再 apply。若入口已是该版本，核对版本与完整性后可跳过重复安装。最后执行：
 
 ```bash
 dvt --version
@@ -129,7 +129,7 @@ dvt status
 dvt verify
 ```
 
-适用时执行[严格代理服务验证](../README.md#路径-b应用持久配置)，并独立确认控制台/SSH、服务与真实客户端业务。迁移不要求公网测速，不证明线路性能改善。旧目录、checkpoint 和备份保留供恢复与核验。
+适用时执行[严格代理服务验证](../README.zh-CN.md#路径-b应用持久配置)，并独立确认控制台/SSH、服务与真实客户端业务。迁移不要求公网测速，不证明线路性能改善。旧目录、checkpoint 和备份保留供恢复与核验。
 
 ## 失败、混合版本与恢复
 

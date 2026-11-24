@@ -1,60 +1,54 @@
 # VPS Tuning
 
-**v0.2.0-rc.5 预发行版。** 固定资产已完成公开下载回验，修复范围、证据与剩余限制见[发布说明](docs/releases/v0.2.0-rc.5.md)。
+English | [简体中文](README.zh-CN.md)
 
-简体中文 · [English](README.en-US.md) · [v0.2.0-rc.5 预发行版](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.5) · [已发布 rc.4](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.4)
+[![Pre-release](https://img.shields.io/github/v/release/alieismy/vps-tuning?include_prereleases&filter=v*)](https://github.com/alieismy/vps-tuning/releases)
+[![shell-static-checks](https://github.com/alieismy/vps-tuning/actions/workflows/shellcheck.yml/badge.svg?branch=master)](https://github.com/alieismy/vps-tuning/actions/workflows/shellcheck.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-本版修复服务核验、受管文件恢复、迁移接续和测量记账，保持 17 项受管 sysctl、资源感知缓冲和默认 BBR + fq。已受管主机须通过跨版本迁移及原值完整性门禁后再执行受管动作。Ubuntu 和超过 1000 Mbps 的端口仍不在迁移器范围内，新安装支持不扩大迁移支持。
+Host network diagnostics, budgeted automatic measurement with public iperf3 endpoints, and verifiable, reversible BBR + fq configuration for Linux VPS hosts. Measurement needs neither prior tuning nor a self-hosted endpoint. Temporary HTB rate sweeps explore the relationship between sending rate and retransmissions.
 
-为 Linux VPS 提供主机网络诊断、有预算的公共 iperf3 自动测量，以及可验证、可回滚的 BBR + fq 配置。测量无需先应用调优或自建对端；临时 HTB 速率阶梯实验用于观察发送速率与重传的关系。
+> This README is translated from the [Chinese README](README.zh-CN.md). The guides under `docs/` are in Chinese. Where the two READMEs differ, the Chinese README prevails.
 
-当前为 **Pre-release**，rc.5 固定资产已完成公开下载回验。持久配置支持 Debian 12/13、Ubuntu 24.04 LTS 的 x86_64/ARM64 主机；独立诊断和测量按实际 Linux 能力检查。已有功能与恢复证据不等于可靠 policer（流量监管）识别或代理业务性能收益。
+**Current pre-release: [`v0.2.0-rc.5`](https://github.com/alieismy/vps-tuning/releases/tag/v0.2.0-rc.5) (2026-11-23 UTC); there is no stable release yet.** A host with existing DVT managed state must complete a cross-version migration before running managed actions under the new version; see [Upgrades and rollback](#upgrades-and-rollback).
 
-仓库原名 `debian-vps-tuning`，2026-10-10 改为现名，旧链接会自动跳转到本仓库。`dvt` 命令、发布资产文件名、安装路径和受管状态路径均保持不变。
+## Capabilities and effects
 
-本版运行资产保留已验证的旧仓库常量，安装器和总控通过 GitHub 重定向访问新仓库；不要在同一账户下重新创建旧名仓库，以免使这些重定向失效。
-
-[功能与边界](#功能与边界) · [支持范围](#支持范围与前置条件) · [快速开始](#快速开始) · [常用操作](#常用操作) · [升级与回滚](#升级与回滚) · [文档](#文档导航) · [帮助](#帮助贡献与安全报告)
-
-## 功能与边界
-
-| 我想做什么 | 入口 | 影响与条件 |
+| Goal | Entry point | Effects and conditions |
 |---|---|---|
-| 查看主机能力与网络状态 | `dvt diagnose` | 无需先 apply；无主动测速流量、不改系统配置；输出能力快照 |
-| 自动选点并测量出向 TCP | `dvt measure` | 无需先 apply；显式 cap 和共享预算；保持 sysctl/qdisc，保存本地证据 |
-| 测试临时整形区间 | `dvt htb-sweep` | 只接受可完整恢复的单根 fq；临时限制整个接口的出向流量，包括 SSH；结束核对恢复 |
-| 管理主机网络配置 | `dvt preflight` → `dvt apply` | 持久管理 BBR + fq、TCP 缓冲、队列参数、可选 swap、journald 和 NOFILE；支持验证与回滚 |
-| 检查采集结果 | `dvt report` | 核验独立测量报告摘要，不自动应用候选速率 |
-| 离线解释重传与候选证据 | [`explain_measurement.py`](docs/measurement-explanation.md) | 在完整源码目录运行，无需安装到 VPS；保留原分类，不生成限速决定 |
+| Inspect host capabilities and network state | `dvt diagnose` | No prior apply, active test traffic or system configuration changes; outputs a capability snapshot |
+| Automatically select an endpoint and measure outgoing TCP | `dvt measure` | No prior apply; explicit cap and shared budget; keeps sysctl/qdisc and saves local evidence |
+| Explore temporary shaping rates | `dvt htb-sweep` | Requires a fully restorable single root fq; temporarily limits all interface egress, including SSH; verifies restoration |
+| Manage host configuration | `dvt preflight` → `dvt apply` | Persistently manages BBR + fq, TCP buffers, queue settings, optional swap, journald and NOFILE; includes verification and rollback |
+| Inspect captured results | `dvt report` | Verifies independent measurement report hashes; never applies a candidate rate |
+| Explain retransmissions and candidate evidence offline | [`explain_measurement.py`](docs/measurement-explanation.md) | Runs from the complete source directory without VPS installation; preserves the original classification and makes no shaping decision |
 
-项目不安装或改写代理业务，不配置防火墙、路由、DNS、NAT 或 TProxy。`verify` 和旧增量诊断 `diagnose --managed` 会只读解析可访问的 Xray 生成配置，报告 TFO/keepalive 指定字段；不会改写配置或输出其中的凭据。持久 HTB 未启用。
+The project does not install or rewrite proxy services, configure firewalls, routing, DNS, NAT or TProxy. `verify` and legacy incremental diagnostics (`diagnose --managed`) may read an accessible generated Xray configuration to report selected TFO/keepalive fields; they do not rewrite it or output its credentials. Persistent HTB is not enabled.
 
-## 支持范围与前置条件
+## Support and prerequisites
 
-| 能力 | 前置条件 |
+| Capability | Requirements |
 |---|---|
-| 持久配置 | Debian 12/13 或 Ubuntu 24.04 LTS，`x86_64`/`aarch64`，原生 systemd；至少 1 个逻辑 CPU、384 MiB RAM；实际可用的 BBR/fq、常规默认路由和可恢复 qdisc |
-| 独立诊断 | Linux、Python 3.9+ 和可用的系统观察命令；无需 root，不可读取项显示 unavailable |
-| 独立测量 | Python 3.9+、Bash、iperf3、iproute2、jq、awk、GNU coreutils、util-linux；实际执行需要 root 和共享预算账本；不按发行版或 CPU/RAM 档位拒绝 |
-| 临时 HTB | 满足测量依赖，另需 HTB/fq、显式接口及完整恢复能力；mq、clsact、ingress、额外 class/filter 或未知 fq 参数会被拒绝 |
+| Persistent configuration | Debian 12/13 or Ubuntu 24.04 LTS, `x86_64`/`aarch64`, native systemd; at least 1 logical CPU and 384 MiB RAM; available BBR/fq, a conventional default route and recoverable qdisc |
+| Independent diagnostics | Linux, Python 3.9+ and available observation commands; no root required; unreadable items are unavailable |
+| Independent measurement | Python 3.9+, Bash, iperf3, iproute2, jq, awk, GNU coreutils and util-linux; execution needs root and a shared budget ledger; no distro or CPU/RAM tier allowlist |
+| Temporary HTB | Measurement dependencies, HTB/fq, an explicit interface and full restoration support; mq, clsact, ingress, extra classes/filters or unknown fq parameters are rejected |
 
-程序不自动安装依赖。完整准备步骤见[操作指南](docs/usage.md#执行前准备)，限速测试建议使用 iperf3 3.18 或包含等效修复的版本。
+Dependencies are not installed automatically. See [preparation instructions (Chinese)](docs/usage.md#执行前准备). Rate-limited tests should use iperf3 3.18 or a version containing the equivalent fix.
 
-原 Debian 资源档保留兼容策略，其他受支持组合采用 adaptive profile。持久配置的 `--port` 接受 **1–10000 Mbps**，应填写服务商套餐上限；它不是虚拟网卡速率，也不创建限速器。测量的 `--rate-cap` 是独立的发送目标和预算依据。参数范围不代表相应吞吐已验收，详见[平台与资源策略](docs/platform-support.md)。
+Original Debian resource tiers keep their policies; other supported combinations use adaptive profiles. Persistent `--port` accepts **1–10000 Mbps** and means the provider's plan limit, not the virtual NIC link speed or a shaper. Measurement `--rate-cap` is a separate sending target and budget input. Accepted values do not prove tested throughput; see the [platform and resource contract (Chinese)](docs/platform-support.md).
 
-## 快速开始
+## Quick start
 
-### 安装前先选择路径
+### Choose a path before installation
 
-- **全新主机：** 按下方固定摘要安装，再选择只诊断/测量或持久配置。
-- **已有 DVT 受管状态：** 先读[迁移指南](docs/migration.md)。安装新入口不迁移状态，不要用新版 apply 覆盖旧状态。若旧 `tcp_rmem/tcp_wmem` 原值不足三个字段，停在只读检查，保留状态和原版资产，不执行 rollback/reboot。
-- **准备修改配置：** 先备份基线并确认服务商控制台/救援入口可用。已有厂商 BBR/fq 时可先 preflight，再决定是否接管；不必仅因已经有 BBR/fq 就重复调优。
+- **New host:** verify and install the pinned release below, then choose diagnostics/measurement or persistent configuration.
+- **Existing managed state:** first read the [migration guide (Chinese)](docs/migration.md). Installing an entrypoint does not migrate state. Never apply a new version over old state. If saved original `tcp_rmem/tcp_wmem` vectors have fewer than three fields, stop at read-only inspection; keep state and original assets, and do not rollback/reboot.
+- **Before changing configuration:** save the baseline and confirm console/rescue access and backups. If the provider already supplies BBR/fq, inspect preflight before deciding whether the project should take ownership; existing BBR/fq does not itself require another tuning layer.
 
-<a id="联网安装与验证"></a>
+### Installation
 
-### 安装
-
-在 root shell 中执行（`id -u` 应为 `0`）。以下命令完整下载固定 `v0.2.0-rc.5` 安装器，验证 SHA-256 后运行；`--no-launch` 只安装，不执行调优或测速。
+Run in a root shell (`id -u` must return `0`). This downloads the complete fixed `v0.2.0-rc.5` installer, verifies its SHA-256 and then executes it. `--no-launch` installs only, without tuning or measurement traffic.
 
 ```bash
 (
@@ -73,22 +67,22 @@
 )
 ```
 
-只有命令成功退出后才继续。安装器会校验固定 manifest 和全部运行资产，提供 `/usr/local/bin/dvt`；内容不符时拒绝覆盖。下载不会回退到可变分支、`latest` 或第三方镜像，不采用未经校验的 `curl | bash`。
+Continue only after successful exit. The installer verifies the pinned manifest and all runtime assets, installs `/usr/local/bin/dvt`, and refuses inconsistent existing content. Downloads never fall back to mutable branches, `latest` or third-party mirrors. Do not replace this with an unverified `curl | bash` command.
 
 ```bash
 dvt --version
 ```
 
-### 路径 A：只诊断或独立测量
+### Path A: diagnostics or independent measurement
 
-以下命令不需要先 apply。安装完成后，先看能力快照和无流量计划：
+No prior apply is needed. After installation, inspect capabilities and preview the traffic-free plan:
 
 ```bash
 dvt diagnose
 dvt measure --rate-cap 20 --plan-only
 ```
 
-确认测试窗口、预算与公共服务使用条件后，下面的**示例会产生出向 TCP 流量**。在 root shell 执行；证据目录必须尚不存在，账本窗口不能通过删除或换 ID 绕过历史消费：
+After reviewing the testing window, budget and public service terms, the following **example generates outgoing TCP traffic**. Run as root; the output directory must not exist. Never delete a ledger or change its window ID to bypass recorded consumption:
 
 ```bash
 install -d -m 0700 /root/dvt-traffic
@@ -97,118 +91,159 @@ dvt measure --rate-cap 20 --family 4 --budget-mib 600 \
   --output-dir /root/dvt-measure-01
 ```
 
-工具显示计划并请求确认，自动从公共目录有限选点；公共服务会看到 VPS 来源地址，节点也可能繁忙或不可达。600 MiB 是示例 application payload 预算，不包括协议、重传和服务商计费差异。完整结果、失败结算及依赖说明见[自动测量指南](docs/automatic-measurement.md)。完成后查看报告：
+The tool displays its plan and asks for confirmation, then performs bounded public endpoint selection. Public services see the VPS source address and may be busy or unreachable. The example 600 MiB budget covers application payload, excluding protocol, retransmission and provider-billing overhead. See [automatic measurement (Chinese)](docs/automatic-measurement.md) for dependencies, results and failed-reservation accounting. Inspect a completed report with:
 
 ```bash
 dvt report --input-dir /root/dvt-measure-01
 ```
 
-`INSUFFICIENT_EVIDENCE` 是允许的结果；退出码 0 只表示报告采集完成。测试不经过 VLESS/REALITY 客户端，不能据此承诺业务提速。临时整形另见 [htb-sweep 指南](docs/temporary-htb.md)，执行前必须理解整个接口限速及恢复条件。
+`INSUFFICIENT_EVIDENCE` is an allowed result; exit code 0 only means report collection completed. Tests do not traverse a VLESS/REALITY client and do not establish proxy performance benefits. For temporary shaping, read the [htb-sweep guide (Chinese)](docs/temporary-htb.md), including its whole-interface impact and restoration conditions.
 
-需要查看扫描覆盖缺口、绝对重传次数、字节量和候选证据限制时，可使用[离线解释工具 0.1.1](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.1)。它是独立的源码 Pre-release；下载校验及 Windows/Linux 命令见[工具发布说明](docs/releases/measurement-explanation-v0.1.1.md)，无需升级 VPS 或运行安装器，不改变主机已安装的主程序版本。
+For scan coverage gaps, absolute retransmission counts, byte exposure and candidate evidence limits, use [offline explanation tool 0.1.1](https://github.com/alieismy/vps-tuning/releases/tag/measurement-explanation-v0.1.1). This is a separate source prerelease; see the [tool release notes (Chinese)](docs/releases/measurement-explanation-v0.1.1.md) for download verification and Windows/Linux commands. It requires neither a VPS upgrade nor the installer and does not change the installed main-program version.
 
-### 路径 B：应用持久配置
+### Path B: persistent configuration
 
-以下适用于全新、无旧受管状态的主机。先把 `200` 换成服务商套餐上限，运行只读预检：
+For a new host without old managed state, replace `200` with the provider plan limit and run read-only preflight:
 
 ```bash
 dvt preflight --port 200
 ```
 
-预检通过并确认写入范围后执行：
+After preflight passes and you have reviewed the write scope:
 
 ```bash
 dvt apply --port 200
 ```
 
-成功后按提示重启：
+After successful application, reboot as instructed:
 
 ```bash
 reboot
 ```
 
-重新登录后验证。无需再次填写带宽，也不会重新 apply：
+Log in again and verify. These commands neither need the bandwidth again nor reapply settings:
 
 ```bash
 dvt verify
 dvt status
 ```
 
-每步失败都停止，保存完整输出。安装并启动 3X-UI 后还需严格验证，检查服务活动及 systemd、主进程和直接 Xray 子进程的 NOFILE；重启后重复验证：
+Stop on any failed step and retain complete output. After installing and starting 3X-UI, also run strict verification for service activity and NOFILE limits in systemd, the main process and direct Xray children. Repeat after reboot:
 
 ```bash
 env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 ```
 
-其他服务、预检阻断、swap 与 qdisc 恢复说明见[操作指南](docs/usage.md)。
+See the [operations guide (Chinese)](docs/usage.md) for other services, preflight refusals, swap and qdisc restoration.
 
-## 默认低流量验收路径
+## Default Low-Traffic Acceptance Path
 
-持久配置的安装与迁移默认完成固定资产校验、preflight、apply、重启后 verify、适用的严格代理服务验证，以及少量真实客户端业务冒烟。日常检查使用 status/verify，故障首先使用无主动流量的 diagnose；日常检查不要求重新 apply。
+Persistent installation and migration use fixed-asset verification, preflight, apply, post-reboot verify, applicable strict proxy-service verification and a small real-client business smoke test. Routine checks use status/verify; start troubleshooting with traffic-free diagnose. Routine checks do not require reapplying settings.
 
-`measure`、`htb-sweep`、旧 `probe`、benchmark、TcpQuality 和 HTB 研究均不是每台 VPS 的默认必做项。主动测量须有明确问题和预算；benchmark、TcpQuality、旧 HTB reference/sweep/A/B/A 研究还要求独立高额度测试机。详细分层见[验证说明](docs/validation.md#默认验收路径与研究边界)。
+`measure`, `htb-sweep`, legacy probe, benchmark, TcpQuality and HTB research are not mandatory per-host acceptance steps. Active measurement requires a concrete question and budget; benchmark, TcpQuality and legacy HTB reference/sweep/A/B/A research additionally require a separate high-quota host. See the [validation boundaries (Chinese)](docs/validation.md#默认验收路径与研究边界).
 
-## 常用操作
+## Common operations
 
-| 操作 | 命令或文档 |
+| Operation | Command or documentation |
 |---|---|
-| 交互菜单 | `dvt`；安全引导先 preflight，明确确认后才 apply；异版状态默认本地诊断，升级检查须显式选择 |
-| 当前入口版本 / 受管状态 | `dvt --version` 查看入口版本；`dvt status` 要求入口与受管状态版本一致。版本不一致时，按[迁移指南](docs/migration.md)只读盘点受管状态 |
-| 当前配置验证 | `dvt verify` |
-| 旧 profile 增量与代理诊断 | `dvt diagnose --managed`；`DIAG_*` 变量只作用于该路径 |
-| 同版本、同 profile 仅改变套餐带宽 | `dvt reconfigure --port 500`；要求有效 `VERIFIED` 状态 |
-| 只读升级检查 | `dvt update`；不自动升级或重启，跨发布线须显式 `--target` |
-| 中断的带宽重配置恢复 | `dvt recover`；按事务状态处理，不作为任意损坏状态的修复器 |
-| 参数、手动下载、离线 bundle、独立 profile | [操作指南](docs/usage.md) |
-| 显式对端 probe、benchmark、TcpQuality、旧 HTB | [高级测量](docs/advanced-measurement.md) |
+| Interactive menu | `dvt`; guided preflight asks before apply; mismatched state defaults to local diagnostics, while update requires explicit selection |
+| Entrypoint version / managed state | `dvt --version` shows the entrypoint version; `dvt status` requires a matching managed-state version. If they differ, use the read-only state inspection in the [migration guide (Chinese)](docs/migration.md) |
+| Verify managed configuration | `dvt verify` |
+| Legacy profile incremental/proxy diagnostics | `dvt diagnose --managed`; `DIAG_*` variables affect this path only |
+| Change only the plan bandwidth, with the same version/profile | `dvt reconfigure --port 500`; requires valid `VERIFIED` state |
+| Read-only update check | `dvt update`; no automatic migration or reboot; cross-line targets require explicit `--target` |
+| Recover an interrupted bandwidth reconfiguration | `dvt recover`; follows transaction state, not a generic repair for corrupt state |
+| Parameters, manual downloads, offline bundles and standalone profiles | [Operations guide (Chinese)](docs/usage.md) |
+| Explicit-endpoint probe, benchmark, TcpQuality and legacy HTB | [Advanced measurement (Chinese)](docs/advanced-measurement.md) |
 
-## 升级与回滚
+## Upgrades and rollback
 
-**更新文件入口、迁移 managed state 和业务验收是不同步骤。** 跨版本由**旧版固定 Release**按自身状态核验和恢复，再按 checkpoint 完成两次人工重启及目标版本 apply/verify。当前操作及历史版本附录见[迁移指南](docs/migration.md)。
+**Updating executable files, migrating managed state and business acceptance are separate steps.** Before a managed host can run managed actions under a new version, it must pass the cross-version migration and original-state checks: the **fixed old Release** verifies and restores the source from its own state, followed by a checkpoint, two manual reboot gates and target apply/verify. Ubuntu and port speeds above 1000 Mbps remain outside the migrator scope; new-install support does not expand migration support. See the [current migration procedure and historical appendix (Chinese)](docs/migration.md).
 
-只有恢复条件完整、入口版本与状态相符时才执行 `dvt rollback`。普通回滚默认保留项目创建的 swap；确需清理时，先确认内存余量，再按[回滚说明](docs/usage.md#回滚)显式 purge。失败保留 state、checkpoint、备份和 ledger；不手工删状态、猜原值或用新版覆盖旧状态。
+Run `dvt rollback` only when restoration conditions are complete and the entrypoint matches the state version. Normal rollback keeps project-created swap; confirm memory headroom before an explicit purge as described in the [rollback guide (Chinese)](docs/usage.md#回滚). On failure, retain state, checkpoints, backups and the ledger. Never delete state, guess original values or overwrite old state with new apply.
 
-仅修改套餐带宽使用 `reconfigure --port`。参数错误在写入前被拒绝时无需回滚；其他参数变更再按对应恢复流程处理。
+Use `reconfigure --port` for a bandwidth-only change. An invalid-parameter call rejected before writes needs no rollback; other changes follow their applicable recovery procedure.
 
-## 验证状态与已知限制
+## Companion repositories and order
 
-- 截至 2026-10-11，五台 Debian 13 VPS 已完成 rc.2 迁移和入口安装，均为 `COMPLETE / VERIFIED`、严格 x-ui 验证零警告；面板、真实代理业务及重连由用户逐台确认通过。四台采用新恢复基线、一台采用同部署历史证据，详见[五台验收记录](docs/validation.md#rc2-fleet-acceptance)。这不证明量化性能收益或长期稳定性；五台仍为 rc.2，rc.3/rc.4 尚未在这些主机上迁移或验证。
-- 七组隔离客体生命周期覆盖 Debian 12/13、Ubuntu 24.04 的 x86_64/ARM64 adaptive，以及 Debian 13 x86_64 legacy；包括真实客体重启、幂等、重配置与恢复。ARM64 使用 ARM runner 上的 QEMU/TCG，不能替代特定云厂商硬件验收。
-- 公共 IPv4 自动测量、临时 HTB 正常与信号中断恢复有有限 VPS 证据。完整低速扫描曾获得 15 个样本、11 个有效，整轮仍为 `INSUFFICIENT_EVIDENCE`，尚未证明可靠 policer 拐点或代理收益。
-- 主要业务验证场景为原生 systemd 的 3X-UI/Xray/VLESS + REALITY + TCP；已记录基线为 3X-UI v3.4.2、Xray-core v26.6.27，其他版本需单独验证。Docker、策略路由、TProxy、网关和复杂 qdisc 的持久配置不在当前支持范围。
-- 1–10000 Mbps 是参数范围；更广泛公网平台、IPv6、高速、特定大资源硬件及业务性能仍有未验收项。
+The three repositories are used in the order of the table below: harden first, then tune, then set up the proxy (vps-hardening requirements D27; rationale in its [requirements §7.3](https://github.com/alieismy/vps-hardening/blob/master/docs/requirements.md#73-与-vps-tuning-的约定)).
 
-固定提交、历史失败和详细边界见[平台矩阵](docs/platform-support.md)、[运行证据](docs/validation.md)和[当前发布说明](docs/releases/v0.2.0-rc.5.md)。
+| Order | Repository | Purpose |
+|---|---|---|
+| 1 | [vps-hardening](https://github.com/alieismy/vps-hardening) | Baseline security hardening |
+| 2 | vps-tuning (this repository) | Network tuning, diagnostics and measurement |
+| 3 | [vps-proxy-setup](https://github.com/alieismy/vps-proxy-setup) | Proxy service setup (3X-UI as the example) |
 
-## 文档导航
+Full flow (vps-hardening requirements D27, D41, D42):
 
-| 主题 | 文档 |
+1. **Preparation**: update the system, install basic tools and reboot; done by the administrator;
+2. **vps-hardening**: harden and confirm;
+3. **vps-tuning**: tune as in [Path B](#path-b-persistent-configuration) (preflight → apply → reboot → verify);
+4. **vps-proxy-setup**: install and configure 3X-UI, then open its ports with `vps-hardening ports` and confirm;
+5. **Final checks**: this repository's strict proxy-service verification (requires the proxy service to be running); after a reboot, check again with `vps-hardening verify`, the strict verification and a proxy client connection.
+
+Apply and reboot for tuning only after the hardening is confirmed: a reboot before confirmation automatically undoes the hardening.
+
+## Validation status and limitations
+
+- `v0.2.0-rc.5` is a Pre-release; its pinned assets have been verified through public downloads. Persistent profiles support Debian 12/13 and Ubuntu 24.04 LTS on x86_64/ARM64; independent diagnostics and measurement check actual Linux capabilities.
+- As of 2026-10-11, five Debian 13 VPS hosts have completed rc.2 migration and entrypoint installation, with `COMPLETE / VERIFIED` state and zero warnings from strict x-ui verification. The user confirmed panel access, real proxy traffic and reconnection for each host. Four use replacement recovery baselines and one uses historical evidence from the same deployment; see the [five-host acceptance record (Chinese)](docs/validation.md#rc2-fleet-acceptance). This does not establish quantitative performance gains or long-term stability. All five remain on rc.2; rc.3/rc.4 have not been migrated to or verified on these hosts.
+- Seven isolated guest lifecycle jobs cover Debian 12/13 and Ubuntu 24.04 x86_64/ARM64 adaptive profiles, plus Debian 13 x86_64 legacy. They include real guest reboots, idempotency, reconfiguration and restoration. ARM64 uses QEMU/TCG on ARM runners; it is not vendor-specific hardware acceptance.
+- Public IPv4 measurement and temporary HTB normal/signal-interrupted restoration have bounded VPS evidence. One complete low-rate sweep had 15 samples, 11 eligible, and still returned `INSUFFICIENT_EVIDENCE`. Reliable policer (traffic policing) detection and proxy benefits remain unproven.
+- The main business validation scenario is native systemd with 3X-UI/Xray/VLESS + REALITY + TCP. Recorded versions are 3X-UI v3.4.2 and Xray-core v26.6.27; other versions need separate verification. Persistent Docker, policy-routing, TProxy, gateway and complex-qdisc configurations are outside current support.
+- 1–10000 Mbps is an input range. Broader public-path platform coverage, IPv6, high rates, specific large-resource hardware and business performance still have unvalidated areas.
+- The repository was renamed from `debian-vps-tuning` on 2026-10-10, and old links redirect here automatically. The `dvt` command, release asset file names, installation paths and managed-state paths are unchanged. These verified runtime assets retain the old repository constant; the installer and controller reach the renamed repository through GitHub redirects. Do not recreate the old repository name in the same account, as that would disable those redirects.
+
+Changes in each version are listed under [Releases](https://github.com/alieismy/vps-tuning/releases) and in the [CHANGELOG](CHANGELOG.md). Pinned commits, historical failures and detailed limits are recorded in the [platform matrix](docs/platform-support.md), [validation record](docs/validation.md) and [release notes](docs/releases/v0.2.0-rc.5.md), currently in Chinese.
+
+## Documentation
+
+The guides are in Chinese.
+
+| Topic | Guide |
 |---|---|
-| 安装、日常操作、诊断、参数和回滚 | [操作指南](docs/usage.md) |
-| 升级、旧状态、历史恢复 | [迁移指南](docs/migration.md) |
-| 自动选点、预算、结果解读 | [独立测量](docs/automatic-measurement.md) |
-| 离线解释重传次数、暴露量及候选限制 | [解释工具](docs/measurement-explanation.md) · [独立工具发布](docs/releases/measurement-explanation-v0.1.1.md) |
-| 临时 HTB 与完整恢复 | [临时实验](docs/temporary-htb.md) |
-| 平台、资源、自适应缓冲 | [支持矩阵](docs/platform-support.md) |
-| 高级显式测量与研究入口 | [高级测量](docs/advanced-measurement.md) |
-| 设计与验证证据 | [设计范围](docs/design-scope.md) · [验证说明](docs/validation.md) |
-| 固定 profile 的离线校准 | [实测校准](docs/measured-calibration.md)；不测速、不应用，暂不接受 adaptive |
-| 版本变化 | [发布记录](docs/releases/) |
+| Installation, daily operation, diagnostics, parameters and rollback | [Operations](docs/usage.md) |
+| Upgrades, old state and historical recovery | [Migration](docs/migration.md) |
+| Automatic selection, budgets and result interpretation | [Independent measurement](docs/automatic-measurement.md) |
+| Offline counts, byte exposure and candidate limits | [Explanation tool](docs/measurement-explanation.md) · [Separate tool release](docs/releases/measurement-explanation-v0.1.1.md) |
+| Temporary HTB and full restoration | [Temporary experiments](docs/temporary-htb.md) |
+| Platforms, resources and adaptive buffers | [Support matrix](docs/platform-support.md) |
+| Advanced explicit measurement and research | [Advanced measurement](docs/advanced-measurement.md) |
+| Design and validation evidence | [Design scope](docs/design-scope.md) · [Validation](docs/validation.md) |
+| Offline calibration for fixed profiles | [Measured calibration](docs/measured-calibration.md); no traffic/apply, adaptive inputs not yet accepted |
+| Version changes | [Release history](docs/releases/) |
 
-## 帮助、贡献与安全报告
+## Help, contributing and security
 
-普通使用问题、缺陷和改进建议请通过 [GitHub Issues](https://github.com/alieismy/vps-tuning/issues) 提交，提供脚本版本、系统/架构、复现步骤、退出码及脱敏日志。不要上传真实地址、凭据、订阅链接、完整代理配置或可反查报告；详见[脱敏说明](docs/usage.md#日志脱敏与安全报告)。安全问题使用 [SECURITY.md](SECURITY.md) 指定的私密报告入口。
+Use [GitHub Issues](https://github.com/alieismy/vps-tuning/issues) for usage questions, reproducible bugs and suggestions. Include the script version, OS/architecture, steps, exit status and sanitized output. Do not publish real addresses, credentials, subscription links, full proxy configurations or traceable report identifiers; see the [sanitization guide (Chinese)](docs/usage.md#日志脱敏与安全报告). Report security issues through the private channel in [SECURITY.md](SECURITY.md) (Chinese).
 
-欢迎提交有复现依据的修复和文档改进。修改 profile 时编辑 `tools/profile-template.sh.in` 与对应声明，使用生成器同步，勿单改生成文件。贡献者在 Linux 环境运行 [`bash tests/static-check.sh`](tests/static-check.sh)，实验工具变更还需相应[实验静态检查](experiments/htb-aggregate/tests/static-check.sh)；适用的 root 生命周期与平台检查见[验证说明](docs/validation.md)。
+Reproducible fixes and documentation improvements are welcome. For profile changes, edit `tools/profile-template.sh.in` and the corresponding declarations, then regenerate; do not edit generated files alone. On Linux, run [`bash tests/static-check.sh`](tests/static-check.sh); experiment changes also need the applicable [experiment checks](experiments/htb-aggregate/tests/static-check.sh). Root lifecycle and platform requirements are in the [validation guide (Chinese)](docs/validation.md).
 
-## 许可证
+## License
 
 [MIT License](LICENSE)
 
 <details>
-<summary>旧版章节链接</summary>
+<summary>Links from the former Chinese README</summary>
 
-- <a id="1-联网安装"></a>[1. 联网安装](README.md#安装)
+This file used to be the Chinese README. The anchors below keep its old section links working; each entry leads to the matching section of the [Chinese README](README.zh-CN.md) or the guide that now holds the content.
+
+- <a id="功能与边界"></a>[功能与边界](README.zh-CN.md#功能与边界)
+- <a id="支持范围与前置条件"></a>[支持范围与前置条件](README.zh-CN.md#支持范围与前置条件)
+- <a id="快速开始"></a>[快速开始](README.zh-CN.md#快速开始)
+- <a id="安装前先选择路径"></a>[安装前先选择路径](README.zh-CN.md#安装前先选择路径)
+- <a id="联网安装与验证"></a>[联网安装与验证](README.zh-CN.md#联网安装与验证)
+- <a id="安装"></a>[安装](README.zh-CN.md#安装)
+- <a id="路径-a只诊断或独立测量"></a>[路径 A：只诊断或独立测量](README.zh-CN.md#路径-a只诊断或独立测量)
+- <a id="路径-b应用持久配置"></a>[路径 B：应用持久配置](README.zh-CN.md#路径-b应用持久配置)
+- <a id="默认低流量验收路径"></a>[默认低流量验收路径](README.zh-CN.md#默认低流量验收路径)
+- <a id="常用操作"></a>[常用操作](README.zh-CN.md#常用操作)
+- <a id="升级与回滚"></a>[升级与回滚](README.zh-CN.md#升级与回滚)
+- <a id="验证状态与已知限制"></a>[验证状态与已知限制](README.zh-CN.md#验证状态与已知限制)
+- <a id="文档导航"></a>[文档导航](README.zh-CN.md#文档导航)
+- <a id="帮助贡献与安全报告"></a>[帮助、贡献与安全报告](README.zh-CN.md#帮助贡献与安全报告)
+- <a id="许可证"></a>[许可证](README.zh-CN.md#许可证)
+- <a id="1-联网安装"></a>[1. 联网安装](README.zh-CN.md#安装)
 - <a id="2-重启后联网验证"></a>[2. 重启后联网验证](docs/usage.md#入口不可用时的联网验证)
 - <a id="3-安装-3x-ui-后严格联网验证"></a>[3. 安装 3X-UI 后严格联网验证](docs/usage.md#入口不可用时的严格代理验证)
 - <a id="4-从早期-rc-版本执行只读升级检查历史-rc17-示例"></a>[4. 从早期 rc 版本执行只读升级检查（历史 rc.17 示例）](docs/migration.md#早期-rc-的历史-rc17-升级检查)
@@ -217,7 +252,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 - <a id="真实环境验证基线"></a>[真实环境验证基线](docs/validation.md#真实环境验证基线截至-2026-08-07)
 - <a id="1c2g--200-mbps-性能观察案例"></a>[1C2G / 200 Mbps 性能观察案例](docs/validation.md#1c2g--200-mbps-性能观察案例)
 - <a id="本地使用与命令行模式"></a>[本地使用与命令行模式](docs/usage.md#本地使用与命令行模式)
-- <a id="适用场景"></a>[适用场景](README.md#支持范围与前置条件)
+- <a id="适用场景"></a>[适用场景](README.zh-CN.md#支持范围与前置条件)
 - <a id="debian-1213-选型"></a>[Debian 12/13 选型](docs/usage.md#历史系统选型说明2026-08-04)
 - <a id="按-vps-资源档选择"></a>[按 VPS 资源档选择](docs/usage.md#按-vps-资源档选择)
 - <a id="虚拟化类型比发行版名称更接近内核事实"></a>[虚拟化类型比发行版名称更接近内核事实](docs/usage.md#虚拟化类型比发行版名称更接近内核事实)
@@ -254,7 +289,7 @@ env REQUIRE_PROXY_SERVICE=1 PROXY_SERVICE_UNITS='x-ui.service' dvt verify
 - <a id="回滚"></a>[回滚](docs/usage.md#回滚)
 - <a id="qdisc-边界"></a>[qdisc 边界](docs/usage.md#qdisc-边界)
 - <a id="docker-边界"></a>[Docker 边界](docs/usage.md#docker-边界)
-- <a id="验证与已知限制"></a>[验证与已知限制](README.md#验证状态与已知限制)
+- <a id="验证与已知限制"></a>[验证与已知限制](README.zh-CN.md#验证状态与已知限制)
 - <a id="安全问题"></a>[安全问题](docs/usage.md#日志脱敏与安全报告)
 
 </details>
