@@ -8,6 +8,19 @@
 
 阅读说明：各轮记录按新到旧排列，同日记录也按此顺序接续；“尚未迁移”“待验收”“未提交”等表述描述该轮结束时的状态。当前状态以顶部阶段说明及最新相关记录为准，后继完成记录补充历史结果，不改写原始执行证据。
 
+## 本轮记录：2026-11-24（备忘交付路径决策）
+
+- **决策与理由。** 用户要求按专业意见在小 PR 与直接推送 master 之间选择并执行。选择小 PR：近期改动（含仅文档的 #48）均经 PR 并 squash 合并；master 未设分支保护，PR 是合并前取得准确 head CI 证据的唯一方式，并保留审计记录。仅备忘变更风险低，直推只节省一次约 6 分钟的 CI，不足以偏离惯例。
+- **执行。** 从 origin/master `8e191649675b142d595e3bb34a27b0a48943f860` 建分支，提交上一轮与本轮记录，开 PR #50，CI 通过后以固定 head squash 合并；合并结果以 GitHub 记录为准，本记录不宣称已合并。不改运行代码、tag 或 Release。
+- **CI 偶发失败。** PR #50 首个 head `3ac66699c779ca6dcd38f4af6586b3d876c89fcd` 的 pull_request 运行在 `tests/temporary-htb-native.py` 的 `low_rate_window_cases` 失败：第 5 个真实 2 Mbps 样本 receiver 窗口 5.258 秒，超出 5 秒期望的 0.25 秒容差，产品按设计标为 `INVALID_MEASUREMENT_WINDOW`。同一提交的 push 运行、PR #46 head 与 master `8e19164` 均通过，本 PR 只改备忘；判断为共享 runner 计时抖动使该断言不稳定（中等置信度，单次观察）。未修改测试或容差。
+- **延期与成熟度。** 新增延期：上述测试要求 6 个真实流量样本全部落在窗口容差内，是否允许有限无效样本、重采或调整断言需单独决定；再次出现或阻塞必需 CI 时重新纳入。rc.5 阶段判断不变，无 VPS、公网测速或业务验收。
+
+## 本轮记录：2026-11-24（PR #46 合并）
+
+- **授权与核对。** 用户要求 CI 通过后合并 PR #46。master 未设分支保护，合并前自行核对：head `d18626a9946fdd04ca4970a453701ad7a9968dd9` 的 push 与 pull_request 两次 `validate` 通过，CodeRabbit 跳过；GitHub 显示 `MERGEABLE`/`CLEAN`，origin/master 仍为 `6691d16`。
+- **交付与验证。** 以 `--match-head-commit` 固定已测 head 后 squash 合并为 `8e191649675b142d595e3bb34a27b0a48943f860`（2026-11-24T08:34:43Z），其 tree `bdf40cba0c5b6b2a6c9a648b2a1528ea9925036c` 与已测 head 相同；该提交的 master `shell-static-checks` 通过。未删除分支，未改 tag、Release 或运行代码。
+- **未完成门禁与延期。** 外部指向 `README.en-US.md` 的链接按 PR 既定选择失效。本记录写于 README 工作树，尚未提交到主线。无新增延期事项；rc.5 阶段判断不变，无 VPS、公网测速或业务验收。
+
 ## 本轮记录：2026-11-24（PR #46 主线冲突解决）
 
 - **授权与范围。** 用户要求解决 [PR #46](https://github.com/alieismy/vps-tuning/pull/46) 不能合入主线的问题。GitHub 显示 `CONFLICTING`/`DIRTY`：该分支以 `c4e68b8` 为基线，此后主线合入 #47、#48、#49。在既有 README 工作树中把 origin/master `6691d16` merge 入 PR 分支（不 rebase、不强推），只处理冲突及由此产生的一致性更新；不合并 PR，不改运行代码、tag 或 Release。
