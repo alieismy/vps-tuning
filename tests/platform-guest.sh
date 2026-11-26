@@ -80,6 +80,26 @@ case "$1" in
     jq -r '.managed_files[].path' "$evidence/before-reboot-state.json" |
       while IFS= read -r path; do test ! -e "$path"; done
     test ! -e /swapfile-proxy
+    if [ "$ID:$VERSION_ID" = ubuntu:26.04 ]; then
+      # tcp_init()按启动时可用缓冲页计算tcp_rmem上限，跨启动可有微小变化。
+      # 只读记录本次内核默认值；不写sysctl，不放宽即时回滚的17项精确比较。
+      cat >/etc/systemd/system/dvt-ci-kernel-baseline.service <<'EOF_BASELINE'
+[Unit]
+Description=Read-only CI kernel TCP baseline
+DefaultDependencies=no
+After=systemd-modules-load.service
+Before=systemd-sysctl.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'cat /proc/sys/kernel/random/boot_id /proc/sys/net/ipv4/tcp_rmem'
+StandardOutput=file:/run/dvt-ci-kernel-tcp-rmem
+[Install]
+WantedBy=sysinit.target
+EOF_BASELINE
+      cp /etc/systemd/system/dvt-ci-kernel-baseline.service "$evidence/"
+      systemctl daemon-reload
+      systemctl enable dvt-ci-kernel-baseline.service
+    fi
     cat /proc/sys/kernel/random/boot_id >"$evidence/rollback-boot-before"
     ;;
   after-rollback-reboot)
@@ -87,10 +107,22 @@ case "$1" in
     cat /proc/sys/kernel/random/boot_id >"$evidence/rollback-boot-after"
     test ! -e "$state"
     snapshot final
-    cmp "$evidence/before.sysctl.json" "$evidence/final.sysctl.json"
+    if [ "$ID:$VERSION_ID" = ubuntu:26.04 ]; then
+      test "$(systemctl show dvt-ci-kernel-baseline.service -p Result --value)" = success
+      cp /run/dvt-ci-kernel-tcp-rmem "$evidence/kernel-tcp-rmem-after-rollback.txt"
+    fi
     python3 - <<'PY'
 import json, pathlib
 p = pathlib.Path('/root/dvt-evidence')
+before_sysctl = json.loads((p / 'before.sysctl.json').read_text())
+final_sysctl = json.loads((p / 'final.sysctl.json').read_text())
+if 'VERSION_ID="26.04"' in (p / 'os-release').read_text():
+    boot, kernel_rmem = (p / 'kernel-tcp-rmem-after-rollback.txt').read_text().splitlines()
+    assert boot == (p / 'rollback-boot-after').read_text().strip()
+    # 只允许恢复到同次启动、systemd-sysctl之前实际读回的内核默认值。
+    assert final_sysctl['net.ipv4.tcp_rmem'] == ' '.join(kernel_rmem.split())
+    before_sysctl['net.ipv4.tcp_rmem'] = final_sysctl['net.ipv4.tcp_rmem']
+assert before_sysctl == final_sysctl, ('post-reboot sysctl mismatch', before_sysctl, final_sysctl)
 def roots(name):
     return {q['dev']: q for q in json.loads((p / (name + '.qdisc.json')).read_text()) if q.get('root')}
 before = roots('before')
