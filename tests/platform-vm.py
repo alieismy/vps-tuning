@@ -24,8 +24,11 @@ def main():
     parser.add_argument('--resource-profile', choices=['adaptive', 'legacy'], default='adaptive')
     parser.add_argument('--migration-source', choices=['0.2.0-rc.4', '0.2.0-rc.5'])
     args = parser.parse_args()
-    if args.migration_source and (args.platform not in ('debian12', 'debian13') or args.arch != 'amd64' or args.resource_profile != 'legacy'):
-        parser.error('migration fixture requires Debian amd64 legacy resources')
+    if args.migration_source:
+        if args.platform not in ('debian12', 'debian13') or args.arch != 'amd64':
+            parser.error('migration fixture requires Debian amd64')
+        if args.resource_profile == 'adaptive' and (args.platform != 'debian13' or args.migration_source != '0.2.0-rc.4'):
+            parser.error('adaptive no-swap migration fixture requires Debian 13 rc.4')
     work = ROOT / '.tmp/platform-vm'
     work.mkdir(parents=True, exist_ok=False)
     evidence = work / 'evidence'
@@ -105,6 +108,9 @@ touch /root/dvt-cloud-ready''']]
     vcpus, ram_mib = (4, 4096) if kvm else (2, 1536)
     if args.resource_profile == 'legacy':
         vcpus, ram_mib = 1, 1024
+    elif args.migration_source:
+        # 对应首台只读样本的 2C/约 1G adaptive + 无 swap；不模拟云厂商硬件。
+        vcpus, ram_mib = 2, 1024
     qemu += ['-smp', str(vcpus), '-m', str(ram_mib), '-nographic',
              '-drive', f'file={work / "disk.qcow2"},if=virtio,format=qcow2',
              '-drive', f'file={work / "seed.img"},if=virtio,format=raw',
@@ -137,7 +143,10 @@ touch /root/dvt-cloud-ready''']]
         path = evidence / (name + '.log')
         try:
             with path.open('wb') as log:
-                run(ssh + ['bash /root/dvt-bundle/tests/' + ('migration-guest.sh' if args.migration_source else 'platform-guest.sh') + ' ' + name], stdout=log, stderr=subprocess.STDOUT, timeout=600)
+                guest_command = 'bash /root/dvt-bundle/tests/' + ('migration-guest.sh' if args.migration_source else 'platform-guest.sh') + ' ' + name
+                if args.migration_source:
+                    guest_command += ' ' + args.resource_profile
+                run(ssh + [guest_command], stdout=log, stderr=subprocess.STDOUT, timeout=600)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             print(path.read_text(errors='replace'), flush=True)
             raise

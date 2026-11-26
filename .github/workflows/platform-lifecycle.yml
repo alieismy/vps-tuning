@@ -56,10 +56,16 @@ jobs:
         include:
           - platform: debian13
             source: 0.2.0-rc.4
+            resource: legacy
           - platform: debian13
             source: 0.2.0-rc.5
+            resource: legacy
           - platform: debian12
             source: 0.2.0-rc.5
+            resource: legacy
+          - platform: debian13
+            source: 0.2.0-rc.4
+            resource: adaptive
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -70,10 +76,10 @@ jobs:
           sudo apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils
           if test -e /dev/kvm; then sudo chmod a+rw /dev/kvm; fi
       - name: Verify pinned RC migration with real reboots
-        run: python3 tests/platform-vm.py --platform '${{ matrix.platform }}' --arch amd64 --resource-profile legacy --migration-source '${{ matrix.source }}'
+        run: python3 tests/platform-vm.py --platform '${{ matrix.platform }}' --arch amd64 --resource-profile '${{ matrix.resource }}' --migration-source '${{ matrix.source }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: migration-${{ matrix.platform }}-${{ matrix.source }}
+          name: migration-${{ matrix.platform }}-${{ matrix.source }}-${{ matrix.resource }}
           path: .tmp/platform-vm/evidence/
           retention-days: 14
