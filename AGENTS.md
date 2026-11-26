@@ -6,9 +6,9 @@
 
 本文件是项目控制面，只维护当前阶段、效力、路由、边界和完成规则。详细文档方法由对应 RD Skill 单一维护，代码实现和发布遵循仓库既有入口与全局实现纪律。
 
-## 当前项目阶段：首次正式版收敛与 rc.6 本地候选实施
+## 当前项目阶段：0.2.0 未发布候选冻结与实机验收准备
 
-本阶段按用户批准的[修订方案](docs/stable-release-plan.md)实施首次正式版收敛，本地候选与边界见[rc.6 说明](docs/releases/v0.2.0-rc.6.md)和[迁移实施契约](docs/stable-migration-design.md)。rc.5 已交付服务核验、受管文件恢复、迁移接续和测量预算修复，范围与限制见[rc.5 发布说明](docs/releases/v0.2.0-rc.5.md)，评审依据见[代理 VPS 适配评审](docs/proxy-vps-fit-review-2026-11-22.md)。当前授权覆盖本地实现和验证；不自动执行现网迁移或公开发布。界面契约见[交互界面详细设计](docs/interactive-cli-design.md)，菜单修订历史见[rc.4 说明](docs/releases/v0.2.0-rc.4.md)。评估部署或正式版时读取[当前部署与验收基线](docs/validation.md#current-fleet-baseline)，迁移历史见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)；版本解耦仍待独立设计决策。涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.1.md)。安装与主程序升级遵循[平台支持及旧状态限制](docs/platform-support.md)。具体证据与待完成事项见[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)。
+本阶段按用户批准的[修订方案](docs/stable-release-plan.md)实施首次正式版收敛，正式未发布候选的冻结状态与边界见[0.2.0 说明](docs/releases/v0.2.0.md)和[迁移实施契约](docs/stable-migration-design.md)，rc.6 开发记录保留为历史。rc.5 已交付服务核验、受管文件恢复、迁移接续和测量预算修复，范围与限制见[rc.5 发布说明](docs/releases/v0.2.0-rc.5.md)，评审依据见[代理 VPS 适配评审](docs/proxy-vps-fit-review-2026-11-22.md)。当前授权覆盖本地实现和验证；不自动执行现网迁移或公开发布。界面契约见[交互界面详细设计](docs/interactive-cli-design.md)，菜单修订历史见[rc.4 说明](docs/releases/v0.2.0-rc.4.md)。评估部署或正式版时读取[当前部署与验收基线](docs/validation.md#current-fleet-baseline)，迁移历史见[rc.2 发布说明](docs/releases/v0.2.0-rc.2.md)；版本解耦仍待独立设计决策。涉及离线报告解释时，阅读[工具发布说明](docs/releases/measurement-explanation-v0.1.1.md)。安装与主程序升级遵循[平台支持及旧状态限制](docs/platform-support.md)。具体证据与待完成事项见[验证说明](docs/validation.md)和[项目阶段备忘](docs/project-memo.md)。
 
 rc.5 保持 17 项受管 sysctl、资源感知 BDP 缓冲、默认 `BBR + fq`、非持久 HTB、managed-state schema 4、benchmark schema 3、预算 ledger 和迁移 checkpoint 边界，不改变 HTB rate/burst/cburst 或启用持久整形。修改 mq 寻址或回滚逻辑前，阅读[rc.18 技术记录](docs/releases/v0.1.0-rc.18.md)及相关源码/fixture，保留全 fq 无写入、混合拓扑写前拒绝、队列集合核对和限定 parent 规范化契约；该记录中的候选状态属于历史时间点。
 

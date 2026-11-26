@@ -1,6 +1,6 @@
 # VPS Tuning
 
-Development status: the [unpublished 0.2.0 candidate](docs/releases/v0.2.0.md) is undergoing validation and freezing of its own final assets. Public installation below remains pinned to rc.5; production migration, business acceptance and public release remain pending.
+Development status: the [unpublished 0.2.0 candidate](docs/releases/v0.2.0.md) is frozen after its own Linux main CI, seven fresh-install lifecycles and four migrations passed. Public installation below remains pinned to rc.5; production migration, business acceptance and public release remain pending.
 
 English | [简体中文](README.zh-CN.md)
 

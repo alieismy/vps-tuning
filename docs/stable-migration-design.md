@@ -1,6 +1,6 @@
 # 正式版迁移实施契约
 
-2026-11-24。用户已批准执行[修订方案](stable-release-plan.md)。实现从 rc.6 收敛为 [0.2.0 未发布候选](releases/v0.2.0.md)，正在完成自身验证与冻结。生产维护、重启和公开发布需分别授权。
+2026-11-24。用户已批准执行[修订方案](stable-release-plan.md)。实现从 rc.6 收敛为 [0.2.0 未发布候选](releases/v0.2.0.md)，自身工程/隔离验证已通过并冻结，见[冻结记录](validation.md#stable-020-freeze)。生产维护、重启和公开发布需分别授权。
 
 ## 输入与兼容
 
@@ -30,4 +30,4 @@ PREPARED → ROLLBACK_RUNNING → ROLLED_BACK_REBOOT_REQUIRED → APPLY_RUNNING 
 
 本地实际函数测试覆盖版本、参数冻结、环境、快照校验与状态接续；Linux root 测试覆盖登记/并发和完整事务。扩展现有 QEMU runner，以公开 rc.4/rc.5 固定 tag 资产作为来源，真实安装、重启、迁移、重启并验证目标；只在隔离环境执行，不连接 VPS。
 
-W0 盘点仅输出非敏感状态摘要与版本/能力，不输出地址、完整代理配置或凭据。本机无 WSL/Docker/QEMU；本轮已在获授权的 CI 环境完成七组新装、三组固定 profile 及一组 adaptive/无 swap 真实来源迁移，覆盖与限制见[验证说明](validation.md#rc6-开发候选验证2026-11-25)。实机只读结果不替代迁移或业务验收。
+W0 盘点仅输出非敏感状态摘要与版本/能力，不输出地址、完整代理配置或凭据。本机无 WSL/Docker/QEMU；rc.6 阶段的验证见[历史候选记录](validation.md#rc6-开发候选验证2026-11-25)；正式 0.2.0 自身的七组新装、三组固定 profile 及一组 adaptive/无 swap 真实来源迁移亦已通过，见[冻结记录](validation.md#stable-020-freeze)。实机只读结果不替代迁移或业务验收。
