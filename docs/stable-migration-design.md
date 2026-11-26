@@ -1,10 +1,10 @@
 # 正式版迁移实施契约
 
-2026-11-24。用户已批准执行[修订方案](stable-release-plan.md)。本轮实施标识为 `0.2.0-rc.6` 本地开发候选，未发布；正式目标保留为 0.2.0。生产维护、重启和公开发布需分别授权。
+2026-11-24。用户已批准执行[修订方案](stable-release-plan.md)。实现从 rc.6 收敛为 [0.2.0 未发布候选](releases/v0.2.0.md)，正在完成自身验证与冻结。生产维护、重启和公开发布需分别授权。
 
 ## 输入与兼容
 
-- 保留 migrate prepare/rollback/continue/status，新增只撤销准备的 cancel。目标须与当前迁移器版本相同，允许目标 rc.6 或正式 0.2.0；来源 rc.4/rc.5，正式目标另外接受 rc.6。正式版本能力不意味着 rc.6 可以执行任意未来目标。
+- 保留 migrate prepare/rollback/continue/status，新增只撤销准备的 cancel。目标须与当前迁移器版本相同，允许目标 rc.6 或正式 0.2.0；来源 rc.4/rc.5，正式目标另外接受 rc.6。正式版本能力不意味着 rc.6 可以执行任意未来目标。当前正式候选必需来源为公开 rc.4/rc.5；rc.6 分支保留，但该版本未公开、该来源未端到端验收，不作已验证公开迁移承诺。
 - 当前只接受 Debian 12/13 的既有 profile，端口 1–10000 Mbps；源与目标同 profile，实际 OS/架构/资源由固定 profile 核验。保留已有 ARM64 代码路径，不宣称新实机验收；不扩大 Ubuntu 迁移。
 - checkpoint schema 2，与既有 schema 1 分离。旧 checkpoint 使用自己的固定工具，禁止新版原地转换。managed state schema 4 不变。
 - prepare 从来源完整 VERIFIED 状态冻结 port、RTT、auto/explicit buffer。已有项目 swap 自动保留其大小意图；未创建项目 swap 时要求显式 `--swap-policy disabled` 或 `--swap-policy create --swap-mib N`，不从 false 推断用户意图。对已有项目 swap 不允许借迁移更改大小/启用策略。

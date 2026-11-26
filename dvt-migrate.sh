@@ -6,7 +6,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-TOOL_VERSION='0.2.0-rc.6'
+TOOL_VERSION='0.2.0'
 STATE_FILE="${DVT_STATE_FILE:-/var/lib/proxy-vps-tuning/state.json}"
 
 action=''

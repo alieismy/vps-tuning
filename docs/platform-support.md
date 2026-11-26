@@ -1,6 +1,6 @@
 # 跨平台持久配置支持
 
-本地 rc.6 候选的迁移边界见[实施契约](stable-migration-design.md)：Debian12/13 同 profile、1–10000 Mbps 输入；七组新装、三组固定 profile 及一组 adaptive/无 swap 的 Linux 迁移验证通过，具体覆盖与未验收边界见[候选验证](validation.md#rc6-开发候选验证2026-11-25)。下面的已发布能力仍以 rc.5 为准。
+正式 [0.2.0 未发布候选](releases/v0.2.0.md) 的迁移边界见[实施契约](stable-migration-design.md)：Debian12/13 同 profile、1–10000 Mbps 输入；rc.6 的七组新装、三组固定 profile 及一组 adaptive/无 swap Linux 迁移验证已通过；正式候选仍须自身验证，具体覆盖与未验收边界见[候选验证](validation.md#rc6-开发候选验证2026-11-25)。下面的已发布能力仍以 rc.5 为准。
 
 日期：2026-11-23。适用：`0.2.0-rc.5` 预发行版；平台范围和验证状态以本页矩阵及[验证说明](validation.md)为准。旧 rc.1/rc.19/rc.2/rc.3 的公开资产与当时支持范围保持原记录。
 

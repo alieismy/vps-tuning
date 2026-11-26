@@ -6,8 +6,8 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-CONTROLLER_VERSION='0.2.0-rc.6'
-RELEASE_TAG='v0.2.0-rc.6'
+CONTROLLER_VERSION='0.2.0'
+RELEASE_TAG='v0.2.0'
 REPOSITORY='alieismy/debian-vps-tuning'
 RELEASE_BASE_URL="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}"
 
@@ -127,7 +127,7 @@ Usage:
 Options:
   --port MBPS    provider port cap for guided/preflight/apply; default 200;
                  required explicitly by CLI reconfigure
-  --target TAG    update target, for example v0.2.0-rc.6; default is the
+  --target TAG    update target, for example v0.2.0; default is the
                   highest non-draft Release in the installed major.minor line;
                   stable installations ignore prereleases automatically
   -h, --help     show this help

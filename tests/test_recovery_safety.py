@@ -173,8 +173,8 @@ update_phase() { printf '%s\n' "$1" >>"$trace"; }
 checkpoint="$(mktemp -d)"
 trap 'rm -rf -- "$checkpoint"' EXIT
 STATE_FILE="$checkpoint/state.json"; trace="$checkpoint/trace"
-printf '%s\n' '{"phase":"APPLY_RUNNING","target_version":"0.2.0-rc.6","profile_id":"debian13-1c1g","port_speed_mbps":200}' >"$checkpoint/migration.json"
-printf '%s\n' '{"script_version":"0.2.0-rc.6","state":"APPLIED","profile":{"id":"debian13-1c1g"}}' >"$STATE_FILE"
+printf '%s\n' '{"phase":"APPLY_RUNNING","target_version":"0.2.0","profile_id":"debian13-1c1g","port_speed_mbps":200}' >"$checkpoint/migration.json"
+printf '%s\n' '{"script_version":"0.2.0","state":"APPLIED","profile":{"id":"debian13-1c1g"}}' >"$STATE_FILE"
 before="$(sha256sum "$STATE_FILE")"
 for attempt in 1 2; do
   result=0; (continue_stage) 2>"$checkpoint/error" || result=$?

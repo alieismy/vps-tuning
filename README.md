@@ -1,6 +1,6 @@
 # VPS Tuning
 
-Development status: the [rc.6 local candidate](docs/releases/v0.2.0-rc.6.md) implements the approved first-stable migration plan. Public installation below remains pinned to rc.5; rc.6 is unpublished. Linux isolation checks passed; production migration and business acceptance remain pending.
+Development status: the [unpublished 0.2.0 candidate](docs/releases/v0.2.0.md) is undergoing validation and freezing of its own final assets. Public installation below remains pinned to rc.5; production migration, business acceptance and public release remain pending.
 
 English | [简体中文](README.zh-CN.md)
 
