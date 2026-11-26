@@ -1,6 +1,6 @@
 # VPS Tuning
 
-Development status: the [unpublished 0.2.0 candidate](docs/releases/v0.2.0.md) is frozen after its own Linux main CI, seven fresh-install lifecycles and four migrations passed. Public installation below remains pinned to rc.5; production migration, business acceptance and public release remain pending.
+Development status: the [unpublished 0.2.0 candidate](docs/releases/v0.2.0.md) is frozen after its own Linux main CI, seven fresh-install lifecycles and four migrations passed. The first Lightsail host has completed migration and DVT technical verification; [G4/G5 business and observation receipts](docs/releases/v0.2.0-acceptance-receipt.md) remain pending. Public installation below stays pinned to rc.5. The [0.2.0 release preparation package](docs/releases/v0.2.0-release-checklist.md) is unpublished; Ubuntu 26.04 support is reserved for a subsequent release.
 
 English | [简体中文](README.zh-CN.md)
 

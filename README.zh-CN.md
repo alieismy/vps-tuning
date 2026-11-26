@@ -1,6 +1,6 @@
 # VPS Tuning
 
-开发状态：已形成 [0.2.0 未发布候选](docs/releases/v0.2.0.md)，已完成正式制品自身的 Linux 主 CI、七组新装和四组迁移验证并冻结。下方公开安装入口仍固定 rc.5；现网迁移、业务验收及公开发布尚未完成。
+开发状态：已形成 [0.2.0 未发布候选](docs/releases/v0.2.0.md)，已完成正式制品自身的 Linux 主 CI、七组新装和四组迁移验证并冻结。首台 Lightsail 的实机迁移和 DVT 技术验证已完成；[G4/G5 业务与观察回执](docs/releases/v0.2.0-acceptance-receipt.md)仍待确认。下方公开安装入口继续固定 rc.5；[0.2.0 发布准备](docs/releases/v0.2.0-release-checklist.md)尚未进入公开发布，Ubuntu 26.04 保留为后继版本。
 
 [English](README.md) | 简体中文
 

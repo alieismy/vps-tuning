@@ -16,13 +16,13 @@ jq '{schema_version,script_version,state,profile_id:.profile.id,
 
 两项原值各须为完整的三个整数。若各只有 `4096`，即使目标预检通过，仍应停在恢复证据核查；`ALLOW_EMPTY_STATE_RECOVERY=1` 不适用于有效旧状态的缺失三元组。历史完整三元组只有在能证明对应同一主机、本次部署的应用前状态及其间配置连续性时，才能作为恢复依据。对于明确接受新恢复语义的主机，rc.5 完整源码另提供[带来源的 TCP 基线恢复工具](tcp-baseline-recovery.md)：保留原件，区分历史证据与替代值，再接续迁移；该工具不由安装器部署，不属于下面命令的通用强制选项，其归档只被同版本迁移器接受。
 
-## rc.6 本地候选与 W0 盘点
+## 0.2.0 未发布候选与盘点
 
-[本地实施契约](stable-migration-design.md)使用 schema 2 checkpoint，三组固定 profile 及一组 adaptive/无 swap 的真实 Linux 迁移已通过；实际主机的 profile/swap、恢复条件和业务仍须独立验收，维护写入与重启须另行授权。本文下面的固定 rc.5 命令保持其历史目标，不直接替换版本号执行。
+[正式候选](releases/v0.2.0.md)已冻结，使用 schema 2 checkpoint；七组新装与四组真实来源隔离迁移通过，首台 Lightsail 的 rc.4 adaptive / 无 swap 实机迁移及技术验证已完成。[G4/G5 回执](releases/v0.2.0-acceptance-receipt.md)中的业务与正常使用观察仍待确认。Ubuntu 26.04 留在后继版本，不并入首次正式版。
 
-获授权操作者可先审阅并运行仓库中的 `bash tools/collect-migration-inventory.sh`，只读采集状态与服务摘要；没有远程下载即执行入口。此前已完成用户另行指定的一台 AWS 主机只读盘点，原九台尚未采集，结果见[候选验证](validation.md#rc6-开发候选验证2026-11-25)。回传时按九台盘点表的主机代号分别标识，并另记代理应用版本、控制台/备份是否可用、常用业务基线；不要回传凭据或完整代理配置。脚本不替代来源 verify、恢复或业务验收。
+0.2.0 的适用来源、固定制品、分阶段迁移和停止条件已整理为[待发布稿](releases/v0.2.0-publication-draft.md)；正式在线入口尚未开放。下方 rc.5 命令继续表示已发布目标，不直接换版本号执行。已经 COMPLETE 的首台主机不重跑 prepare、来源 rollback 或目标 apply。rc.6 资料仅作[开发历史](releases/v0.2.0-rc.6.md)。
 
-候选通过工程门禁并获维护授权后，在目标 bundle 目录调用 `bash debian-vps-tuning.sh migrate prepare --checkpoint /root/dvt-migration-rc6`。未创建项目 swap 的来源须追加 `--swap-policy disabled` 或 `--swap-policy create --swap-mib N`；自定义代理服务可用 `--proxy-unit UNIT`。使用输出的固定 checkpoint 工具执行后续阶段；只可在 PREPARED 阶段 `cancel --checkpoint PATH`，证据保留。半成品 prepare、损坏材料或来源漂移须停止并核查，不手改 phase/active 或删登记后重来。旧 checkpoint 仍使用自己的旧工具。
+其他主机需另行授权盘点与迁移。获授权时可用仓库的 `bash tools/collect-migration-inventory.sh` 采集只读状态摘要，原九台仍未逐台取得新归档；它不替代来源 verify、恢复证据或客户端验收。使用主机代号回传摘要，不提交凭据、IP 或完整代理配置。旧 checkpoint 仍使用自己的固定工具，不手改 phase/active，不删除登记另起事务。
 
 ## rc.5 的恢复提示
 
@@ -40,7 +40,7 @@ rc.5 迁移器在调用旧来源 rollback 前检查来源状态目录。遇到�
 
 当前 rc.5 迁移器接受已定义的 `0.1.0-rc.1`–`0.1.0-rc.19`、`0.2.0-rc.2`、`0.2.0-rc.3` 与 `0.2.0-rc.4` Debian 来源，端口带宽限 100–1000 Mbps；**不支持 `0.2.0-rc.1` 来源**，Ubuntu 24.04 的 rc.2/rc.3/rc.4 主机和端口超出该范围的主机也不在其范围内。还必须通过实际来源状态、profile、资源、所有权、原值和目标预检。版本在此范围内不等于必然可迁移。跨 OS、资源变化导致的 profile 切换不由以下步骤自动处理。
 
-**已有 rc.2/rc.3/rc.4 主机：** rc.5 提供评审修复，是否采用仍须结合具体缺陷、维护窗口和恢复条件。现网重装 rc.4 的用户确认见[当前部署基线](validation.md#current-fleet-baseline)，不以历史 rc.2 材料推定新部署恢复原值。CI、fixture 和隔离客体结果不能代替逐台业务验收。已有 rc.2、rc.3 或 rc.4 版 TCP 基线恢复归档或未完成 checkpoint 时，先按下方历史附录接续各自固定目标，再独立评估 rc.5；归档不能交给其他版本迁移器。[RC→正式版方案](stable-release-plan.md)已形成 [0.2.0 未发布候选](releases/v0.2.0.md)，自身工程/隔离验证已通过并冻结，实机验收尚未完成；不能将本页命令直接替换成正式版本执行。
+**已有 rc.2/rc.3/rc.4 主机：** rc.5 提供评审修复，是否采用仍须结合具体缺陷、维护窗口和恢复条件。现网重装 rc.4 的用户确认见[当前部署基线](validation.md#current-fleet-baseline)，不以历史 rc.2 材料推定新部署恢复原值。CI、fixture 和隔离客体结果不能代替逐台业务验收。已有 rc.2、rc.3 或 rc.4 版 TCP 基线恢复归档或未完成 checkpoint 时，先按下方历史附录接续各自固定目标，再独立评估 rc.5；归档不能交给其他版本迁移器。[RC→正式版方案](stable-release-plan.md)已形成 [0.2.0 未发布候选](releases/v0.2.0.md)，自身工程/隔离验证已通过并冻结，首台实机技术验收完成，业务与观察仍待确认；不能将本页命令直接替换成正式版本执行。
 
 迁移前确认控制台/救援入口、系统及代理业务备份、SSH 管理路径与 swap 清理所需内存余量。保留来源版本的完整资产和备份。不同 Release 的总控、`SHA256SUMS`、profile 与伴随工具不得混放；发生失败保留 state/checkpoint，不跳阶段。
 

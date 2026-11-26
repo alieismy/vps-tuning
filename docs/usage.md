@@ -1,5 +1,7 @@
 # 安装、持久配置与日常操作
 
+0.2.0 发布准备见[发布清单](releases/v0.2.0-release-checklist.md)与[待发布稿](releases/v0.2.0-publication-draft.md)；当前公开命令仍固定 rc.5。Ubuntu 26.04 保留为后继版本，本页不新增该平台承诺。
+
 适用版本：`v0.2.0-rc.5` 预发行版，固定资产已完成公开下载回验。本页承接 [README](../README.zh-CN.md) 的详细操作；独立公共测量见 [自动测量指南](automatic-measurement.md)，旧测量接口见 [高级测量](advanced-measurement.md)。系统名称、资源、架构与实际能力要求见 [平台支持](platform-support.md)。
 
 ## 执行前准备

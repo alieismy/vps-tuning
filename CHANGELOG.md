@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0] - Unreleased
+
+- 从 rc.6 开发实现收敛，冻结正式候选及 26 项资产；支持范围不包含 Ubuntu 26.04，后者保留为后继版本。
+- Linux 主 CI、七组新装和四组 rc.4/rc.5 来源迁移通过；补齐 rollback/apply/verify 失败与后期退出的接续测试。
+- 首台 Lightsail 的 rc.4 adaptive / 无 swap 迁移、两次人工重启、严格验证及入口切换完成；G4 客户端业务、G5 正常使用观察仍待确认。
+- 整理[验收回执](docs/releases/v0.2.0-acceptance-receipt.md)、[待发布稿](docs/releases/v0.2.0-publication-draft.md)和[发布清单](docs/releases/v0.2.0-release-checklist.md)；没有公开 tag/Release。以下 rc.6 条目保留开发当时记录，当前状态以[正式候选说明](docs/releases/v0.2.0.md)为准。
+
 ## [0.2.0-rc.6] - Unreleased
 
 - 按首次正式版收敛方案实现 rc.4/rc.5 → rc.6 窄迁移：参数冻结、树外恢复归档、schema 2 checkpoint、主机级活动登记与命令互斥、准备撤销、两次重启后核验。
