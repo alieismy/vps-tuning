@@ -138,6 +138,7 @@ for os_id, version, prefix, label in (
     ("debian", "12", "debian12", "Debian 12"),
     ("debian", "13", "debian13", "Debian 13"),
     ("ubuntu", "24.04", "ubuntu2404", "Ubuntu 24.04 LTS"),
+    ("ubuntu", "26.04", "ubuntu2604", "Ubuntu 26.04 LTS"),
 ):
     PROFILES[f"{prefix}-adaptive-vps-tuning.sh"] = {
         "OS_ID": os_id, "OS_VERSION": version,

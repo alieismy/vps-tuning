@@ -6,8 +6,8 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-CONTROLLER_VERSION='0.2.0'
-RELEASE_TAG='v0.2.0'
+CONTROLLER_VERSION='0.3.0-rc.1'
+RELEASE_TAG='v0.3.0-rc.1'
 REPOSITORY='alieismy/debian-vps-tuning'
 RELEASE_BASE_URL="https://github.com/${REPOSITORY}/releases/download/${RELEASE_TAG}"
 
@@ -164,7 +164,7 @@ Behavior:
   - recover restores an interrupted reconfigure transaction, or performs the
     advanced rc.2 empty-state recovery when explicitly acknowledged.
 
-The controller supports Debian 12/13 and Ubuntu 24.04 LTS on x86_64/aarch64.
+The controller supports Debian 12/13 and Ubuntu 24.04/26.04 LTS on x86_64/aarch64.
 It preserves existing Debian profiles and selects adaptive profiles for new
 resource combinations (at least 384 MiB RAM). It invokes one verified script.
 EOF_USAGE
@@ -192,6 +192,7 @@ profile_metadata() {
     debian12-adaptive) printf '%s\t%s\n' 'debian12-adaptive-vps-tuning.sh' 'Debian 12 / adaptive' ;;
     debian13-adaptive) printf '%s\t%s\n' 'debian13-adaptive-vps-tuning.sh' 'Debian 13 / adaptive' ;;
     ubuntu2404-adaptive) printf '%s\t%s\n' 'ubuntu2404-adaptive-vps-tuning.sh' 'Ubuntu 24.04 LTS / adaptive' ;;
+    ubuntu2604-adaptive) printf '%s\t%s\n' 'ubuntu2604-adaptive-vps-tuning.sh' 'Ubuntu 26.04 LTS / adaptive' ;;
     debian12-1c512m)
       printf '%s\t%s\n' 'debian12-1c512m-vps-tuning.sh' 'Debian 12 / 1 vCPU / 512 MiB'
       ;;
@@ -229,7 +230,7 @@ detect_profile_from() {
 
   os_values="$(os_release_values "$os_release_file")"
   IFS=$'\t' read -r os_id version_id pretty_name <<<"$os_values"
-  case "$os_id:$version_id" in debian:12 | debian:13 | ubuntu:24.04) ;; *) return 2 ;; esac
+  case "$os_id:$version_id" in debian:12 | debian:13 | ubuntu:24.04 | ubuntu:26.04) ;; *) return 2 ;; esac
   case "$arch" in x86_64 | aarch64) ;; *) return 2 ;; esac
   [[ "$cpus" =~ ^[1-9][0-9]*$ ]] || return 1
 
@@ -238,7 +239,7 @@ detect_profile_from() {
 
   [ "$mem_mib" -ge 384 ] || return 3
   if [ "$os_id" = ubuntu ]; then
-    profile='ubuntu2404-adaptive'
+    profile="ubuntu${version_id//./}-adaptive"
     resource_class='adaptive'
   elif [ "$cpus" -eq 1 ] && [ "$mem_mib" -ge 384 ] && [ "$mem_mib" -le 767 ]; then
     profile="debian${version_id}-1c512m"
@@ -267,7 +268,7 @@ environment_error_message() {
   local rc="$1" arch="$2" cpus="$3" mem_mib="$4"
   case "$rc" in
     1) printf '%s' '无法读取或解析 /etc/os-release、/proc/meminfo 或可用逻辑 CPU 数。' ;;
-    2) printf '%s' "支持 Debian 12/13、Ubuntu 24.04 LTS 和 x86_64/aarch64；检测到架构 ${arch}。" ;;
+    2) printf '%s' "支持 Debian 12/13、Ubuntu 24.04/26.04 LTS 和 x86_64/aarch64；检测到架构 ${arch}。" ;;
     3) printf '%s' "需要至少 384 MiB RAM；检测到 ${cpus} vCPU、${mem_mib} MiB RAM。" ;;
     *) printf '%s' '环境检测发生未知错误。' ;;
   esac

@@ -98,7 +98,7 @@ rc=$?
 set -e
 [ "$rc" -eq 1 ] || fail "invalid CPU count returned ${rc}, expected 1"
 
-for valid_port in 1 99 100 200 500 1000 1001 10000 0200; do
+for valid_port in 1 99 100 200 500 1000 1001 2000 10000 0200; do
   validate_port_speed "$valid_port" || fail "valid port rejected: ${valid_port}"
 done
 for invalid_port in 0 10001 20000 abc 20.0 ''; do
@@ -299,7 +299,7 @@ assert_menu_exit $'3\n0' 0 '该项当前不可用' 'unavailable key explains the
 # Frame rows: 66 columns, frame character set only, in Unicode and ASCII modes.
 set_menu_facts 1 1 VERIFIED
 # shellcheck disable=SC2034  # Consumed by the sourced controller.
-HOME_STATE_VERSION=0.2.0 HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
+HOME_STATE_VERSION="$CONTROLLER_VERSION" HOME_STATE_PORT=200 HOME_STATE_UPDATED=2026-10-12T00:00:00Z
 for ascii in '' 1; do
   DVT_ASCII="$ascii" TERM=xterm ui_init
   # shellcheck disable=SC2034  # Consumed by the sourced controller.

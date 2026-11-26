@@ -7,7 +7,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-SCRIPT_VERSION='0.2.0'
+SCRIPT_VERSION='0.3.0-rc.1'
 STATE_SCHEMA_VERSION=4
 LEGACY_STATE_SCHEMA_VERSION=3
 NAMESPACE='proxy-vps'
@@ -291,7 +291,7 @@ check_supported_os() {
   local kernel
   kernel="$(uname -r)"
   case "$TARGET_OS_ID:$TARGET_OS_VERSION:$kernel" in
-    debian:12:6.1.* | debian:13:6.12.* | ubuntu:24.04:6.8.*) ;;
+    debian:12:6.1.* | debian:13:6.12.* | ubuntu:24.04:6.8.* | ubuntu:26.04:7.0.*) ;;
     *) warn "内核 ${kernel} 不属于当前验证基线；将继续按实际 BBR/fq 能力判断。" ;;
   esac
 }

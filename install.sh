@@ -6,10 +6,10 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-INSTALLER_VERSION='0.2.0'
-RELEASE_TAG='v0.2.0'
+INSTALLER_VERSION='0.3.0-rc.1'
+RELEASE_TAG='v0.3.0-rc.1'
 REPOSITORY='alieismy/debian-vps-tuning'
-EXPECTED_MANIFEST_SHA256='803b371b754757e054faeadfb08fa3d03036e927a89c3cc2c108fed40c7fcc0b'
+EXPECTED_MANIFEST_SHA256='131d717641769b14383295e8c8367eaf2b28cac11d0d3594007b0fa754bbbe11'
 DEFAULT_PREFIX='/usr/local'
 
 source_dir=''
@@ -28,6 +28,7 @@ assets=(
   debian12-adaptive-vps-tuning.sh
   debian13-adaptive-vps-tuning.sh
   ubuntu2404-adaptive-vps-tuning.sh
+  ubuntu2604-adaptive-vps-tuning.sh
   tcpquality-evidence.sh
   dvt-traffic-budget.sh
   dvt-migrate.sh
@@ -54,7 +55,7 @@ Usage:
   bash install.sh [--no-launch]
   bash install.sh --source-dir /absolute/release-assets [--prefix /usr/local] [--no-launch]
 
-Remote mode downloads only the fixed v0.2.0 Release. It first verifies
+Remote mode downloads only the fixed v0.3.0-rc.1 Release. It first verifies
 the pinned SHA-256 of SHA256SUMS, then verifies every installed asset. Local
 mode is intended for release validation and also requires a complete matching
 SHA256SUMS. Installation itself does not apply tuning or run network traffic.

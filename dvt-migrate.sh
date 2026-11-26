@@ -6,7 +6,7 @@ IFS=$'\n\t'
 PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 export PATH
 
-TOOL_VERSION='0.2.0'
+TOOL_VERSION='0.3.0-rc.1'
 STATE_FILE="${DVT_STATE_FILE:-/var/lib/proxy-vps-tuning/state.json}"
 
 action=''
@@ -75,8 +75,8 @@ validate_migration_edge() {
   [[ "$target_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || die 'target version 格式无效。'
   [ "$target_version" = "$TOOL_VERSION" ] || die '目标必须与迁移器版本一致。'
   case "$source_version:$target_version" in
-    0.2.0-rc.[45]:0.2.0-rc.6 | 0.2.0-rc.[456]:0.2.0) ;;
-    *) die '本版迁移器仅接受明确支持的 rc.4/rc.5→rc.6 或 rc.4/rc.5/rc.6→0.2.0。' ;;
+    0.2.0-rc.[45]:0.2.0-rc.6 | 0.2.0-rc.[456]:0.2.0 | 0.2.0-rc.[456]:0.3.0-rc.1) ;;
+    *) die '本版迁移器仅接受明确支持的 rc.4/rc.5→rc.6 或 rc.4/rc.5/rc.6→0.2.0/0.3.0-rc.1；不接受 Ubuntu 跨OS迁移或0.2.0已受管状态。' ;;
   esac
 }
 

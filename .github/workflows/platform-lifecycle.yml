@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [debian12, debian13, ubuntu2404]
+        platform: [debian12, debian13, ubuntu2404, ubuntu2604]
         # 独立原生 ARM runner，不把 x86 上的架构字符串 fixture 当 ARM 运行证据。
         arch: [amd64, arm64]
         resource: [adaptive]

@@ -1,5 +1,7 @@
 # VPS Tuning
 
+The development branch is adding **0.3.0-rc.1 / Ubuntu 26.04 LTS** for fresh installs; see the [candidate status](docs/releases/v0.3.0-rc.1.md). Public install instructions below still target rc.5. The frozen 0.2.0 candidate and its host acceptance remain separate.
+
 Development status: the [unpublished 0.2.0 candidate](docs/releases/v0.2.0.md) is frozen after its own Linux main CI, seven fresh-install lifecycles and four migrations passed. Public installation below remains pinned to rc.5; production migration, business acceptance and public release remain pending.
 
 English | [简体中文](README.zh-CN.md)

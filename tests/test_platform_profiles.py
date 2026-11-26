@@ -31,16 +31,29 @@ source ./debian-vps-tuning.sh
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT
 for arch in x86_64 aarch64; do
-  for platform in 'debian 12 debian12' 'debian 13 debian13' 'ubuntu 24.04 ubuntu2404'; do
+  for platform in 'debian 12 debian12' 'debian 13 debian13' 'ubuntu 24.04 ubuntu2404' 'ubuntu 26.04 ubuntu2604'; do
     IFS=' ' read -r os version prefix <<<"$platform"
     printf 'ID=%s\nVERSION_ID=%s\n' "$os" "$version" >"$tmp/os"
-    for resources in '2 1024' '4 8192' '4 24576' '128 1048576'; do
+    for resources in '2 1024' '4 4096' '4 8192' '4 24576' '128 1048576'; do
       IFS=' ' read -r cpu ram <<<"$resources"
       printf 'MemTotal: %s kB\n' "$((ram*1024))" >"$tmp/mem"
       result=$(detect_profile_from "$tmp/os" "$tmp/mem" "$arch" "$cpu")
       [[ "$result" == "$prefix-adaptive"$'\t'* ]]
     done
   done
+done
+''')
+
+    def test_ubuntu_release_allowlist_remains_explicit(self):
+        self.run_shell(r'''
+set -euo pipefail
+source ./debian-vps-tuning.sh
+tmp=$(mktemp -d)
+trap 'rm -rf -- "$tmp"' EXIT
+printf 'MemTotal: 4194304 kB\n' >"$tmp/mem"
+for version in 22.04 25.10 26.10 28.04; do
+  printf 'ID=ubuntu\nVERSION_ID=%s\n' "$version" >"$tmp/os"
+  if detect_profile_from "$tmp/os" "$tmp/mem" x86_64 4; then exit 1; else test "$?" = 2; fi
 done
 ''')
 
@@ -138,7 +151,7 @@ check_resource_profile
 ''')
 
     def test_generated_new_profile_defaults(self):
-        for name in ('debian12', 'debian13', 'ubuntu2404'):
+        for name in ('debian12', 'debian13', 'ubuntu2404', 'ubuntu2604'):
             source = (ROOT / f'{name}-adaptive-vps-tuning.sh').read_text(encoding='utf-8')
             self.assertIn('ENABLE_SWAP="${ENABLE_SWAP:-0}"', source)
             self.assertIn("PROFILE_RESOURCE_POLICY='adaptive'", source)

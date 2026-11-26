@@ -6,6 +6,11 @@ cd /root/dvt-bundle
 evidence=/root/dvt-evidence
 state=/var/lib/proxy-vps-tuning/state.json
 mkdir -p "$evidence"
+initial_port=1
+# 新平台以用户关注的2000Mbps输入验证；既有平台仍保留1Mbps下界。
+# shellcheck disable=SC1091
+. /etc/os-release
+if [ "$ID:$VERSION_ID" = ubuntu:26.04 ]; then initial_port=2000; fi
 
 snapshot() {
   python3 - "$1" <<'PY'
@@ -25,6 +30,14 @@ case "$1" in
     modprobe tcp_bbr
     modprobe sch_fq
     cat /etc/os-release >"$evidence/os-release"
+    dpkg-query -W -f='${binary:Package} ${Version}\n' >"$evidence/package-versions.txt"
+    {
+      systemctl --version
+      for utility in stat readlink install chmod chown sha256sum cp mv; do
+        command -v "$utility"
+        "$utility" --version | sed -n '1p'
+      done
+    } >"$evidence/system-utilities.txt"
     uname -a >"$evidence/uname.txt"
     getconf PAGESIZE >"$evidence/page-size.txt"
     cat /proc/meminfo >"$evidence/meminfo.txt"
@@ -33,17 +46,18 @@ case "$1" in
     snapshot before
     bash install.sh --source-dir /root/dvt-bundle --no-launch
     bash install.sh --source-dir /root/dvt-bundle --no-launch
-    dvt preflight --port 1
-    dvt apply --port 1
+    dvt preflight --port "$initial_port"
+    dvt apply --port "$initial_port"
     dvt verify
+    jq -e --argjson port "$initial_port" '.network.port_speed_mbps==$port' "$state" >/dev/null
     cp "$state" "$evidence/initial-state.json"
-    dvt apply --port 1
+    dvt apply --port "$initial_port"
     # 第二次 apply 应只验证，不重写状态或受管文件。
     cmp "$state" "$evidence/initial-state.json"
     dvt reconfigure --port 10000
     dvt verify
     cp "$state" "$evidence/high-port-state.json"
-    dvt reconfigure --port 1
+    dvt reconfigure --port "$initial_port"
     dvt verify
     cp "$state" "$evidence/before-reboot-state.json"
     python3 tests/platform-htb-native.py
@@ -52,7 +66,7 @@ case "$1" in
     test "$(cat /proc/sys/kernel/random/boot_id)" != "$(cat "$evidence/boot-before")"
     cat /proc/sys/kernel/random/boot_id >"$evidence/boot-after"
     dvt verify
-    dvt apply --port 1
+    dvt apply --port "$initial_port"
     cp "$state" "$evidence/after-reboot-state.json"
     jq -e '.schema_version==4 and .state=="VERIFIED" and
       (.profile.os_id=="debian" or .profile.os_id=="ubuntu") and

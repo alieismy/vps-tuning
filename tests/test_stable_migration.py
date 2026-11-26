@@ -51,6 +51,11 @@ done
 TOOL_VERSION=0.2.0; target_version=$TOOL_VERSION
 for source_version in 0.2.0-rc.4 0.2.0-rc.5 0.2.0-rc.6; do validate_migration_edge; done
 target_version=0.2.1; result=0; (validate_migration_edge) || result=$?; [ "$result" = 2 ]
+TOOL_VERSION=0.3.0-rc.1; target_version=$TOOL_VERSION
+for source_version in 0.2.0-rc.4 0.2.0-rc.5 0.2.0-rc.6; do validate_migration_edge; done
+for source_version in 0.2.0 0.3.0-rc.1; do
+  result=0; (validate_migration_edge) || result=$?; [ "$result" = 2 ]
+done
 ''')
 
     def freeze(self, data, extra='', expected=0):

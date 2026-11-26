@@ -34,5 +34,17 @@
       "algorithm": "sha256",
       "digest": "1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55"
     }
+  },
+  "ubuntu2604": {
+    "amd64": {
+      "url": "https://cloud-images.ubuntu.com/releases/resolute/release-20261108/ubuntu-26.04-server-cloudimg-amd64.img",
+      "algorithm": "sha256",
+      "digest": "7b90593f5532b49b7e3fe3d2743f0d1f0d822e5b07cebcd8e00c0df8069ecab9"
+    },
+    "arm64": {
+      "url": "https://cloud-images.ubuntu.com/releases/resolute/release-20261108/ubuntu-26.04-server-cloudimg-arm64.img",
+      "algorithm": "sha256",
+      "digest": "cf3b8472b84e7de37cdc2d2e9a9bf82b3edf0ab97113a1422eff048f26688e2f"
+    }
   }
 }

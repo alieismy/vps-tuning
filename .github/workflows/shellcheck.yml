@@ -66,6 +66,7 @@ jobs:
             debian12-adaptive-vps-tuning.sh \
             debian13-adaptive-vps-tuning.sh \
             ubuntu2404-adaptive-vps-tuning.sh \
+            ubuntu2604-adaptive-vps-tuning.sh \
             tcpquality-evidence.sh \
             dvt-traffic-budget.sh \
             dvt-migrate.sh \

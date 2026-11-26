@@ -14,6 +14,7 @@ scripts=(
   debian12-adaptive-vps-tuning.sh
   debian13-adaptive-vps-tuning.sh
   ubuntu2404-adaptive-vps-tuning.sh
+  ubuntu2604-adaptive-vps-tuning.sh
 )
 controller='debian-vps-tuning.sh'
 tcpquality_tool='tcpquality-evidence.sh'
@@ -146,7 +147,7 @@ expected_keys=17
 for script in "${scripts[@]}"; do
   actual="$(awk '/^PROFILE_SYSCTL_KEYS=\(/,/^\)/ {if ($1 ~ /^(net\.|vm\.)/) count++} END {print count+0}' "$script")"
   [ "$actual" -eq "$expected_keys" ] || { printf 'unexpected managed-key count: %s (%s)\n' "$script" "$actual" >&2; exit 1; }
-  grep -Fq "SCRIPT_VERSION='0.2.0'" "$script"
+  grep -Fq "SCRIPT_VERSION='0.3.0-rc.1'" "$script"
   grep -Eq '^STATE_SCHEMA_VERSION=4$' "$script"
   grep -Eq '^LEGACY_STATE_SCHEMA_VERSION=3$' "$script"
   grep -Fq 'PROFILE_CPU_MIN=' "$script"
@@ -333,8 +334,8 @@ for script in "${scripts[@]}"; do
   }
 done
 
-grep -Fq "CONTROLLER_VERSION='0.2.0'" "$controller"
-grep -Fq "RELEASE_TAG='v0.2.0'" "$controller"
+grep -Fq "CONTROLLER_VERSION='0.3.0-rc.1'" "$controller"
+grep -Fq "RELEASE_TAG='v0.3.0-rc.1'" "$controller"
 grep -Fq "DEFAULT_PORT_SPEED_MBPS=200" "$controller"
 grep -Fq 'verify_profile_contract' "$controller"
 grep -Fq 'debian12-1c512m-vps-tuning.sh' "$controller"
@@ -371,7 +372,7 @@ if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://
   exit 1
 fi
 
-grep -Fq "RELEASE_TAG='v0.2.0'" "$installer"
+grep -Fq "RELEASE_TAG='v0.3.0-rc.1'" "$installer"
 grep -Eq "EXPECTED_MANIFEST_SHA256='[0-9a-f]{64}'" "$installer"
 if grep -Fq "EXPECTED_MANIFEST_SHA256='0000000000000000000000000000000000000000000000000000000000000000'" "$installer"; then
   printf 'installer manifest digest placeholder was not finalized\n' >&2
@@ -383,8 +384,8 @@ grep -Fq '安装过程没有执行 preflight/apply' "$installer"
 manifest_hash="$(sha256sum SHA256SUMS | awk '{print $1}')"
 grep -Fq "EXPECTED_MANIFEST_SHA256='${manifest_hash}'" "$installer"
 installer_hash="$(sha256sum "$installer" | awk '{print $1}')"
-grep -Fq "$installer_hash" docs/releases/v0.2.0.md
-grep -Fq "$manifest_hash" docs/releases/v0.2.0.md
+grep -Fq "$installer_hash" docs/releases/v0.3.0-rc.1.md
+grep -Fq "$manifest_hash" docs/releases/v0.3.0-rc.1.md
 if grep -Eq 'raw\.githubusercontent\.com|/master/|/main/|releases/latest|http://' "$installer"; then
   printf 'mutable or insecure installer download source detected\n' >&2
   exit 1

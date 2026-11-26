@@ -19,7 +19,7 @@ def run(argv, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--platform', choices=['debian12', 'debian13', 'ubuntu2404'], required=True)
+    parser.add_argument('--platform', choices=['debian12', 'debian13', 'ubuntu2404', 'ubuntu2604'], required=True)
     parser.add_argument('--arch', choices=['amd64', 'arm64'], required=True)
     parser.add_argument('--resource-profile', choices=['adaptive', 'legacy'], default='adaptive')
     parser.add_argument('--migration-source', choices=['0.2.0-rc.4', '0.2.0-rc.5'])
@@ -54,6 +54,10 @@ def main():
         'packages': ['jq', 'iproute2', 'procps', 'kmod', 'util-linux', 'python3', 'curl'],
         'runcmd': [['touch', '/root/dvt-cloud-ready']],
     }
+    if args.platform == 'ubuntu2604':
+        # 固定26.04镜像manifest已含全部依赖；验证镜像原生工具，不借用24.04包。
+        user_data.update(package_update=False, package_upgrade=False, packages=[])
+        user_data['runcmd'] = [['bash', '-ec', 'for tool in jq ip tc sysctl modprobe swapon python3 curl; do command -v "$tool"; done\ntouch /root/dvt-cloud-ready']]
     if args.platform == 'ubuntu2404' and args.arch == 'arm64':
         # Ubuntu 的 universe/翻译/DEP-11 索引在 TCG 下使准备阶段超过 25 分钟。
         # runner 与客体同为 Ubuntu 24.04 ARM64；仅提前取得 jq 的三个官方 deb，
@@ -94,7 +98,7 @@ touch /root/dvt-cloud-ready''']]
     qemu = ['qemu-system-' + ('x86_64' if args.arch == 'amd64' else 'aarch64')]
     kvm = os.access('/dev/kvm', os.R_OK | os.W_OK)
     cpu = 'host' if kvm else ('max' if args.arch == 'arm64' else 'qemu64')
-    if not kvm and args.platform == 'ubuntu2404' and args.arch == 'arm64':
+    if not kvm and args.platform in ('ubuntu2404', 'ubuntu2604') and args.arch == 'arm64':
         # Ubuntu 的 PAC 指令在 TCG 默认 QARMA5 下使启动与生命周期超时。
         # 只在隔离功能客体使用 QEMU 的快速实现，保留 PAuth 能力和所有断言；
         # 不据此证明硬件性能或指针认证的密码强度。
