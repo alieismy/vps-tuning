@@ -1,5 +1,26 @@
 # 验证说明
 
+<a id="ubuntu2604-development"></a>
+
+## Ubuntu 26.04 后继开发候选（2026-11-26）
+
+用户批准的 `0.3.0-rc.1` 新装适配已完成工程与隔离功能验证，未公开发布，不扩大下方已冻结0.2.0的支持或验收范围。运行制品提交为 `21cd9998af809eb8281e4f92beebb0d613358737`，测试修订提交为 `0d6baa850ec3dc3734bc770e765e60c391adf2ed`（27项安装制品不变），范围与安装限制见[开发候选说明](releases/v0.3.0-rc.1.md)。
+
+- 本地生成一致性、Bash语法、ShellCheck、10个profile静态检查通过；207项测试中17项按Windows环境跳过。平台选择9项通过，迁移契约13项中5项需Linux/root；文档链接、diff格式与新增内容隐私检查通过。
+- [Linux主CI](https://github.com/alieismy/vps-tuning/actions/runs/45795150805)在测试修订提交上通过：207项测试中6项按条件跳过，另外以root运行恢复22项与迁移13项、安装生命周期、原生tc隔离流量与固定ShellCheck检查。
+- [平台生命周期](https://github.com/alieismy/vps-tuning/actions/runs/45795150884)最终13组成功：Debian12/13、Ubuntu24.04/26.04的amd64与ARM64共8组adaptive新装，加Debian13 amd64 legacy新装1组；Debian固定来源rc.4/rc.5迁移4组（含rc.4 adaptive/无swap）。新装覆盖安装、apply、幂等、重配置、两次真实客体重启、verify与回滚；迁移继续核对来源固定资产、意图和17项恢复原值。
+
+| Ubuntu26.04客体 | 虚拟机资源与执行方式 | 输入与实际缓冲 | 结果 |
+| --- | --- | --- | --- |
+| amd64 | KVM，4vCPU、4096MiB | 2000Mbps、200ms，auto 67108864 bytes（64MiB） | 完整新装生命周期通过 |
+| ARM64 | TCG，2vCPU、1536MiB，`max,pauth-impdef=on` | 2000Mbps、200ms，auto-clamped 47218688 bytes | 完整新装生命周期通过；不是4C4G ARM硬件或性能验收 |
+
+两组均完成10000Mbps重配置及恢复2000Mbps，实际运行Linux7.0.0-43、systemd259.9；stat/readlink/install/chmod/chown/sha256sum为uutils0.10.0，cp/mv为GNU9.7，未替换镜像默认工具。最低384MiB仍只是资源输入门槛，本轮不证明Ubuntu26.04在该内存能完成实际生命周期；2000Mbps输入也不构成2Gbps吞吐验收。
+
+**失败记录与接续。** 首轮两个Ubuntu26.04客体的即时回滚均17项精确一致，但跨启动的内核tcp_rmem默认上限变化32字节，使旧断言失败。测试修订增加只读启动探针，以同次启动默认值精确核对该项，其他16项跨启动比较、17项即时回滚和全部文件/队列恢复断言保留，详见候选说明。修订轮12组直接通过，Ubuntu26.04 ARM64在探针完成后的第二次启动等待BOOT/UEFI设备超时，进入emergency mode；同一提交仅重跑失败任务一次后成功，其他12组沿用同一提交的成功结果。没有修改代码、延长期限或放宽断言；该启动超时未在此次重跑复现，不能据此证明TCG是唯一原因或真实云启动稳定性。
+
+**归档与边界。** 13份最终归档逐项核对GitHub SHA-256、提交、镜像pin、COMPLETED标志、版本、boot ID、网络意图、17项原值和队列恢复；迁移还核对checkpoint COMPLETE及固定来源摘要，adaptive迁移9个无swap检查点全部通过。原失败日志、候选27项回执与最终证据保存在 `.tmp/local/ubuntu2604-adaptive/`。0.2.0冻结bundle的26项摘要全部不变。未连接或变更真实VPS，未创建tag/Release；Ubuntu跨OS迁移、0.2.0受管状态迁入0.3.0、新平台真实云业务/性能均未覆盖，0.2.0原业务与发布门禁保持原记录。
+
 <a id="current-fleet-baseline"></a>
 
 ## 当前部署基线（2026-11-24）
